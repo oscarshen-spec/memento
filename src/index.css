@@ -1,0 +1,183 @@
+@import "tailwindcss";
+
+@theme {
+  --font-serif: "Cormorant Garamond", serif;
+  --font-sans: "Inter", sans-serif;
+}
+
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&family=Inter:wght@100..900&display=swap');
+
+:root {
+  --paper-cream: #fdfaf3;
+  --paper-shadow: rgba(0, 0, 0, 0.15);
+}
+
+body {
+  background-color: #0f0805;
+  font-family: var(--font-sans);
+  overflow: hidden;
+}
+
+.wood-texture {
+  background-color: #8b5e3c;
+  background-image: var(--desk-texture);
+  background-size: cover;
+  background-position: center;
+  box-shadow: inset 0 0 100px rgba(0,0,0,0.3);
+  filter: contrast(1.05) brightness(0.95);
+}
+
+.desk-edge {
+  height: 8px;
+  background: linear-gradient(to bottom, #b07848, #6b3f22);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.6);
+  flex-shrink: 0;
+  width: 100%;
+}
+
+.drawer-front {
+  background-color: #5a2e10;
+  background-image: var(--drawer-texture);
+  background-size: cover;
+  background-position: bottom;
+  box-shadow: inset 0 3px 12px rgba(0,0,0,0.3), inset 0 1px 3px rgba(255,255,255,0.06);
+}
+
+.drawer-handle {
+  width: 48px;
+  height: 6px;
+  background: linear-gradient(to bottom, #d4aa50, #8a6020, #d4aa50);
+  border-radius: 3px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.5), inset 0 1px 1px rgba(255,255,255,0.4);
+  position: relative;
+}
+
+.drawer-handle::before,
+.drawer-handle::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 5px;
+  height: 5px;
+  background: #4a2e08;
+  border-radius: 50%;
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.6);
+}
+
+.drawer-handle::before { left: 2px; }
+.drawer-handle::after { right: 2px; }
+
+/* ── Book Layout ── */
+.book-container {
+  display: flex;
+  flex-direction: row;
+  border-radius: 6px;
+  overflow: hidden;
+  filter: drop-shadow(0 20px 50px rgba(0,0,0,0.6)) drop-shadow(0 2px 8px rgba(0,0,0,0.4));
+}
+
+.spine {
+  width: 36px;
+  flex-shrink: 0;
+  border-radius: 6px 0 0 6px;
+  background: linear-gradient(
+    to right,
+    #2a1208 0%,
+    #5c2a10 20%,
+    #8a4020 45%,
+    #6b3018 65%,
+    #3a1808 100%
+  );
+  position: relative;
+  overflow: hidden;
+}
+
+/* Leather grain */
+.spine::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 6px,
+    rgba(255, 255, 255, 0.04) 6px,
+    rgba(255, 255, 255, 0.04) 7px
+  );
+}
+
+/* Gold title band */
+.spine::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 4px;
+  right: 4px;
+  transform: translateY(-50%);
+  height: 48px;
+  border: 1px solid rgba(212, 170, 80, 0.4);
+  border-radius: 2px;
+}
+
+.page-stack {
+  width: 14px;
+  flex-shrink: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    #e8e0d0 0px,
+    #e8e0d0 1px,
+    #f5f0e8 1px,
+    #f5f0e8 3px
+  );
+  box-shadow: inset -3px 0 8px rgba(0, 0, 0, 0.15);
+}
+
+.gutter {
+  width: 18px;
+  flex-shrink: 0;
+  background: linear-gradient(
+    to right,
+    rgba(0, 0, 0, 0.35) 0%,
+    rgba(0, 0, 0, 0.12) 60%,
+    transparent 100%
+  );
+}
+
+.page {
+  flex: 1;
+  background: #fefcf5;
+  position: relative;
+  border-radius: 0 6px 6px 0;
+  overflow: hidden;
+  box-shadow: inset -4px 0 12px rgba(0, 0, 0, 0.06);
+}
+
+.washi-tape {
+  background: repeating-linear-gradient(
+    45deg,
+    #333,
+    #333 5px,
+    #eee 5px,
+    #eee 10px
+  );
+  opacity: 0.8;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+.scrap-shadow {
+  box-shadow: 2px 4px 12px var(--paper-shadow);
+}
+
+.torn-edge {
+  filter: url(#torn-filter);
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
