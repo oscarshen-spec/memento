@@ -29,7 +29,6 @@ export default function App() {
   
   const [view, setView] = useState<'scrapbook' | 'camera' | 'cutting' | 'drawer' | 'journal'>('scrapbook');
   const [currentMaterial, setCurrentMaterial] = useState<RawMaterial | null>(null);
-  const [tearMode, setTearMode] = useState(false);
 
   const currentPage = pages[currentPageIndex];
 
@@ -160,15 +159,6 @@ export default function App() {
     setView('drawer');
   };
 
-  const handleTearScrap = (id: string, newPoints: Point[]) => {
-    const updatedPages = [...pages];
-    updatedPages[currentPageIndex].scraps = updatedPages[currentPageIndex].scraps.map(s =>
-      s.id === id ? { ...s, points: newPoints, isTorn: true } : s
-    );
-    setPages(updatedPages);
-    setTearMode(false);
-  };
-
   const updateScrap = (id: string, attrs: Partial<Scrap>) => {
     const updatedPages = [...pages];
     updatedPages[currentPageIndex].scraps = updatedPages[currentPageIndex].scraps.map(s => 
@@ -204,17 +194,6 @@ export default function App() {
         {/* Top Bar - Subtle icons on the desk */}
         <div className="w-full h-16 flex justify-between items-center px-6 md:px-12 shrink-0 z-10">
           <div className="flex gap-8">
-            <button
-              onClick={() => setTearMode(t => !t)}
-              title="Drag across a scrap to tear it"
-              className={`text-xs font-bold uppercase tracking-widest transition-all active:scale-90 px-3 py-1 rounded-full ${
-                tearMode
-                  ? 'bg-white/20 text-white'
-                  : 'text-white/50 hover:text-white/80 hover:bg-white/10'
-              }`}
-            >
-              Tear
-            </button>
           </div>
 
           <div className="flex items-center gap-4">
@@ -266,8 +245,6 @@ export default function App() {
                 onUpdateEntry={updateEntry}
                 onReturnScrap={handleReturnScrap}
                 dimensions={{ width: bookDims.width - 68, height: bookDims.height }}
-                tearMode={tearMode}
-                onTearScrap={handleTearScrap}
               />
             </div>
           </div>
