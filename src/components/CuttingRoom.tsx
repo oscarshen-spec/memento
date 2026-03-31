@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Scissors, RotateCcw, Check, X, RefreshCw } from 'lucide-react';
+import { RotateCcw, Check, X } from 'lucide-react';
 import { Point } from '../types';
 
 interface CuttingRoomProps {
@@ -8,12 +8,41 @@ interface CuttingRoomProps {
   onCancel: () => void;
 }
 
+type GestureState = 'idle' | 'pending' | 'panning' | 'anchored' | 'ripping' | 'torn';
+
+interface FingerA {
+  id: number;
+  pos: Point;
+}
+
+interface FingerB {
+  id: number;
+  pos: Point;
+  trail: Point[];
+}
+
 export const CuttingRoom: React.FC<CuttingRoomProps> = ({ image, onCut, onCancel }) => {
-  // Tear mode state
+  const [gestureState, setGestureState] = useState<GestureState>('idle');
+  const [fingerA, setFingerA] = useState<FingerA | null>(null);
+  const [fingerB, setFingerB] = useState<FingerB | null>(null);
+  const [canvasTransform, setCanvasTransform] = useState({ x: 0, y: 0, scale: 1 });
   const [tearPolygon, setTearPolygon] = useState<Point[] | null>(null);
+
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const panRef = useRef<{ dist: number; mid: Point } | null>(null);
+  const ripSpeed = useRef<number[]>([]);
+  const lastRipTime = useRef<number>(0);
+  const lastRipPos = useRef<Point | null>(null);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (longPressTimer.current) clearTimeout(longPressTimer.current);
+    };
+  }, []);
 
   const generateTearPolygon = (trail: Point[], roughness: number, cw: number, ch: number): Point[] => {
     const start = trail[0];
@@ -69,72 +98,40 @@ export const CuttingRoom: React.FC<CuttingRoomProps> = ({ image, onCut, onCancel
     const img = new Image();
     img.src = image;
 
-    const scale = Math.min(canvas.width / img.width, canvas.height / img.height);
-    const x = (canvas.width - img.width * scale) / 2;
-    const y = (canvas.height - img.height * scale) / 2;
-    ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
+    // Draw image with pan/zoom transform applied
+    ctx.save();
+    ctx.translate(canvasTransform.x, canvasTransform.y);
+    ctx.scale(canvasTransform.scale, canvasTransform.scale);
+    const imgScale = Math.min(canvas.width / img.width, canvas.height / img.height);
+    const imgX = (canvas.width - img.width * imgScale) / 2;
+    const imgY = (canvas.height - img.height * imgScale) / 2;
+    ctx.drawImage(img, imgX, imgY, img.width * imgScale, img.height * imgScale);
+    ctx.restore();
 
-    if (mode === 'cut') {
-      if (points.length > 0) {
-        ctx.beginPath();
-        ctx.moveTo(points[0].x, points[0].y);
-        points.forEach(p => ctx.lineTo(p.x, p.y));
-        ctx.strokeStyle = '#fff';
-        ctx.lineWidth = 2;
-        ctx.setLineDash([5, 5]);
-        ctx.stroke();
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
-        ctx.fill();
+    // Overlays drawn in raw canvas space (no transform)
+    if (gestureState === 'ripping' && fingerB && fingerB.trail.length >= 2) {
+      ctx.beginPath();
+      ctx.moveTo(fingerB.trail[0].x, fingerB.trail[0].y);
+      for (let i = 1; i < fingerB.trail.length; i++) {
+        ctx.lineTo(fingerB.trail[i].x, fingerB.trail[i].y);
       }
-    } else {
-      if (isDraggingTear && tearStart && tearEnd) {
-        // Live drag: show extended dashed tear line across full canvas
-        const dx = tearEnd.x - tearStart.x;
-        const dy = tearEnd.y - tearStart.y;
-        let lx = 0, ly: number, rx = canvas.width, ry: number;
-        if (Math.abs(dx) < 5) {
-          ly = (tearStart.y + tearEnd.y) / 2;
-          ry = ly;
-        } else {
-          const slope = dy / dx;
-          ly = tearStart.y - slope * tearStart.x;
-          ry = tearStart.y + slope * (canvas.width - tearStart.x);
-        }
-        ly = Math.max(0, Math.min(canvas.height, ly));
-        ry = Math.max(0, Math.min(canvas.height, ry));
+      ctx.strokeStyle = '#F59E0B';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([10, 6]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
 
-        // Shade kept area
-        ctx.beginPath();
-        ctx.moveTo(0, 0);
-        ctx.lineTo(canvas.width, 0);
-        ctx.lineTo(rx, ry);
-        ctx.lineTo(lx, ly);
-        ctx.closePath();
-        ctx.fillStyle = 'rgba(255,255,255,0.15)';
-        ctx.fill();
-
-        // Tear line
-        ctx.beginPath();
-        ctx.moveTo(lx, ly);
-        ctx.lineTo(rx, ry);
-        ctx.strokeStyle = 'rgba(255,255,255,0.85)';
-        ctx.lineWidth = 2;
-        ctx.setLineDash([10, 6]);
-        ctx.stroke();
-        ctx.setLineDash([]);
-
-      } else if (tearPolygon) {
-        // Finalized torn polygon
-        ctx.beginPath();
-        tearPolygon.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
-        ctx.closePath();
-        ctx.fillStyle = 'rgba(255,255,255,0.2)';
-        ctx.fill();
-        ctx.strokeStyle = 'rgba(255,255,255,0.9)';
-        ctx.lineWidth = 2.5;
-        ctx.setLineDash([]);
-        ctx.stroke();
-      }
+    if (gestureState === 'torn' && tearPolygon) {
+      ctx.beginPath();
+      tearPolygon.forEach((p, i) => (i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y)));
+      ctx.closePath();
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+      ctx.lineWidth = 2.5;
+      ctx.setLineDash([]);
+      ctx.stroke();
     }
   };
 
@@ -149,89 +146,243 @@ export const CuttingRoom: React.FC<CuttingRoomProps> = ({ image, onCut, onCancel
     window.addEventListener('resize', handleResize);
     handleResize();
     return () => window.removeEventListener('resize', handleResize);
-  }, [image, points, tearPolygon, mode, tearStart, tearEnd, isDraggingTear]);
+  }, [image, gestureState, fingerB, tearPolygon, canvasTransform]);
+
+  const handleReset = () => {
+    if (longPressTimer.current) clearTimeout(longPressTimer.current);
+    setGestureState('idle');
+    setFingerA(null);
+    setFingerB(null);
+    setTearPolygon(null);
+    ripSpeed.current = [];
+    lastRipPos.current = null;
+  };
+
+  // Touch helpers
+  const getTouchPos = (touch: React.Touch): Point => {
+    const rect = canvasRef.current?.getBoundingClientRect();
+    if (!rect) return { x: 0, y: 0 };
+    return { x: touch.clientX - rect.left, y: touch.clientY - rect.top };
+  };
+
+  const pinchDistance = (t1: React.Touch, t2: React.Touch): number => {
+    const dx = t1.clientX - t2.clientX;
+    const dy = t1.clientY - t2.clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+  };
+
+  const pinchMidpoint = (t1: React.Touch, t2: React.Touch): Point => ({
+    x: (t1.clientX + t2.clientX) / 2,
+    y: (t1.clientY + t2.clientY) / 2,
+  });
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    e.preventDefault();
+    const allTouches = e.touches;
+    const changedTouches = e.changedTouches;
+
+    if (gestureState === 'idle' && allTouches.length === 1) {
+      const touch = changedTouches[0];
+      setFingerA({ id: touch.identifier, pos: getTouchPos(touch) });
+      setGestureState('pending');
+      longPressTimer.current = setTimeout(() => {
+        setGestureState('anchored');
+        if (navigator.vibrate) navigator.vibrate(80);
+      }, 400);
+
+    } else if (gestureState === 'pending' && allTouches.length === 2) {
+      if (longPressTimer.current) clearTimeout(longPressTimer.current);
+      const t1 = allTouches[0];
+      const t2 = allTouches[1];
+      panRef.current = { dist: pinchDistance(t1, t2), mid: pinchMidpoint(t1, t2) };
+      setGestureState('panning');
+
+    } else if (gestureState === 'anchored' && allTouches.length === 2) {
+      const newTouch = Array.from(changedTouches).find(t => t.identifier !== fingerA?.id);
+      if (newTouch) {
+        const pos = getTouchPos(newTouch);
+        ripSpeed.current = [];
+        lastRipTime.current = performance.now();
+        lastRipPos.current = pos;
+        setFingerB({ id: newTouch.identifier, pos, trail: [pos] });
+        setGestureState('ripping');
+      }
+
+    } else if (gestureState === 'torn' && allTouches.length === 1) {
+      const touch = changedTouches[0];
+      setTearPolygon(null);
+      setFingerB(null);
+      setFingerA({ id: touch.identifier, pos: getTouchPos(touch) });
+      setGestureState('pending');
+      longPressTimer.current = setTimeout(() => {
+        setGestureState('anchored');
+        if (navigator.vibrate) navigator.vibrate(80);
+      }, 400);
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    e.preventDefault();
+
+    if (gestureState === 'panning' && e.touches.length === 2) {
+      if (!panRef.current) return;
+      const t1 = e.touches[0];
+      const t2 = e.touches[1];
+      const newDist = pinchDistance(t1, t2);
+      const newMid = pinchMidpoint(t1, t2);
+      const scaleFactor = panRef.current.dist > 0 ? newDist / panRef.current.dist : 1;
+
+      setCanvasTransform(prev => ({
+        scale: Math.max(0.5, Math.min(4, prev.scale * scaleFactor)),
+        x: prev.x + (newMid.x - panRef.current!.mid.x),
+        y: prev.y + (newMid.y - panRef.current!.mid.y),
+      }));
+      panRef.current = { dist: newDist, mid: newMid };
+
+    } else if (gestureState === 'ripping' && fingerB) {
+      const touch = Array.from(e.touches).find(t => t.identifier === fingerB.id);
+      if (!touch) return;
+
+      const pos = getTouchPos(touch);
+      const now = performance.now();
+      const dt = now - lastRipTime.current;
+
+      if (dt > 0 && lastRipPos.current) {
+        const dx = pos.x - lastRipPos.current.x;
+        const dy = pos.y - lastRipPos.current.y;
+        ripSpeed.current.push(Math.sqrt(dx * dx + dy * dy) / dt);
+      }
+
+      lastRipTime.current = now;
+      lastRipPos.current = pos;
+      setFingerB(prev => prev ? { ...prev, pos, trail: [...prev.trail, pos] } : null);
+    }
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    const endedIds = new Set(Array.from(e.changedTouches).map(t => t.identifier));
+
+    if (gestureState === 'pending' && fingerA && endedIds.has(fingerA.id)) {
+      if (longPressTimer.current) clearTimeout(longPressTimer.current);
+      setFingerA(null);
+      setGestureState('idle');
+
+    } else if (gestureState === 'panning' && e.touches.length === 0) {
+      setGestureState('idle');
+
+    } else if (gestureState === 'anchored' && fingerA && endedIds.has(fingerA.id)) {
+      setFingerA(null);
+      setGestureState('idle');
+
+    } else if (gestureState === 'ripping') {
+      if (fingerA && endedIds.has(fingerA.id)) {
+        setFingerA(null);
+        setFingerB(null);
+        setGestureState('idle');
+      } else if (fingerB && endedIds.has(fingerB.id)) {
+        const canvas = canvasRef.current;
+        if (canvas && fingerB.trail.length >= 2) {
+          const samples = ripSpeed.current;
+          const avgSpeed =
+            samples.length > 0
+              ? samples.reduce((a, b) => a + b, 0) / samples.length
+              : 0.5;
+          // Linear map: 0.5 px/ms → roughness 0.3, 3.0 px/ms → roughness 2.0
+          const roughness = Math.max(0.3, Math.min(2.0, 0.3 + (avgSpeed - 0.5) * 0.68));
+          const polygon = generateTearPolygon(fingerB.trail, roughness, canvas.width, canvas.height);
+          setTearPolygon(polygon);
+          if (navigator.vibrate) navigator.vibrate([30, 20, 60]);
+        }
+        setFingerB(null);
+        setGestureState('torn');
+      }
+    }
+  };
+
+  const handleTouchCancel = (_e: React.TouchEvent) => {
+    handleReset();
+  };
+
+  const canFinish = gestureState === 'torn' && tearPolygon !== null;
+
+  const handleFinish = () => {
+    if (tearPolygon) onCut(tearPolygon, true);
+  };
+
+  const hintText: Partial<Record<GestureState, string>> = {
+    idle: 'Hold to anchor, swipe to tear',
+    pending: 'Hold…',
+    anchored: 'Now swipe to rip',
+  };
 
   return (
     <div className="fixed inset-0 z-50 bg-neutral-900/95 backdrop-blur-xl flex flex-col items-center justify-center p-0 md:p-4">
       <div className="w-full h-full md:max-w-4xl flex flex-col gap-4 md:gap-6 p-4 md:p-0">
+
+        {/* Header */}
         <div className="flex justify-between items-center text-white shrink-0">
           <div>
             <h2 className="text-xl md:text-2xl font-serif italic">The Cutting Room</h2>
-            <p className="text-[9px] md:text-sm text-white/40 uppercase tracking-widest">
-              {mode === 'cut' ? 'Draw a path to cut' : 'Drag across to tear'}
-            </p>
+            {hintText[gestureState] && (
+              <p className="text-[9px] md:text-sm text-white/40 uppercase tracking-widest">
+                {hintText[gestureState]}
+              </p>
+            )}
           </div>
           <div className="flex gap-2 md:gap-4 items-center">
-            {/* Mode Toggle */}
-            <div className="flex rounded-full overflow-hidden border border-white/20">
-              <button
-                onClick={() => { setMode('cut'); handleReset(); }}
-                className={`px-4 py-2 text-xs font-bold uppercase tracking-wide transition-colors flex items-center gap-2 ${
-                  mode === 'cut' ? 'bg-white text-black' : 'text-white/60 hover:text-white'
-                }`}
-              >
-                <Scissors size={13} />
-                Cut
-              </button>
-              <button
-                onClick={() => { setMode('tear'); handleReset(); }}
-                className={`px-4 py-2 text-xs font-bold uppercase tracking-wide transition-colors ${
-                  mode === 'tear' ? 'bg-white text-black' : 'text-white/60 hover:text-white'
-                }`}
-              >
-                Tear
-              </button>
-            </div>
-            <button onClick={handleReset} className="p-3 bg-white/10 hover:bg-white/20 rounded-full transition-colors active:scale-95">
+            <button
+              onClick={handleReset}
+              className="p-3 bg-white/10 hover:bg-white/20 rounded-full transition-colors active:scale-95"
+            >
               <RotateCcw size={20} />
             </button>
-            <button onClick={onCancel} className="p-3 bg-white/10 hover:bg-white/20 rounded-full transition-colors active:scale-95">
+            <button
+              onClick={onCancel}
+              className="p-3 bg-white/10 hover:bg-white/20 rounded-full transition-colors active:scale-95"
+            >
               <X size={20} />
             </button>
           </div>
         </div>
 
+        {/* Canvas */}
         <div
           ref={containerRef}
           className="relative flex-1 md:aspect-video bg-black rounded-2xl overflow-hidden cursor-crosshair shadow-2xl border border-white/10"
-          onMouseDown={handleMouseDown}
-          onMouseMove={handleMouseMove}
-          onMouseUp={handleMouseUp}
-          onTouchStart={handleMouseDown}
-          onTouchMove={handleMouseMove}
-          onTouchEnd={handleMouseUp}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          onTouchCancel={handleTouchCancel}
         >
           <canvas ref={canvasRef} className="w-full h-full" />
 
-          {mode === 'cut' && points.length === 0 && (
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="text-center">
-                <Scissors className="mx-auto mb-4 text-white/20" size={48} />
-                <p className="text-white/40 font-medium text-sm">Draw a path to cut</p>
-              </div>
+          {/* Anchored pulse ring */}
+          {gestureState === 'anchored' && fingerA && (
+            <div
+              className="absolute pointer-events-none"
+              style={{
+                left: fingerA.pos.x,
+                top: fingerA.pos.y,
+                transform: 'translate(-50%, -50%)',
+              }}
+            >
+              <div className="w-12 h-12 rounded-full border-2 border-amber-400 animate-ping" />
             </div>
           )}
 
-          {mode === 'tear' && !tearStart && (
+          {/* Idle / pending center hint */}
+          {(gestureState === 'idle' || gestureState === 'pending') && (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
               <div className="text-center">
                 <p className="text-5xl mb-4 text-white/20 select-none">〜</p>
-                <p className="text-white/40 font-medium text-sm">Drag across to tear</p>
+                <p className="text-white/40 font-medium text-sm">Hold to anchor, swipe to tear</p>
               </div>
             </div>
           )}
         </div>
 
+        {/* Bottom actions */}
         <div className="flex justify-center gap-4 shrink-0 pb-4 md:pb-0">
-          {mode === 'tear' && tearPolygon && (
-            <button
-              onClick={handleRetear}
-              className="flex items-center gap-2 px-6 py-4 rounded-full font-bold transition-all active:scale-95 bg-white/10 text-white hover:bg-white/20"
-            >
-              <RefreshCw size={18} />
-              RETEAR
-            </button>
-          )}
           <button
             disabled={!canFinish}
             onClick={handleFinish}
@@ -243,9 +394,10 @@ export const CuttingRoom: React.FC<CuttingRoomProps> = ({ image, onCut, onCancel
             `}
           >
             <Check size={24} />
-            {mode === 'cut' ? 'FINISH CUT' : 'KEEP PIECE'}
+            KEEP PIECE
           </button>
         </div>
+
       </div>
     </div>
   );
