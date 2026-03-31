@@ -19,7 +19,7 @@ body {
 }
 
 .wood-texture {
-  background-color: #8b5e3c;
+  background-color: #8B6B3A;
   background-image: var(--desk-texture);
   background-size: cover;
   background-position: center;
@@ -36,7 +36,7 @@ body {
 }
 
 .drawer-front {
-  background-color: #5a2e10;
+  background-color: #5C3520;
   background-image: var(--drawer-texture);
   background-size: cover;
   background-position: bottom;
@@ -73,7 +73,7 @@ body {
   display: flex;
   flex-direction: row;
   border-radius: 6px;
-  overflow: hidden;
+  overflow: visible;
   filter: drop-shadow(0 20px 50px rgba(0,0,0,0.6)) drop-shadow(0 2px 8px rgba(0,0,0,0.4));
 }
 
@@ -149,7 +149,7 @@ body {
   background: #fefcf5;
   position: relative;
   border-radius: 0 6px 6px 0;
-  overflow: hidden;
+  overflow: visible;
   box-shadow: inset -4px 0 12px rgba(0, 0, 0, 0.06);
 }
 
