@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Camera, Plus, ChevronLeft, ChevronRight, Scissors, PenTool, RefreshCw } from 'lucide-react';
+import { Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import confetti from 'canvas-confetti';
 import { Scrap, Point, RawMaterial, ScrapbookPage, JournalEntry } from './types';
@@ -8,17 +8,16 @@ import { CuttingRoom } from './components/CuttingRoom';
 import { Scrapbook } from './components/Scrapbook';
 import { MaterialDrawer } from './components/MaterialDrawer';
 import { JournalModal } from './components/JournalModal';
-import { useTextures } from './components/TextureProvider';
 
 const INITIAL_PAGE: ScrapbookPage = {
   id: 'page-1',
   scraps: [],
   journalEntries: [],
+  tapeStrips: [],
   background: '#fdfaf3',
 };
 
 export default function App() {
-  const { refresh, isLoading: isTextureLoading } = useTextures();
   const [rawMaterials, setRawMaterials] = useState<RawMaterial[]>([
     { id: 'sample-1', image: 'https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?w=400&q=80' },
     { id: 'sample-2', image: 'https://images.unsplash.com/photo-1519125323398-675f0ddb6308?w=400&q=80' },
@@ -30,6 +29,7 @@ export default function App() {
   
   const [view, setView] = useState<'scrapbook' | 'camera' | 'cutting' | 'drawer' | 'journal'>('scrapbook');
   const [currentMaterial, setCurrentMaterial] = useState<RawMaterial | null>(null);
+  const [tearMode, setTearMode] = useState(false);
 
   const currentPage = pages[currentPageIndex];
 
@@ -76,7 +76,7 @@ export default function App() {
     }
   };
 
-  const handleCut = (points: Point[]) => {
+  const handleCut = (points: Point[], isTorn?: boolean) => {
     if (!currentMaterial) return;
 
     const newScrap: Scrap = {
@@ -89,12 +89,14 @@ export default function App() {
       scale: 0.5,
       zIndex: currentPage.scraps.length,
       isGlued: false,
+      isTorn: isTorn ?? false,
     };
 
     const updatedPages = [...pages];
     updatedPages[currentPageIndex].scraps.push(newScrap);
     setPages(updatedPages);
     
+    setRawMaterials(prev => prev.filter(m => m.id !== currentMaterial.id));
     setCurrentMaterial(null);
     setView('scrapbook');
     
@@ -104,6 +106,34 @@ export default function App() {
       origin: { y: 0.6 },
       colors: ['#fdfaf3', '#e5e7eb', '#000000']
     });
+  };
+
+  const handleMaterialDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    const materialId = e.dataTransfer.getData('materialId');
+    const material = rawMaterials.find(m => m.id === materialId);
+    if (!material) return;
+
+    const rect = e.currentTarget.getBoundingClientRect();
+    const dropX = e.clientX - rect.left;
+    const dropY = e.clientY - rect.top;
+
+    const newScrap: Scrap = {
+      id: Math.random().toString(36).substr(2, 9),
+      image: material.image,
+      points: [],
+      x: dropX,
+      y: dropY,
+      rotation: (Math.random() - 0.5) * 10,
+      scale: 0.5,
+      zIndex: currentPage.scraps.length,
+      isGlued: false,
+    };
+
+    const updatedPages = [...pages];
+    updatedPages[currentPageIndex].scraps.push(newScrap);
+    setPages(updatedPages);
+    setRawMaterials(prev => prev.filter(m => m.id !== materialId));
   };
 
   const handleAddJournal = (text: string, type: 'title' | 'body' | 'date') => {
@@ -120,6 +150,23 @@ export default function App() {
     const updatedPages = [...pages];
     updatedPages[currentPageIndex].journalEntries.push(newEntry);
     setPages(updatedPages);
+  };
+
+  const handleReturnScrap = (scrap: Scrap) => {
+    const updatedPages = [...pages];
+    updatedPages[currentPageIndex].scraps = updatedPages[currentPageIndex].scraps.filter(s => s.id !== scrap.id);
+    setPages(updatedPages);
+    setRawMaterials(prev => [{ id: Math.random().toString(36).substr(2, 9), image: scrap.image }, ...prev]);
+    setView('drawer');
+  };
+
+  const handleTearScrap = (id: string, newPoints: Point[]) => {
+    const updatedPages = [...pages];
+    updatedPages[currentPageIndex].scraps = updatedPages[currentPageIndex].scraps.map(s =>
+      s.id === id ? { ...s, points: newPoints, isTorn: true } : s
+    );
+    setPages(updatedPages);
+    setTearMode(false);
   };
 
   const updateScrap = (id: string, attrs: Partial<Scrap>) => {
@@ -143,6 +190,7 @@ export default function App() {
       id: `page-${pages.length + 1}`,
       scraps: [],
       journalEntries: [],
+      tapeStrips: [],
       background: '#fdfaf3',
     };
     setPages([...pages, newPage]);
@@ -156,31 +204,16 @@ export default function App() {
         {/* Top Bar - Subtle icons on the desk */}
         <div className="w-full h-16 flex justify-between items-center px-6 md:px-12 shrink-0 z-10">
           <div className="flex gap-8">
-            <button 
-              onClick={() => setView('camera')}
-              className="text-white/60 hover:text-white transition-all active:scale-90 drop-shadow-md"
+            <button
+              onClick={() => setTearMode(t => !t)}
+              title="Drag across a scrap to tear it"
+              className={`text-xs font-bold uppercase tracking-widest transition-all active:scale-90 px-3 py-1 rounded-full ${
+                tearMode
+                  ? 'bg-white/20 text-white'
+                  : 'text-white/50 hover:text-white/80 hover:bg-white/10'
+              }`}
             >
-              <Camera size={28} strokeWidth={1.5} />
-            </button>
-            <button 
-              onClick={() => setView('drawer')}
-              className="text-white/60 hover:text-white transition-all active:scale-90 drop-shadow-md"
-            >
-              <Scissors size={28} strokeWidth={1.5} />
-            </button>
-            <button 
-              onClick={() => setView('journal')}
-              className="text-white/60 hover:text-white transition-all active:scale-90 drop-shadow-md"
-            >
-              <PenTool size={28} strokeWidth={1.5} />
-            </button>
-            <button 
-              onClick={() => refresh()}
-              disabled={isTextureLoading}
-              className="text-white/60 hover:text-white transition-all active:scale-90 drop-shadow-md disabled:opacity-30"
-              title="Refresh Wood Texture"
-            >
-              <RefreshCw size={24} strokeWidth={1.5} className={isTextureLoading ? "animate-spin" : ""} />
+              Tear
             </button>
           </div>
 
@@ -222,12 +255,19 @@ export default function App() {
             <div className="spine" />
             <div className="page-stack" />
             <div className="gutter" />
-            <div className="book-page">
+            <div
+              className="book-page"
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={handleMaterialDrop}
+            >
               <Scrapbook
                 page={currentPage}
                 onUpdateScrap={updateScrap}
                 onUpdateEntry={updateEntry}
+                onReturnScrap={handleReturnScrap}
                 dimensions={{ width: bookDims.width - 68, height: bookDims.height }}
+                tearMode={tearMode}
+                onTearScrap={handleTearScrap}
               />
             </div>
           </div>
@@ -239,7 +279,7 @@ export default function App() {
       <div className="desk-edge" />
 
       {/* Drawer Area (Bottom 20%) */}
-      <div className="relative w-full h-[20vh] overflow-hidden">
+      <div className="relative w-full h-[20vh] overflow-hidden z-20">
         <MaterialDrawer
           materials={rawMaterials}
           isOpen={view === 'drawer'}
@@ -247,6 +287,9 @@ export default function App() {
           onSelect={(m) => {
             setCurrentMaterial(m);
             setView('cutting');
+          }}
+          onDragMaterial={() => {
+            if (view !== 'scrapbook') setView('scrapbook');
           }}
           onClose={() => setView('scrapbook')}
           onUpload={handleFileUpload}
