@@ -8,18 +8,31 @@ interface CuttingRoomProps {
   onCancel: () => void;
 }
 
+type GestureState = 'idle' | 'pending' | 'panning' | 'anchored' | 'ripping' | 'torn';
+
+interface FingerA {
+  id: number;
+  pos: Point;
+}
+
+interface FingerB {
+  id: number;
+  pos: Point;
+  trail: Point[];
+}
+
 export const CuttingRoom: React.FC<CuttingRoomProps> = ({ image, onCut, onCancel }) => {
-  const [mode, setMode] = useState<'cut' | 'tear'>('cut');
-
-  // Cut mode state
-  const [points, setPoints] = useState<Point[]>([]);
-  const [isDrawing, setIsDrawing] = useState(false);
-
-  // Tear mode state
-  const [tearStart, setTearStart] = useState<Point | null>(null);
-  const [tearEnd, setTearEnd] = useState<Point | null>(null);
+  const [gestureState, setGestureState] = useState<GestureState>('idle');
+  const [fingerA, setFingerA] = useState<FingerA | null>(null);
+  const [fingerB, setFingerB] = useState<FingerB | null>(null);
+  const [canvasTransform, setCanvasTransform] = useState({ x: 0, y: 0, scale: 1 });
   const [tearPolygon, setTearPolygon] = useState<Point[] | null>(null);
-  const [isDraggingTear, setIsDraggingTear] = useState(false);
+
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const panRef = useRef<{ dist: number; mid: Point } | null>(null);
+  const ripSpeed = useRef<number[]>([]);
+  const lastRipTime = useRef<number>(0);
+  const lastRipPos = useRef<Point | null>(null);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -66,6 +79,27 @@ export const CuttingRoom: React.FC<CuttingRoomProps> = ({ image, onCut, onCancel
       { x: 0, y: tearPts[0].y },
     ];
   };
+
+  useEffect(() => {
+    return () => {
+      if (longPressTimer.current) clearTimeout(longPressTimer.current);
+    };
+  }, []);
+
+  const handleReset = () => {
+    if (longPressTimer.current) clearTimeout(longPressTimer.current);
+    setGestureState('idle');
+    setFingerA(null);
+    setFingerB(null);
+    setTearPolygon(null);
+    ripSpeed.current = [];
+    lastRipPos.current = null;
+  };
+
+  const handleTouchStart = (_e: React.TouchEvent) => {};
+  const handleTouchMove = (_e: React.TouchEvent) => {};
+  const handleTouchEnd = (_e: React.TouchEvent) => {};
+  const handleTouchCancel = (_e: React.TouchEvent) => { handleReset(); };
 
   const draw = () => {
     const canvas = canvasRef.current;
@@ -158,79 +192,7 @@ export const CuttingRoom: React.FC<CuttingRoomProps> = ({ image, onCut, onCancel
     window.addEventListener('resize', handleResize);
     handleResize();
     return () => window.removeEventListener('resize', handleResize);
-  }, [image, points, tearPolygon, mode, tearStart, tearEnd, isDraggingTear]);
-
-  const getPos = (e: React.MouseEvent | React.TouchEvent): Point => {
-    const rect = canvasRef.current?.getBoundingClientRect();
-    if (!rect) return { x: 0, y: 0 };
-    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
-    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
-    return { x: clientX - rect.left, y: clientY - rect.top };
-  };
-
-  const handleMouseDown = (e: React.MouseEvent | React.TouchEvent) => {
-    const pos = getPos(e);
-    if (mode === 'cut') {
-      setIsDrawing(true);
-      setPoints([pos]);
-    } else {
-      setIsDraggingTear(true);
-      setTearStart(pos);
-      setTearEnd(pos);
-      setTearPolygon(null);
-    }
-  };
-
-  const handleMouseMove = (e: React.MouseEvent | React.TouchEvent) => {
-    const pos = getPos(e);
-    if (mode === 'cut') {
-      if (!isDrawing) return;
-      setPoints(prev => [...prev, pos]);
-    } else {
-      if (!isDraggingTear) return;
-      setTearEnd(pos);
-    }
-    draw();
-  };
-
-  const handleMouseUp = () => {
-    if (mode === 'cut') {
-      setIsDrawing(false);
-    } else {
-      setIsDraggingTear(false);
-      const canvas = canvasRef.current;
-      if (canvas && tearStart && tearEnd) {
-        const polygon = generateTearPolygon(tearStart, tearEnd, canvas.width, canvas.height);
-        setTearPolygon(polygon);
-      }
-    }
-  };
-
-  const handleReset = () => {
-    setPoints([]);
-    setTearStart(null);
-    setTearEnd(null);
-    setTearPolygon(null);
-    setIsDraggingTear(false);
-  };
-
-  const handleRetear = () => {
-    const canvas = canvasRef.current;
-    if (canvas && tearStart && tearEnd) {
-      const polygon = generateTearPolygon(tearStart, tearEnd, canvas.width, canvas.height);
-      setTearPolygon(polygon);
-    }
-  };
-
-  const canFinish = mode === 'cut' ? points.length >= 3 : tearPolygon !== null;
-
-  const handleFinish = () => {
-    if (mode === 'cut') {
-      onCut(points, false);
-    } else if (tearPolygon) {
-      onCut(tearPolygon, true);
-    }
-  };
+  }, [image, gestureState, fingerA, fingerB, tearPolygon]);
 
   return (
     <div className="fixed inset-0 z-50 bg-neutral-900/95 backdrop-blur-xl flex flex-col items-center justify-center p-0 md:p-4">
@@ -275,12 +237,10 @@ export const CuttingRoom: React.FC<CuttingRoomProps> = ({ image, onCut, onCancel
         <div
           ref={containerRef}
           className="relative flex-1 md:aspect-video bg-black rounded-2xl overflow-hidden cursor-crosshair shadow-2xl border border-white/10"
-          onMouseDown={handleMouseDown}
-          onMouseMove={handleMouseMove}
-          onMouseUp={handleMouseUp}
-          onTouchStart={handleMouseDown}
-          onTouchMove={handleMouseMove}
-          onTouchEnd={handleMouseUp}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          onTouchCancel={handleTouchCancel}
         >
           <canvas ref={canvasRef} className="w-full h-full" />
 
