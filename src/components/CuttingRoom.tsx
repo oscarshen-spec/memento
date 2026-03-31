@@ -9,17 +9,8 @@ interface CuttingRoomProps {
 }
 
 export const CuttingRoom: React.FC<CuttingRoomProps> = ({ image, onCut, onCancel }) => {
-  const [mode, setMode] = useState<'cut' | 'tear'>('cut');
-
-  // Cut mode state
-  const [points, setPoints] = useState<Point[]>([]);
-  const [isDrawing, setIsDrawing] = useState(false);
-
   // Tear mode state
-  const [tearStart, setTearStart] = useState<Point | null>(null);
-  const [tearEnd, setTearEnd] = useState<Point | null>(null);
   const [tearPolygon, setTearPolygon] = useState<Point[] | null>(null);
-  const [isDraggingTear, setIsDraggingTear] = useState(false);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -159,78 +150,6 @@ export const CuttingRoom: React.FC<CuttingRoomProps> = ({ image, onCut, onCancel
     handleResize();
     return () => window.removeEventListener('resize', handleResize);
   }, [image, points, tearPolygon, mode, tearStart, tearEnd, isDraggingTear]);
-
-  const getPos = (e: React.MouseEvent | React.TouchEvent): Point => {
-    const rect = canvasRef.current?.getBoundingClientRect();
-    if (!rect) return { x: 0, y: 0 };
-    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
-    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
-    return { x: clientX - rect.left, y: clientY - rect.top };
-  };
-
-  const handleMouseDown = (e: React.MouseEvent | React.TouchEvent) => {
-    const pos = getPos(e);
-    if (mode === 'cut') {
-      setIsDrawing(true);
-      setPoints([pos]);
-    } else {
-      setIsDraggingTear(true);
-      setTearStart(pos);
-      setTearEnd(pos);
-      setTearPolygon(null);
-    }
-  };
-
-  const handleMouseMove = (e: React.MouseEvent | React.TouchEvent) => {
-    const pos = getPos(e);
-    if (mode === 'cut') {
-      if (!isDrawing) return;
-      setPoints(prev => [...prev, pos]);
-    } else {
-      if (!isDraggingTear) return;
-      setTearEnd(pos);
-    }
-    draw();
-  };
-
-  const handleMouseUp = () => {
-    if (mode === 'cut') {
-      setIsDrawing(false);
-    } else {
-      setIsDraggingTear(false);
-      const canvas = canvasRef.current;
-      if (canvas && tearStart && tearEnd) {
-        const polygon = generateTearPolygon(tearStart, tearEnd, canvas.width, canvas.height);
-        setTearPolygon(polygon);
-      }
-    }
-  };
-
-  const handleReset = () => {
-    setPoints([]);
-    setTearStart(null);
-    setTearEnd(null);
-    setTearPolygon(null);
-    setIsDraggingTear(false);
-  };
-
-  const handleRetear = () => {
-    const canvas = canvasRef.current;
-    if (canvas && tearStart && tearEnd) {
-      const polygon = generateTearPolygon(tearStart, tearEnd, canvas.width, canvas.height);
-      setTearPolygon(polygon);
-    }
-  };
-
-  const canFinish = mode === 'cut' ? points.length >= 3 : tearPolygon !== null;
-
-  const handleFinish = () => {
-    if (mode === 'cut') {
-      onCut(points, false);
-    } else if (tearPolygon) {
-      onCut(tearPolygon, true);
-    }
-  };
 
   return (
     <div className="fixed inset-0 z-50 bg-neutral-900/95 backdrop-blur-xl flex flex-col items-center justify-center p-0 md:p-4">
