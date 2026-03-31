@@ -342,7 +342,7 @@ export const Scrapbook: React.FC<ScrapbookProps> = ({ page, onUpdateScrap, onUpd
 
         {/* Layer 1: scraps and journal entries */}
         <Layer>
-          {page.scraps.sort((a, b) => a.zIndex - b.zIndex).map((scrap) => (
+          {[...page.scraps].sort((a, b) => a.zIndex - b.zIndex).map((scrap) => (
             <ScrapItem
               key={scrap.id}
               scrap={scrap}
