@@ -32,6 +32,7 @@ const TAPE_COLOR = 'rgba(240,225,190,0.88)';
 const TAPE_EDGE_COLOR = 'rgba(170,145,100,0.75)';
 const TAPE_GRAIN_COLOR = 'rgba(200,180,140,0.22)';
 const WISP_COLOR = 'rgba(190,165,120,0.55)';
+const PREVIEW_SEED = 99999;
 
 /**
  * Draws a masking tape strip from `start` to `end` directly onto a Konva
@@ -172,7 +173,6 @@ function drawTapeShape(
 const TAPE_WIDTH = 28;
 const DIRECTION_LOCK_DIST = 5;
 const TEAR_THRESHOLD = 0.34; // cos(~70°)
-const PREVIEW_SEED = 99999;
 
 // ── Component ────────────────────────────────────────────────────────────────
 
