@@ -112,7 +112,7 @@ function drawTapeShape(
   ctx.restore();
 
   // ── Left torn end (start side) — always shown ──
-  const leftRng = seededRng((tearSeed ?? 99999) + 1);
+  const leftRng = seededRng((tearSeed ?? PREVIEW_SEED) + 1);
   const steps = 7;
   ctx.beginPath();
   ctx.moveTo(tl.x, tl.y);
@@ -167,7 +167,14 @@ function drawTapeShape(
   ctx.restore();
 }
 
-// ── Component (stub — gestures added in Task 3) ──────────────────────────────
+// ── Constants ────────────────────────────────────────────────────────────────
+
+const TAPE_WIDTH = 28;
+const DIRECTION_LOCK_DIST = 5;
+const TEAR_THRESHOLD = 0.34; // cos(~70°)
+const PREVIEW_SEED = 99999;
+
+// ── Component ────────────────────────────────────────────────────────────────
 
 export interface TapeLayerProps {
   isActive: boolean;
@@ -177,22 +184,110 @@ export interface TapeLayerProps {
   stageHeight: number;
 }
 
+interface InProgress {
+  startPoint: Point;
+  currentPoint: Point;
+  prevPoint: Point;
+  tapeDirection: Point | null;
+}
+
 export const TapeLayer: React.FC<TapeLayerProps> = ({
   isActive,
   strips,
-  onStripAdded: _onStripAdded,
+  onStripAdded,
   stageWidth,
   stageHeight,
 }) => {
+  const [inProgress, setInProgress] = useState<InProgress | null>(null);
+  const ipRef = useRef<InProgress | null>(null);
+
+  const getPos = (e: any): Point => {
+    const pos = e.target.getStage().getPointerPosition();
+    return { x: pos.x, y: pos.y };
+  };
+
+  const finalize = (start: Point, end: Point) => {
+    ipRef.current = null;
+    setInProgress(null);
+    if (vecLen({ x: end.x - start.x, y: end.y - start.y }) < DIRECTION_LOCK_DIST) return;
+    onStripAdded({
+      id: Math.random().toString(36).substr(2, 9),
+      startPoint: start,
+      endPoint: end,
+      width: TAPE_WIDTH,
+      tearSeed: Math.random() * 100000,
+    });
+  };
+
+  const handleDown = (e: any) => {
+    const pos = getPos(e);
+    const ip: InProgress = {
+      startPoint: pos,
+      currentPoint: pos,
+      prevPoint: pos,
+      tapeDirection: null,
+    };
+    ipRef.current = ip;
+    setInProgress({ ...ip });
+  };
+
+  const handleMove = (e: any) => {
+    if (!ipRef.current) return;
+    const pos = getPos(e);
+    const ip = ipRef.current;
+
+    const totalMovement = { x: pos.x - ip.startPoint.x, y: pos.y - ip.startPoint.y };
+    const stepMovement  = { x: pos.x - ip.prevPoint.x,  y: pos.y - ip.prevPoint.y };
+
+    // Lock tape direction once the user has moved far enough
+    let tapeDirection = ip.tapeDirection;
+    if (!tapeDirection && vecLen(totalMovement) > DIRECTION_LOCK_DIST) {
+      tapeDirection = vecNorm(totalMovement);
+    }
+
+    // Check tear: current step deviates > 70° from locked direction
+    if (tapeDirection && vecLen(stepMovement) > 1.5) {
+      const d = vecDot(vecNorm(stepMovement), tapeDirection);
+      if (d < TEAR_THRESHOLD) {
+        finalize(ip.startPoint, ip.prevPoint);
+        return;
+      }
+    }
+
+    const updated: InProgress = {
+      startPoint: ip.startPoint,
+      currentPoint: pos,
+      prevPoint: pos,
+      tapeDirection,
+    };
+    ipRef.current = updated;
+    setInProgress({ ...updated });
+  };
+
+  const handleUp = (e: any) => {
+    if (!ipRef.current) return;
+    const pos = getPos(e);
+    finalize(ipRef.current.startPoint, pos);
+  };
+
   return (
     <Layer>
+      {/* Transparent hit target — only active in tape mode */}
       {isActive && (
         <Rect
           x={0} y={0}
           width={stageWidth} height={stageHeight}
           fill="transparent"
+          onMouseDown={handleDown}
+          onTouchStart={handleDown}
+          onMouseMove={handleMove}
+          onTouchMove={handleMove}
+          onMouseUp={handleUp}
+          onTouchEnd={handleUp}
         />
       )}
+
+      {/* Finalized strips */}
       {strips.map((strip) => (
         <Shape
           key={strip.id}
@@ -202,6 +297,23 @@ export const TapeLayer: React.FC<TapeLayerProps> = ({
           listening={false}
         />
       ))}
+
+      {/* Live preview */}
+      {inProgress && inProgress.tapeDirection && (
+        <Shape
+          sceneFunc={(ctx) => {
+            drawTapeShape(
+              ctx,
+              inProgress.startPoint,
+              inProgress.currentPoint,
+              TAPE_WIDTH,
+              null,
+              0.5,
+            );
+          }}
+          listening={false}
+        />
+      )}
     </Layer>
   );
 };
