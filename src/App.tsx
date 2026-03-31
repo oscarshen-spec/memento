@@ -1,5 +1,5 @@
-import React, { useState, useCallback } from 'react';
-import { Camera, Plus, Trash2, Download, Image as ImageIcon, Share2, BookOpen, PenTool, Layers, ChevronLeft, ChevronRight, Check, Scissors, RefreshCw } from 'lucide-react';
+import React, { useState } from 'react';
+import { Camera, Plus, ChevronLeft, ChevronRight, Scissors, PenTool, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import confetti from 'canvas-confetti';
 import { Scrap, Point, RawMaterial, ScrapbookPage, JournalEntry } from './types';
@@ -83,7 +83,7 @@ export default function App() {
       id: Math.random().toString(36).substr(2, 9),
       image: currentMaterial.image,
       points,
-      x: bookDims.width / 2 - 100,
+      x: (bookDims.width - 68) / 2 - 100,
       y: bookDims.height / 2 - 100,
       rotation: (Math.random() - 0.5) * 20,
       scale: 0.5,
@@ -111,7 +111,7 @@ export default function App() {
       id: Math.random().toString(36).substr(2, 9),
       text,
       type,
-      x: bookDims.width / 2 - 100,
+      x: (bookDims.width - 68) / 2 - 100,
       y: bookDims.height / 2 - 100,
       rotation: (Math.random() - 0.5) * 5,
       fontSize: type === 'title' ? 48 : type === 'date' ? 14 : 24,
@@ -136,13 +136,6 @@ export default function App() {
       e.id === id ? { ...e, ...attrs } : e
     );
     setPages(updatedPages);
-  };
-
-  const glueScraps = () => {
-    const updatedPages = [...pages];
-    updatedPages[currentPageIndex].scraps = updatedPages[currentPageIndex].scraps.map(s => ({ ...s, isGlued: true }));
-    setPages(updatedPages);
-    confetti({ particleCount: 20, spread: 30, colors: ['#ffffff'] });
   };
 
   const addPage = () => {
