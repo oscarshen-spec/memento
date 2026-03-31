@@ -1,0 +1,314 @@
+import React, { useState, useCallback } from 'react';
+import { Camera, Plus, Trash2, Download, Image as ImageIcon, Share2, BookOpen, PenTool, Layers, ChevronLeft, ChevronRight, Check, Scissors, RefreshCw } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import confetti from 'canvas-confetti';
+import { Scrap, Point, RawMaterial, ScrapbookPage, JournalEntry } from './types';
+import { CameraView } from './components/CameraView';
+import { CuttingRoom } from './components/CuttingRoom';
+import { Scrapbook } from './components/Scrapbook';
+import { MaterialDrawer } from './components/MaterialDrawer';
+import { JournalModal } from './components/JournalModal';
+import { useTextures } from './components/TextureProvider';
+
+const INITIAL_PAGE: ScrapbookPage = {
+  id: 'page-1',
+  scraps: [],
+  journalEntries: [],
+  background: '#fdfaf3',
+};
+
+export default function App() {
+  const { refresh, isLoading: isTextureLoading } = useTextures();
+  const [rawMaterials, setRawMaterials] = useState<RawMaterial[]>([
+    { id: 'sample-1', image: 'https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?w=400&q=80' },
+    { id: 'sample-2', image: 'https://images.unsplash.com/photo-1519125323398-675f0ddb6308?w=400&q=80' },
+    { id: 'sample-3', image: 'https://images.unsplash.com/photo-1465146344425-f00d5f5c8f07?w=400&q=80' },
+    { id: 'sample-4', image: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&q=80' },
+  ]);
+  const [pages, setPages] = useState<ScrapbookPage[]>([INITIAL_PAGE]);
+  const [currentPageIndex, setCurrentPageIndex] = useState(0);
+  
+  const [view, setView] = useState<'scrapbook' | 'camera' | 'cutting' | 'drawer' | 'journal'>('scrapbook');
+  const [currentMaterial, setCurrentMaterial] = useState<RawMaterial | null>(null);
+
+  const currentPage = pages[currentPageIndex];
+
+  // Calculate scrapbook dimensions based on screen size (desk is 80vh)
+  const getScrapbookDimensions = () => {
+    const deskHeight = window.innerHeight * 0.8;
+    const padding = window.innerWidth < 768 ? 40 : 100;
+    const verticalPadding = window.innerWidth < 768 ? 60 : 100;
+    const topBarHeight = 64;
+    
+    return {
+      width: window.innerWidth - padding,
+      height: deskHeight - verticalPadding - topBarHeight,
+    };
+  };
+
+  const [bookDims, setBookDims] = useState(getScrapbookDimensions());
+
+  React.useEffect(() => {
+    const handleResize = () => setBookDims(getScrapbookDimensions());
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const handleCapture = (image: string) => {
+    const newMaterial: RawMaterial = {
+      id: Math.random().toString(36).substr(2, 9),
+      image,
+    };
+    setRawMaterials(prev => [newMaterial, ...prev]);
+    setView('drawer');
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        if (event.target?.result) {
+          handleCapture(event.target.result as string);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleCut = (points: Point[]) => {
+    if (!currentMaterial) return;
+
+    const newScrap: Scrap = {
+      id: Math.random().toString(36).substr(2, 9),
+      image: currentMaterial.image,
+      points,
+      x: bookDims.width / 2 - 100,
+      y: bookDims.height / 2 - 100,
+      rotation: (Math.random() - 0.5) * 20,
+      scale: 0.5,
+      zIndex: currentPage.scraps.length,
+      isGlued: false,
+    };
+
+    const updatedPages = [...pages];
+    updatedPages[currentPageIndex].scraps.push(newScrap);
+    setPages(updatedPages);
+    
+    setCurrentMaterial(null);
+    setView('scrapbook');
+    
+    confetti({
+      particleCount: 40,
+      spread: 70,
+      origin: { y: 0.6 },
+      colors: ['#fdfaf3', '#e5e7eb', '#000000']
+    });
+  };
+
+  const handleAddJournal = (text: string, type: 'title' | 'body' | 'date') => {
+    const newEntry: JournalEntry = {
+      id: Math.random().toString(36).substr(2, 9),
+      text,
+      type,
+      x: bookDims.width / 2 - 100,
+      y: bookDims.height / 2 - 100,
+      rotation: (Math.random() - 0.5) * 5,
+      fontSize: type === 'title' ? 48 : type === 'date' ? 14 : 24,
+    };
+
+    const updatedPages = [...pages];
+    updatedPages[currentPageIndex].journalEntries.push(newEntry);
+    setPages(updatedPages);
+  };
+
+  const updateScrap = (id: string, attrs: Partial<Scrap>) => {
+    const updatedPages = [...pages];
+    updatedPages[currentPageIndex].scraps = updatedPages[currentPageIndex].scraps.map(s => 
+      s.id === id ? { ...s, ...attrs } : s
+    );
+    setPages(updatedPages);
+  };
+
+  const updateEntry = (id: string, attrs: Partial<JournalEntry>) => {
+    const updatedPages = [...pages];
+    updatedPages[currentPageIndex].journalEntries = updatedPages[currentPageIndex].journalEntries.map(e => 
+      e.id === id ? { ...e, ...attrs } : e
+    );
+    setPages(updatedPages);
+  };
+
+  const glueScraps = () => {
+    const updatedPages = [...pages];
+    updatedPages[currentPageIndex].scraps = updatedPages[currentPageIndex].scraps.map(s => ({ ...s, isGlued: true }));
+    setPages(updatedPages);
+    confetti({ particleCount: 20, spread: 30, colors: ['#ffffff'] });
+  };
+
+  const addPage = () => {
+    const newPage: ScrapbookPage = {
+      id: `page-${pages.length + 1}`,
+      scraps: [],
+      journalEntries: [],
+      background: '#fdfaf3',
+    };
+    setPages([...pages, newPage]);
+    setCurrentPageIndex(pages.length);
+  };
+
+  return (
+    <div className="relative w-full h-screen overflow-hidden select-none flex flex-col wood-texture">
+      {/* Desk Area (Top 80%) */}
+      <div className="relative w-full h-[80vh] flex flex-col items-center z-10 shadow-[0_10px_30px_rgba(0,0,0,0.5)]">
+        {/* Top Bar - Subtle icons on the desk */}
+        <div className="w-full h-16 flex justify-between items-center px-6 md:px-12 shrink-0 z-10">
+          <div className="flex gap-8">
+            <button 
+              onClick={() => setView('camera')}
+              className="text-white/60 hover:text-white transition-all active:scale-90 drop-shadow-md"
+            >
+              <Camera size={28} strokeWidth={1.5} />
+            </button>
+            <button 
+              onClick={() => setView('drawer')}
+              className="text-white/60 hover:text-white transition-all active:scale-90 drop-shadow-md"
+            >
+              <Scissors size={28} strokeWidth={1.5} />
+            </button>
+            <button 
+              onClick={() => setView('journal')}
+              className="text-white/60 hover:text-white transition-all active:scale-90 drop-shadow-md"
+            >
+              <PenTool size={28} strokeWidth={1.5} />
+            </button>
+            <button 
+              onClick={() => refresh()}
+              disabled={isTextureLoading}
+              className="text-white/60 hover:text-white transition-all active:scale-90 drop-shadow-md disabled:opacity-30"
+              title="Refresh Wood Texture"
+            >
+              <RefreshCw size={24} strokeWidth={1.5} className={isTextureLoading ? "animate-spin" : ""} />
+            </button>
+          </div>
+
+          <div className="flex items-center gap-4">
+            <div className="text-right hidden sm:block">
+              <h1 className="text-lg font-serif italic text-white/80 leading-none">My Scrapbook</h1>
+              <p className="text-[8px] font-mono text-white/40 uppercase tracking-widest mt-1">
+                Page {currentPageIndex + 1} / {pages.length}
+              </p>
+            </div>
+            <div className="flex gap-1">
+              <button 
+                disabled={currentPageIndex === 0}
+                onClick={() => setCurrentPageIndex(prev => prev - 1)}
+                className="p-2 text-white/60 hover:bg-white/10 rounded-lg disabled:opacity-20"
+              >
+                <ChevronLeft size={18} />
+              </button>
+              <button 
+                disabled={currentPageIndex === pages.length - 1}
+                onClick={() => setCurrentPageIndex(prev => prev + 1)}
+                className="p-2 text-white/60 hover:bg-white/10 rounded-lg disabled:opacity-20"
+              >
+                <ChevronRight size={18} />
+              </button>
+              <button onClick={addPage} className="p-2 text-white/60 hover:bg-white/10 rounded-lg">
+                <Plus size={18} />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Scrapbook on Desk */}
+        <div className="relative flex-1 flex items-center justify-center w-full px-6 md:px-0">
+          <div
+            className="book-container"
+            style={{ width: bookDims.width, height: bookDims.height }}
+          >
+            <div className="spine" />
+            <div className="page-stack" />
+            <div className="gutter" />
+            <div className="book-page">
+              <Scrapbook
+                page={currentPage}
+                onUpdateScrap={updateScrap}
+                onUpdateEntry={updateEntry}
+                dimensions={{ width: bookDims.width - 68, height: bookDims.height }}
+              />
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      {/* Desk Edge Lip */}
+      <div className="desk-edge" />
+
+      {/* Drawer Area (Bottom 20%) */}
+      <div className="relative w-full h-[20vh] overflow-hidden">
+        <MaterialDrawer
+          materials={rawMaterials}
+          isOpen={view === 'drawer'}
+          onToggle={(open) => setView(open ? 'drawer' : 'scrapbook')}
+          onSelect={(m) => {
+            setCurrentMaterial(m);
+            setView('cutting');
+          }}
+          onClose={() => setView('scrapbook')}
+          onUpload={handleFileUpload}
+        />
+      </div>
+
+      {/* Modals */}
+      <AnimatePresence mode="wait">
+        {view === 'camera' && (
+          <motion.div
+            key="camera"
+            initial={{ opacity: 0, y: 100 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 100 }}
+            className="fixed inset-0 z-50"
+          >
+            <CameraView 
+              onCapture={handleCapture} 
+              onClose={() => setView('scrapbook')} 
+            />
+          </motion.div>
+        )}
+
+        {view === 'cutting' && currentMaterial && (
+          <motion.div
+            key="cutting"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            className="fixed inset-0 z-50"
+          >
+            <CuttingRoom 
+              image={currentMaterial.image} 
+              onCut={handleCut} 
+              onCancel={() => setView('drawer')} 
+            />
+          </motion.div>
+        )}
+
+        {view === 'journal' && (
+          <JournalModal
+            key="journal"
+            onAdd={handleAddJournal}
+            onClose={() => setView('scrapbook')}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* SVG Filter for torn edges */}
+      <svg style={{ position: 'absolute', width: 0, height: 0 }}>
+        <filter id="torn-filter">
+          <feTurbulence type="fractalNoise" baseFrequency="0.05" numOctaves="3" result="noise" />
+          <feDisplacementMap in="SourceGraphic" in2="noise" scale="5" />
+        </filter>
+      </svg>
+    </div>
+  );
+}
