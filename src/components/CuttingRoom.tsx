@@ -36,6 +36,17 @@ export const CuttingRoom: React.FC<CuttingRoomProps> = ({ image, onCut, onCancel
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const imgRef = useRef<HTMLImageElement | null>(null);
+
+  // Decode image once and cache in ref so draw() never calls drawImage before load
+  useEffect(() => {
+    const img = new Image();
+    img.onload = () => {
+      imgRef.current = img;
+      draw();
+    };
+    img.src = image;
+  }, [image]);
 
   // Cleanup timer on unmount
   useEffect(() => {
@@ -95,18 +106,18 @@ export const CuttingRoom: React.FC<CuttingRoomProps> = ({ image, onCut, onCancel
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    const img = new Image();
-    img.src = image;
-
-    // Draw image with pan/zoom transform applied
-    ctx.save();
-    ctx.translate(canvasTransform.x, canvasTransform.y);
-    ctx.scale(canvasTransform.scale, canvasTransform.scale);
-    const imgScale = Math.min(canvas.width / img.width, canvas.height / img.height);
-    const imgX = (canvas.width - img.width * imgScale) / 2;
-    const imgY = (canvas.height - img.height * imgScale) / 2;
-    ctx.drawImage(img, imgX, imgY, img.width * imgScale, img.height * imgScale);
-    ctx.restore();
+    const img = imgRef.current;
+    if (img) {
+      // Draw image with pan/zoom transform applied
+      ctx.save();
+      ctx.translate(canvasTransform.x, canvasTransform.y);
+      ctx.scale(canvasTransform.scale, canvasTransform.scale);
+      const imgScale = Math.min(canvas.width / img.naturalWidth, canvas.height / img.naturalHeight);
+      const imgX = (canvas.width - img.naturalWidth * imgScale) / 2;
+      const imgY = (canvas.height - img.naturalHeight * imgScale) / 2;
+      ctx.drawImage(img, imgX, imgY, img.naturalWidth * imgScale, img.naturalHeight * imgScale);
+      ctx.restore();
+    }
 
     // Overlays drawn in raw canvas space (no transform)
     if (gestureState === 'ripping' && fingerB && fingerB.trail.length >= 2) {
@@ -224,7 +235,12 @@ export const CuttingRoom: React.FC<CuttingRoomProps> = ({ image, onCut, onCancel
   const handleTouchMove = (e: React.TouchEvent) => {
     e.preventDefault();
 
-    if (gestureState === 'panning' && e.touches.length === 2) {
+    if (gestureState === 'pending' && fingerA) {
+      // Track finger drift during hold so the anchor ring appears at the actual finger position
+      const touch = Array.from(e.touches).find(t => t.identifier === fingerA.id);
+      if (touch) setFingerA(prev => prev ? { ...prev, pos: getTouchPos(touch) } : null);
+
+    } else if (gestureState === 'panning' && e.touches.length === 2) {
       if (!panRef.current) return;
       const t1 = e.touches[0];
       const t2 = e.touches[1];
@@ -260,6 +276,7 @@ export const CuttingRoom: React.FC<CuttingRoomProps> = ({ image, onCut, onCancel
   };
 
   const handleTouchEnd = (e: React.TouchEvent) => {
+    e.preventDefault();
     const endedIds = new Set(Array.from(e.changedTouches).map(t => t.identifier));
 
     if (gestureState === 'pending' && fingerA && endedIds.has(fingerA.id)) {
