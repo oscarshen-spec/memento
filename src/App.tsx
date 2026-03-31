@@ -237,21 +237,21 @@ export default function App() {
               </p>
             </div>
             <div className="flex gap-1">
-              <button 
+              <button
                 disabled={currentPageIndex === 0}
-                onClick={() => setCurrentPageIndex(prev => prev - 1)}
+                onClick={() => { setActiveTool(null); setCurrentPageIndex(prev => prev - 1); }}
                 className="p-2 text-white/60 hover:bg-white/10 rounded-lg disabled:opacity-20"
               >
                 <ChevronLeft size={18} />
               </button>
-              <button 
+              <button
                 disabled={currentPageIndex === pages.length - 1}
-                onClick={() => setCurrentPageIndex(prev => prev + 1)}
+                onClick={() => { setActiveTool(null); setCurrentPageIndex(prev => prev + 1); }}
                 className="p-2 text-white/60 hover:bg-white/10 rounded-lg disabled:opacity-20"
               >
                 <ChevronRight size={18} />
               </button>
-              <button onClick={addPage} className="p-2 text-white/60 hover:bg-white/10 rounded-lg">
+              <button onClick={() => { setActiveTool(null); addPage(); }} className="p-2 text-white/60 hover:bg-white/10 rounded-lg">
                 <Plus size={18} />
               </button>
             </div>
@@ -295,8 +295,9 @@ export default function App() {
         <MaterialDrawer
           materials={rawMaterials}
           isOpen={view === 'drawer'}
-          onToggle={(open) => setView(open ? 'drawer' : 'scrapbook')}
+          onToggle={(open) => { setActiveTool(null); setView(open ? 'drawer' : 'scrapbook'); }}
           onSelect={(m) => {
+            setActiveTool(null);
             setCurrentMaterial(m);
             setView('cutting');
           }}
@@ -318,9 +319,9 @@ export default function App() {
             exit={{ opacity: 0, y: 100 }}
             className="fixed inset-0 z-50"
           >
-            <CameraView 
-              onCapture={handleCapture} 
-              onClose={() => setView('scrapbook')} 
+            <CameraView
+              onCapture={handleCapture}
+              onClose={() => { setActiveTool(null); setView('scrapbook'); }}
             />
           </motion.div>
         )}
@@ -333,10 +334,10 @@ export default function App() {
             exit={{ opacity: 0, scale: 0.9 }}
             className="fixed inset-0 z-50"
           >
-            <CuttingRoom 
-              image={currentMaterial.image} 
-              onCut={handleCut} 
-              onCancel={() => setView('drawer')} 
+            <CuttingRoom
+              image={currentMaterial.image}
+              onCut={handleCut}
+              onCancel={() => { setActiveTool(null); setView('drawer'); }}
             />
           </motion.div>
         )}
@@ -345,7 +346,7 @@ export default function App() {
           <JournalModal
             key="journal"
             onAdd={handleAddJournal}
-            onClose={() => setView('scrapbook')}
+            onClose={() => { setActiveTool(null); setView('scrapbook'); }}
           />
         )}
       </AnimatePresence>
