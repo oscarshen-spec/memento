@@ -192,7 +192,17 @@ export const CuttingRoom: React.FC<CuttingRoomProps> = ({ image, onCut, onCancel
     const allTouches = e.touches;
     const changedTouches = e.changedTouches;
 
-    if (gestureState === 'idle' && allTouches.length === 1) {
+    if ((gestureState === 'idle' || gestureState === 'pending') && allTouches.length === 2) {
+      // Two fingers — go straight to panning regardless of whether they arrived
+      // simultaneously (idle→panning) or sequentially (pending→panning)
+      if (longPressTimer.current) clearTimeout(longPressTimer.current);
+      const t1 = allTouches[0];
+      const t2 = allTouches[1];
+      panRef.current = { dist: pinchDistance(t1, t2), mid: pinchMidpoint(t1, t2) };
+      setFingerA(null);
+      setGestureState('panning');
+
+    } else if (gestureState === 'idle' && allTouches.length === 1) {
       const touch = changedTouches[0];
       setFingerA({ id: touch.identifier, pos: getTouchPos(touch) });
       setGestureState('pending');
@@ -200,13 +210,6 @@ export const CuttingRoom: React.FC<CuttingRoomProps> = ({ image, onCut, onCancel
         setGestureState('anchored');
         if (navigator.vibrate) navigator.vibrate(80);
       }, 400);
-
-    } else if (gestureState === 'pending' && allTouches.length === 2) {
-      if (longPressTimer.current) clearTimeout(longPressTimer.current);
-      const t1 = allTouches[0];
-      const t2 = allTouches[1];
-      panRef.current = { dist: pinchDistance(t1, t2), mid: pinchMidpoint(t1, t2) };
-      setGestureState('panning');
 
     } else if (gestureState === 'anchored' && allTouches.length === 2) {
       const newTouch = Array.from(changedTouches).find(t => t.identifier !== fingerA?.id);
