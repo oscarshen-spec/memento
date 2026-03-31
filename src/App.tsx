@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import confetti from 'canvas-confetti';
-import { Scrap, Point, RawMaterial, ScrapbookPage, JournalEntry } from './types';
+import { Scrap, Point, RawMaterial, ScrapbookPage, JournalEntry, TapeStrip } from './types';
 import { CameraView } from './components/CameraView';
 import { CuttingRoom } from './components/CuttingRoom';
 import { Scrapbook } from './components/Scrapbook';
@@ -29,6 +29,7 @@ export default function App() {
   
   const [view, setView] = useState<'scrapbook' | 'camera' | 'cutting' | 'drawer' | 'journal'>('scrapbook');
   const [currentMaterial, setCurrentMaterial] = useState<RawMaterial | null>(null);
+  const [activeTool, setActiveTool] = useState<'tape' | null>(null);
 
   const currentPage = pages[currentPageIndex];
 
@@ -159,6 +160,12 @@ export default function App() {
     setView('drawer');
   };
 
+  const handleAddTapeStrip = (strip: TapeStrip) => {
+    const updatedPages = [...pages];
+    updatedPages[currentPageIndex].tapeStrips.push(strip);
+    setPages(updatedPages);
+  };
+
   const updateScrap = (id: string, attrs: Partial<Scrap>) => {
     const updatedPages = [...pages];
     updatedPages[currentPageIndex].scraps = updatedPages[currentPageIndex].scraps.map(s => 
@@ -194,6 +201,32 @@ export default function App() {
         {/* Top Bar - Subtle icons on the desk */}
         <div className="w-full h-16 flex justify-between items-center px-6 md:px-12 shrink-0 z-10">
           <div className="flex gap-8">
+            <button
+              onClick={() => setActiveTool(activeTool === 'tape' ? null : 'tape')}
+              className={`flex flex-col items-center gap-1 p-2 rounded-lg transition-colors ${
+                activeTool === 'tape'
+                  ? 'bg-white/15 text-white/90'
+                  : 'text-white/50 hover:bg-white/10 hover:text-white/70'
+              }`}
+              title="Tape tool"
+            >
+              <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
+                {/* Tape roll outer ring */}
+                <circle cx="13" cy="13" r="11" stroke="currentColor" strokeWidth="2.2" fill="currentColor" fillOpacity="0.1"/>
+                {/* Inner hole */}
+                <circle cx="13" cy="13" r="4.5" stroke="currentColor" strokeWidth="1.5" fill="rgba(30,20,10,0.7)"/>
+                {/* Grain lines */}
+                <path d="M3.5,10.5 Q13,8.5 22.5,10.5" stroke="currentColor" strokeOpacity="0.35" strokeWidth="0.7" fill="none"/>
+                <path d="M3,13 Q13,11 23,13" stroke="currentColor" strokeOpacity="0.35" strokeWidth="0.7" fill="none"/>
+                <path d="M3.5,15.5 Q13,13.5 22.5,15.5" stroke="currentColor" strokeOpacity="0.35" strokeWidth="0.7" fill="none"/>
+                {/* Pull tab */}
+                <path d="M21,9.5 L24.5,7 L26,9.5 L22.5,12 Z" fill="currentColor" fillOpacity="0.8"/>
+              </svg>
+              {/* Active indicator dot */}
+              {activeTool === 'tape' && (
+                <div className="w-1 h-1 rounded-full bg-white/80" />
+              )}
+            </button>
           </div>
 
           <div className="flex items-center gap-4">
@@ -244,6 +277,8 @@ export default function App() {
                 onUpdateScrap={updateScrap}
                 onUpdateEntry={updateEntry}
                 onReturnScrap={handleReturnScrap}
+                onAddTapeStrip={handleAddTapeStrip}
+                isTapeActive={activeTool === 'tape'}
                 dimensions={{ width: bookDims.width - 68, height: bookDims.height }}
               />
             </div>
