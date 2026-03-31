@@ -201,9 +201,9 @@ export const TapeLayer: React.FC<TapeLayerProps> = ({
   const [inProgress, setInProgress] = useState<InProgress | null>(null);
   const ipRef = useRef<InProgress | null>(null);
 
-  const getPos = (e: any): Point => {
-    const pos = e.target.getStage().getPointerPosition();
-    return { x: pos.x, y: pos.y };
+  const getPos = (e: any): Point | null => {
+    const pos = e.target.getStage()?.getPointerPosition();
+    return pos ? { x: pos.x, y: pos.y } : null;
   };
 
   const finalize = (start: Point, end: Point) => {
@@ -221,6 +221,7 @@ export const TapeLayer: React.FC<TapeLayerProps> = ({
 
   const handleDown = (e: any) => {
     const pos = getPos(e);
+    if (!pos) return;
     const ip: InProgress = {
       startPoint: pos,
       currentPoint: pos,
@@ -234,6 +235,7 @@ export const TapeLayer: React.FC<TapeLayerProps> = ({
   const handleMove = (e: any) => {
     if (!ipRef.current) return;
     const pos = getPos(e);
+    if (!pos) return;
     const ip = ipRef.current;
 
     const totalMovement = { x: pos.x - ip.startPoint.x, y: pos.y - ip.startPoint.y };
@@ -267,6 +269,11 @@ export const TapeLayer: React.FC<TapeLayerProps> = ({
   const handleUp = (e: any) => {
     if (!ipRef.current) return;
     const pos = getPos(e);
+    if (!pos) {
+      // pointer left stage — finalize at last known position
+      finalize(ipRef.current.startPoint, ipRef.current.prevPoint);
+      return;
+    }
     finalize(ipRef.current.startPoint, pos);
   };
 
