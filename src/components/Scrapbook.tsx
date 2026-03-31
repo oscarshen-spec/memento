@@ -4,59 +4,6 @@ import { TapeStrip, Scrap, Point, JournalEntry, ScrapbookPage } from '../types';
 import { TapeLayer } from './TapeLayer';
 import useImage from 'use-image';
 
-// ─── Helpers (outside component to avoid recreation) ───────────────────────────
-
-const stageToLocal = (pt: Point, scrap: Scrap): Point => {
-  const tx = pt.x - scrap.x;
-  const ty = pt.y - scrap.y;
-  const rad = (-scrap.rotation * Math.PI) / 180;
-  const cos = Math.cos(rad);
-  const sin = Math.sin(rad);
-  return {
-    x: (tx * cos - ty * sin) / scrap.scale,
-    y: (tx * sin + ty * cos) / scrap.scale,
-  };
-};
-
-const generateTearPolygon = (start: Point, end: Point, cw: number, ch: number): Point[] => {
-  const dx = end.x - start.x;
-  const dy = end.y - start.y;
-  let leftY: number, rightY: number;
-  if (Math.abs(dx) < 5) {
-    leftY = rightY = (start.y + end.y) / 2;
-  } else {
-    const slope = dy / dx;
-    leftY = start.y - slope * start.x;
-    rightY = start.y + slope * (cw - start.x);
-  }
-  leftY = Math.max(10, Math.min(ch - 10, leftY));
-  rightY = Math.max(10, Math.min(ch - 10, rightY));
-
-  const numSegs = 60;
-  const tearPts: Point[] = [];
-  for (let i = 0; i <= numSegs; i++) {
-    const t = i / numSegs;
-    tearPts.push({
-      x: t * cw,
-      y: leftY + (rightY - leftY) * t + (Math.random() - 0.5) * 50 + (Math.random() - 0.5) * 18,
-    });
-  }
-  // Extend bounds well beyond stage to cover any image size after local transform
-  return [
-    { x: -200, y: -200 },
-    { x: cw + 200, y: -200 },
-    { x: cw + 200, y: tearPts[tearPts.length - 1].y },
-    ...tearPts.slice().reverse(),
-    { x: -200, y: tearPts[0].y },
-  ];
-};
-
-const isPointInScrapBounds = (pt: Point, scrap: Scrap): boolean => {
-  const local = stageToLocal(pt, scrap);
-  // Generous bounds — covers images up to ~2000px native
-  return local.x > -50 && local.x < 2000 && local.y > -50 && local.y < 2000;
-};
-
 // ─── ScrapItem ──────────────────────────────────────────────────────────────────
 
 interface ScrapItemProps {
@@ -66,10 +13,9 @@ interface ScrapItemProps {
   onChange: (newAttrs: Partial<Scrap>) => void;
   onReturn: () => void;
   stageHeight: number;
-  tearMode: boolean;
 }
 
-const ScrapItem: React.FC<ScrapItemProps> = ({ scrap, isSelected, onSelect, onChange, onReturn, stageHeight, tearMode }) => {
+const ScrapItem: React.FC<ScrapItemProps> = ({ scrap, isSelected, onSelect, onChange, onReturn, stageHeight }) => {
   const [image] = useImage(scrap.image);
   const shapeRef = useRef<any>(null);
   const trRef = useRef<any>(null);
@@ -138,14 +84,14 @@ const ScrapItem: React.FC<ScrapItemProps> = ({ scrap, isSelected, onSelect, onCh
   return (
     <>
       <Group
-        draggable={!scrap.isGlued && !tearMode}
+        draggable={!scrap.isGlued}
         x={scrap.x}
         y={scrap.y}
         rotation={scrap.rotation}
         scaleX={scrap.scale}
         scaleY={scrap.scale}
-        onClick={tearMode ? undefined : onSelect}
-        onTap={tearMode ? undefined : onSelect}
+        onClick={onSelect}
+        onTap={onSelect}
         onDragEnd={(e) => {
           const y = e.target.y();
           if (y > stageHeight) {
@@ -240,7 +186,7 @@ const ScrapItem: React.FC<ScrapItemProps> = ({ scrap, isSelected, onSelect, onCh
         )}
       </Group>
 
-      {isSelected && !scrap.isGlued && !tearMode && (
+      {isSelected && !scrap.isGlued && (
         <Transformer
           ref={trRef}
           anchorSize={24}
@@ -433,7 +379,6 @@ export const Scrapbook: React.FC<ScrapbookProps> = ({
               onChange={(newAttrs) => onUpdateScrap(scrap.id, newAttrs)}
               onReturn={() => onReturnScrap(scrap)}
               stageHeight={dimensions.height}
-              tearMode={false}
             />
           ))}
           {page.journalEntries.map((entry) => (
