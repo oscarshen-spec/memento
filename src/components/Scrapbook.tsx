@@ -537,7 +537,7 @@ interface ScrapbookProps {
 
 const DRAG_OVERFLOW = 180;
 
-export const Scrapbook: React.FC<ScrapbookProps> = ({
+export const Scrapbook = React.forwardRef<Konva.Stage, ScrapbookProps>(({
   page,
   onUpdateScrap,
   onUpdateEntry,
@@ -550,7 +550,7 @@ export const Scrapbook: React.FC<ScrapbookProps> = ({
   dimensions,
   selectedScrapId,
   onSelectScrap,
-}) => {
+}, ref) => {
   const selectedId = selectedScrapId;
   const setSelectedId = onSelectScrap;
   const fallsDoneCount = useRef(0);
@@ -570,6 +570,7 @@ export const Scrapbook: React.FC<ScrapbookProps> = ({
   return (
     <div className="w-full h-full">
       <Stage
+        ref={ref}
         width={dimensions.width}
         height={dimensions.height + DRAG_OVERFLOW}
         onMouseDown={checkDeselect}
@@ -625,4 +626,4 @@ export const Scrapbook: React.FC<ScrapbookProps> = ({
       </Stage>
     </div>
   );
-};
+});
