@@ -3,7 +3,6 @@ import { useMotionValue } from 'motion/react';
 import { Scrap, JournalEntry, ScrapbookPage, TapeStrip } from '../types';
 import { Scrapbook } from './Scrapbook';
 import { AddPageView } from './AddPageView';
-import { shouldSnapForward } from '../utils/flipUtils';
 
 interface PageFlipContainerProps {
   currentPage: ScrapbookPage;
@@ -23,9 +22,6 @@ interface PageFlipContainerProps {
 }
 
 const EDGE_ZONE_WIDTH = 30;
-
-// shouldSnapForward is imported for use in Task 6
-void shouldSnapForward;
 
 export const PageFlipContainer: React.FC<PageFlipContainerProps> = ({
   currentPage,
@@ -48,10 +44,6 @@ export const PageFlipContainer: React.FC<PageFlipContainerProps> = ({
   const [selectedScrapId, setSelectedScrapId] = useState<string | null>(null);
   const isFlipping = flipDir !== null;
 
-  // Suppress unused variable warnings — will be used in Tasks 5–6
-  void rotateY;
-  void setFlipDir;
-
   const sharedScrapbookProps = {
     onUpdateScrap,
     onUpdateEntry,
@@ -73,13 +65,13 @@ export const PageFlipContainer: React.FC<PageFlipContainerProps> = ({
     >
       {/* z-index 1: next/prev page (revealed underneath flip) */}
       <div className="absolute inset-0" style={{ zIndex: 1, pointerEvents: 'none' }}>
-        {nextPage === 'add-page' ? (
-          <AddPageView onAdd={onAddPage} />
-        ) : flipDir === 'prev' && prevPage ? (
+        {flipDir === 'prev' && prevPage ? (
           <Scrapbook page={prevPage} {...sharedScrapbookProps} />
-        ) : nextPage ? (
-          <Scrapbook page={nextPage as ScrapbookPage} {...sharedScrapbookProps} />
-        ) : null}
+        ) : nextPage === 'add-page' ? (
+          <AddPageView onAdd={onAddPage} />
+        ) : (
+          <Scrapbook page={nextPage} {...sharedScrapbookProps} />
+        )}
       </div>
 
       {/* z-index 2: shadow overlay (added in Task 5) */}
