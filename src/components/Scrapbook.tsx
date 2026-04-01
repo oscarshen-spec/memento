@@ -86,7 +86,14 @@ const ScrapItem: React.FC<ScrapItemProps> = ({ scrap, isSelected, onSelect, onCh
     lastDragPos.current = { x: node.x(), y: node.y(), t: Date.now() };
     activeTween.current?.destroy();
     activeTween.current = null;
-    node.setAttrs({ shadowBlur: 12, shadowOffsetY: 8, shadowOffsetX: 0 });
+    node.setAttrs({
+      scaleX: scrap.scale * 1.04,
+      scaleY: scrap.scale * 1.04,
+      shadowColor: 'rgba(0,0,0,0.55)',
+      shadowBlur: 28,
+      shadowOffsetY: 20,
+      shadowOffsetX: 0,
+    });
     navigator.vibrate?.(10);
   };
 
@@ -112,9 +119,10 @@ const ScrapItem: React.FC<ScrapItemProps> = ({ scrap, isSelected, onSelect, onCh
     const speed = Math.min(Math.sqrt(vx * vx + vy * vy), 40);
 
     node.setAttrs({
-      shadowBlur: 8 + speed * 0.5,
-      shadowOffsetY: 6 + speed * 0.3,
-      shadowOffsetX: clampedVx * 0.15,
+      shadowColor: 'rgba(0,0,0,0.55)',
+      shadowBlur: 20 + speed * 0.6,
+      shadowOffsetY: 16 + speed * 0.4,
+      shadowOffsetX: clampedVx * 0.2,
       skewX: clampedVx * 0.012,
       rotation: baseRotation.current + clampedVx * 0.04,
     });
@@ -264,6 +272,9 @@ const ScrapItem: React.FC<ScrapItemProps> = ({ scrap, isSelected, onSelect, onCh
 
           if (y > stageHeight) {
             node.setAttrs({
+              scaleX: scrap.scale,
+              scaleY: scrap.scale,
+              shadowColor: 'rgba(0,0,0,0.35)',
               shadowBlur: 4,
               shadowOffsetY: 3,
               shadowOffsetX: 0,
@@ -280,6 +291,9 @@ const ScrapItem: React.FC<ScrapItemProps> = ({ scrap, isSelected, onSelect, onCh
             node,
             duration: 0.5,
             easing: Konva.Easings.ElasticEaseOut,
+            scaleX: scrap.scale,
+            scaleY: scrap.scale,
+            shadowColor: 'rgba(0,0,0,0.35)',
             shadowBlur: 4,
             shadowOffsetY: 3,
             shadowOffsetX: 0,
@@ -517,6 +531,8 @@ interface ScrapbookProps {
   fallingScrapIds: string[] | null;
   onFallComplete: (ids: string[]) => void;
   dimensions: { width: number; height: number };
+  selectedScrapId: string | null;
+  onSelectScrap: (id: string | null) => void;
 }
 
 const DRAG_OVERFLOW = 180;
@@ -532,8 +548,11 @@ export const Scrapbook: React.FC<ScrapbookProps> = ({
   fallingScrapIds,
   onFallComplete,
   dimensions,
+  selectedScrapId,
+  onSelectScrap,
 }) => {
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const selectedId = selectedScrapId;
+  const setSelectedId = onSelectScrap;
   const fallsDoneCount = useRef(0);
 
   useEffect(() => {
