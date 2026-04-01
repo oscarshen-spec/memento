@@ -85,13 +85,14 @@ export const PageFlipContainer: React.FC<PageFlipContainerProps> = ({
     return () => cancelAnimationFrame(raf);
   }, [prevPage?.id]);
 
+  const nextPageId = nextPage === 'add-page' ? null : nextPage.id;
   useEffect(() => {
     if (nextPage === 'add-page') return;
     const raf = requestAnimationFrame(() => {
       setNextSnapshot(nextStageRef.current?.toDataURL() ?? null);
     });
     return () => cancelAnimationFrame(raf);
-  }, [nextPage === 'add-page' ? null : nextPage.id]);
+  }, [nextPageId]);
 
   // ── Debounced snapshot refresh on content changes ─────────────────────────
   useEffect(() => {
@@ -143,13 +144,13 @@ export const PageFlipContainer: React.FC<PageFlipContainerProps> = ({
   const dispatchFlipEvent = useCallback((phase: FlipPhase, e: React.PointerEvent) => {
     const el = flipContainerRef.current;
     if (!el) return;
-    el.dispatchEvent(buildFlipEvent(phase, e.pointerType, extractPointerCoords(e as unknown as PointerEvent), el));
+    el.dispatchEvent(buildFlipEvent(phase, e.pointerType, extractPointerCoords(e.nativeEvent), el));
   }, []);
 
   // ── Edge zone handlers ────────────────────────────────────────────────────
   const handleEdgePointerDown = (e: React.PointerEvent<HTMLDivElement>, dir: 'next' | 'prev') => {
     e.currentTarget.setPointerCapture(e.pointerId);
-    pendingCoordsRef.current = { ...extractPointerCoords(e as unknown as PointerEvent), pointerType: e.pointerType };
+    pendingCoordsRef.current = { ...extractPointerCoords(e.nativeEvent), pointerType: e.pointerType };
     flipDirRef.current = dir;
     setFlipDir(dir);
     setFlipState('flipping');
@@ -255,7 +256,10 @@ export const PageFlipContainer: React.FC<PageFlipContainerProps> = ({
             startPage={flipDir === 'prev' ? 1 : 0}
             style={{ pointerEvents: 'none' } as React.CSSProperties}
             onFlip={() => {
-              // Clear flipDirRef FIRST — onChangeState checks it to detect snap-back
+              // StPageFlip fires onFlip before onChangeState('read') on a completed flip.
+              // We rely on this ordering: clear flipDirRef here first, so that onChangeState
+              // can use flipDirRef.current !== null as the snap-back signal. If StPageFlip
+              // ever changes this ordering, snap-back detection will break.
               const dir = flipDirRef.current;
               flipDirRef.current = null;
               setFlipState('idle');
