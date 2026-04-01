@@ -163,12 +163,42 @@ const ScrapItem: React.FC<ScrapItemProps> = ({ scrap, isSelected, onSelect, onCh
         onDragStart={handleDragStart}
         onDragMove={handleDragMove}
         onDragEnd={(e) => {
-          const y = e.target.y();
+          const node = e.target;
+          const x = node.x();
+          const y = node.y();
+
           if (y > stageHeight) {
+            node.setAttrs({
+              shadowBlur: 4,
+              shadowOffsetY: 3,
+              shadowOffsetX: 0,
+              skewX: 0,
+              rotation: baseRotation.current,
+            });
             onReturn();
-          } else {
-            onChange({ x: e.target.x(), y });
+            return;
           }
+
+          activeTween.current?.destroy();
+
+          const tween = new Konva.Tween({
+            node,
+            duration: 0.5,
+            easing: Konva.Easings.ElasticEaseOut,
+            shadowBlur: 4,
+            shadowOffsetY: 3,
+            shadowOffsetX: 0,
+            skewX: 0,
+            rotation: baseRotation.current,
+            onFinish: () => {
+              onChange({ x: node.x(), y: node.y(), rotation: baseRotation.current });
+              activeTween.current = null;
+            },
+          });
+
+          tween.play();
+          activeTween.current = tween;
+          navigator.vibrate?.(30);
         }}
         onTransformEnd={(e) => {
           const node = shapeRef.current;
