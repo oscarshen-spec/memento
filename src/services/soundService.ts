@@ -275,6 +275,11 @@ export function startTapePull(): () => void {
       gain.gain.setValueAtTime(gain.gain.value, now);
       gain.gain.linearRampToValueAtTime(0, now + 0.04);
       source.stop(now + 0.05);
+      source.onended = () => {
+        source.disconnect();
+        filter.disconnect();
+        gain.disconnect();
+      };
     };
   } catch {
     return () => {};
