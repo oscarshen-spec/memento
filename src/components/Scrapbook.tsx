@@ -15,12 +15,14 @@ interface ScrapItemProps {
   onReturn: () => void;
   stageHeight: number;
   isGlueActive: boolean;
+  isFalling: boolean;
+  onFallDone: () => void;
 }
 
 const MIN_SCALE = 0.5;
 const MAX_SCALE = 3.0;
 
-const ScrapItem: React.FC<ScrapItemProps> = ({ scrap, isSelected, onSelect, onChange, onReturn, stageHeight, isGlueActive }) => {
+const ScrapItem: React.FC<ScrapItemProps> = ({ scrap, isSelected, onSelect, onChange, onReturn, stageHeight, isGlueActive, isFalling, onFallDone }) => {
   const [image] = useImage(scrap.image);
   const shapeRef = useRef<any>(null);
   const trRef = useRef<any>(null);
@@ -143,6 +145,49 @@ const ScrapItem: React.FC<ScrapItemProps> = ({ scrap, isSelected, onSelect, onCh
       });
     }
   }, [scrap.isGlued]);
+
+  useEffect(() => {
+    if (!isFalling || !shapeRef.current) return;
+
+    const node = shapeRef.current;
+    const origX = node.x();
+    const origY = node.y();
+    const origRot = node.rotation();
+    let shakeCount = 0;
+
+    const doFall = () => {
+      const finalRot = origRot + (Math.random() > 0.5 ? 28 : -28);
+      new Konva.Tween({
+        node,
+        duration: 0.55,
+        easing: Konva.Easings.EaseIn,
+        y: stageHeight + 250,
+        rotation: finalRot,
+        onFinish: () => onFallDone(),
+      }).play();
+    };
+
+    const doShake = () => {
+      if (shakeCount >= 6) {
+        doFall();
+        return;
+      }
+      const dx = shakeCount % 2 === 0 ? 5 : -5;
+      const dr = shakeCount % 2 === 0 ? 4 : -4;
+      new Konva.Tween({
+        node,
+        duration: 0.05,
+        x: origX + dx,
+        y: origY,
+        rotation: origRot + dr,
+        onFinish: () => { shakeCount++; doShake(); },
+      }).play();
+    };
+
+    const delay = Math.random() * 150;
+    const timer = setTimeout(doShake, delay);
+    return () => clearTimeout(timer);
+  }, [isFalling]);
 
   const drawJaggedPath = (ctx: any, points: Point[]) => {
     if (points.length < 2) return;
@@ -507,6 +552,8 @@ export const Scrapbook: React.FC<ScrapbookProps> = ({
               onReturn={() => onReturnScrap(scrap)}
               stageHeight={dimensions.height}
               isGlueActive={isGlueActive}
+              isFalling={false}
+              onFallDone={() => {}}
             />
           ))}
           {page.journalEntries.map((entry) => (
