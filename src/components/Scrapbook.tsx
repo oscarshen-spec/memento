@@ -99,14 +99,15 @@ const ScrapItem: React.FC<ScrapItemProps> = ({ scrap, isSelected, onSelect, onCh
     lastDragPos.current = { x, y, t: now };
 
     const { vx, vy } = velocity.current;
+    const clampedVx = Math.max(-40, Math.min(40, vx));
     const speed = Math.min(Math.sqrt(vx * vx + vy * vy), 40);
 
     node.setAttrs({
       shadowBlur: 8 + speed * 0.5,
       shadowOffsetY: 6 + speed * 0.3,
-      shadowOffsetX: vx * 0.15,
-      skewX: vx * 0.012,
-      rotation: baseRotation.current + vx * 0.04,
+      shadowOffsetX: clampedVx * 0.15,
+      skewX: clampedVx * 0.012,
+      rotation: baseRotation.current + clampedVx * 0.04,
     });
   };
 
@@ -116,6 +117,12 @@ const ScrapItem: React.FC<ScrapItemProps> = ({ scrap, isSelected, onSelect, onCh
       trRef.current.getLayer().batchDraw();
     }
   }, [isSelected]);
+
+  useEffect(() => {
+    return () => {
+      activeTween.current?.destroy();
+    };
+  }, []);
 
   const drawJaggedPath = (ctx: any, points: Point[]) => {
     if (points.length < 2) return;
