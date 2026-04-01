@@ -8,7 +8,7 @@ interface CuttingRoomProps {
   onCancel: () => void;
 }
 
-type GestureState = 'idle' | 'pending' | 'panning' | 'anchored' | 'ripping' | 'torn';
+type GestureState = 'idle' | 'drawing' | 'panning' | 'torn' | 'arranging';
 
 interface FingerA {
   id: number;
@@ -91,20 +91,33 @@ const generateTearPair = (
 
 export const CuttingRoom: React.FC<CuttingRoomProps> = ({ image, onCut, onCancel }) => {
   const [gestureState, setGestureState] = useState<GestureState>('idle');
-  const [fingerA, setFingerA] = useState<FingerA | null>(null);
-  const [fingerB, setFingerB] = useState<FingerB | null>(null);
+  const [tearPair, setTearPair] = useState<TearPair | null>(null);
+  const [tearPath, setTearPath] = useState<Point[]>([]);
   const [canvasTransform, setCanvasTransform] = useState({ x: 0, y: 0, scale: 1 });
-  const [tearPolygon, setTearPolygon] = useState<Point[] | null>(null);
+  const [pieceAOffset, setPieceAOffset] = useState({ x: 0, y: 0 });
+  const [pieceBOffset, setPieceBOffset] = useState({ x: 0, y: 0 });
 
-  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // refs — not state, updated during touch moves without triggering re-render
+  const drawTouchId = useRef<number | null>(null);
+  const drawPath = useRef<Point[]>([]);
   const panRef = useRef<{ dist: number; mid: Point } | null>(null);
   const ripSpeed = useRef<number[]>([]);
   const lastRipTime = useRef<number>(0);
   const lastRipPos = useRef<Point | null>(null);
+  const arrangeDragRef = useRef<{
+    piece: 'A' | 'B';
+    touchId: number;
+    startTouchX: number;
+    startTouchY: number;
+    startOffsetX: number;
+    startOffsetY: number;
+  } | null>(null);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const imgRef = useRef<HTMLImageElement | null>(null);
+  const arrangePieceARef = useRef<HTMLCanvasElement>(null);
+  const arrangePieceBRef = useRef<HTMLCanvasElement>(null);
 
   // Decode image once and cache in ref so draw() never calls drawImage before load
   useEffect(() => {
@@ -116,12 +129,6 @@ export const CuttingRoom: React.FC<CuttingRoomProps> = ({ image, onCut, onCancel
     img.src = image;
   }, [image]);
 
-  // Cleanup timer on unmount
-  useEffect(() => {
-    return () => {
-      if (longPressTimer.current) clearTimeout(longPressTimer.current);
-    };
-  }, []);
 
   const draw = () => {
     const canvas = canvasRef.current;
@@ -185,13 +192,16 @@ export const CuttingRoom: React.FC<CuttingRoomProps> = ({ image, onCut, onCancel
   }, [image, gestureState, fingerB, tearPolygon, canvasTransform]);
 
   const handleReset = () => {
-    if (longPressTimer.current) clearTimeout(longPressTimer.current);
+    drawTouchId.current = null;
+    drawPath.current = [];
     setGestureState('idle');
-    setFingerA(null);
-    setFingerB(null);
-    setTearPolygon(null);
+    setTearPath([]);
+    setTearPair(null);
+    setPieceAOffset({ x: 0, y: 0 });
+    setPieceBOffset({ x: 0, y: 0 });
     ripSpeed.current = [];
     lastRipPos.current = null;
+    arrangeDragRef.current = null;
   };
 
   // Touch helpers
