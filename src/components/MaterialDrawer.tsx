@@ -165,7 +165,7 @@ interface MaterialDrawerProps {
 }
 
 export const MaterialDrawer: React.FC<MaterialDrawerProps> = ({
-  materials, onSelect, onClose, isOpen, onToggle, onDragMaterial
+  materials, onSelect, isOpen, onToggle, onDragMaterial
 }) => {
   const controls = useAnimation();
 
