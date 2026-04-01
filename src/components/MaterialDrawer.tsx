@@ -4,6 +4,27 @@ import { RawMaterial } from '../types';
 import { motion, useAnimation, useMotionValue, useSpring } from 'motion/react';
 import type { PanInfo } from 'motion/react';
 
+// ─── Drawer scatter types & helpers ───────────────────────────────────────────
+
+interface DrawerPosition {
+  x: number;
+  y: number;
+  rotation: number;
+  zIndex: number;
+}
+
+const CARD_H = 116;
+const BASE_SPACING = 120; // 100px card + 20px gap
+
+function makeScatterPosition(index: number, containerHeight: number, baseZ: number): DrawerPosition {
+  return {
+    x: index * BASE_SPACING + (Math.random() - 0.5) * 10,
+    y: (containerHeight - CARD_H) / 2 + (Math.random() - 0.5) * 28,
+    rotation: (Math.random() - 0.5) * 30,
+    zIndex: baseZ + index,
+  };
+}
+
 // ─── MaterialCard ──────────────────────────────────────────────────────────────
 
 interface MaterialCardProps {
@@ -131,6 +152,42 @@ export const MaterialDrawer: React.FC<MaterialDrawerProps> = ({
     const raw = getComputedStyle(document.documentElement)
       .getPropertyValue('--safe-area-inset-bottom').trim();
     setSafeAreaBottom(parseInt(raw, 10) || 0);
+  }, []);
+
+  const [positionsMap, setPositionsMap] = React.useState<Record<string, DrawerPosition>>({});
+  const containerRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    setPositionsMap(prev => {
+      const containerH = containerRef.current?.offsetHeight ?? 80;
+      const maxZ = Object.values(prev).reduce((m, p) => Math.max(m, p.zIndex), 0);
+      const next = { ...prev };
+      let added = 0;
+      materials.forEach((m, i) => {
+        if (!next[m.id]) {
+          next[m.id] = makeScatterPosition(
+            Object.keys(next).length + added,
+            containerH,
+            maxZ + 1,
+          );
+          added++;
+        }
+      });
+      // Remove positions for materials that no longer exist
+      const ids = new Set(materials.map(m => m.id));
+      Object.keys(next).forEach(id => { if (!ids.has(id)) delete next[id]; });
+      return next;
+    });
+  }, [materials]);
+
+  const onRearrange = React.useCallback((material: RawMaterial, newX: number, newY: number) => {
+    setPositionsMap(prev => {
+      const maxZ = Object.values(prev).reduce((m, p) => Math.max(m, p.zIndex), 0);
+      return {
+        ...prev,
+        [material.id]: { ...prev[material.id], x: newX, y: newY, zIndex: maxZ + 1 },
+      };
+    });
   }, []);
 
   const handleHeight = 24;
