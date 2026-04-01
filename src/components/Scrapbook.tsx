@@ -14,12 +14,13 @@ interface ScrapItemProps {
   onChange: (newAttrs: Partial<Scrap>) => void;
   onReturn: () => void;
   stageHeight: number;
+  isGlueActive: boolean;
 }
 
 const MIN_SCALE = 0.5;
 const MAX_SCALE = 3.0;
 
-const ScrapItem: React.FC<ScrapItemProps> = ({ scrap, isSelected, onSelect, onChange, onReturn, stageHeight }) => {
+const ScrapItem: React.FC<ScrapItemProps> = ({ scrap, isSelected, onSelect, onChange, onReturn, stageHeight, isGlueActive }) => {
   const [image] = useImage(scrap.image);
   const shapeRef = useRef<any>(null);
   const trRef = useRef<any>(null);
@@ -152,7 +153,7 @@ const ScrapItem: React.FC<ScrapItemProps> = ({ scrap, isSelected, onSelect, onCh
   return (
     <>
       <Group
-        draggable={!scrap.isGlued}
+        draggable={!scrap.isGlued && !isGlueActive}
         x={scrap.x}
         y={scrap.y}
         rotation={scrap.rotation}
@@ -415,6 +416,7 @@ interface ScrapbookProps {
   onReturnScrap: (scrap: Scrap) => void;
   onAddTapeStrip: (strip: TapeStrip) => void;
   isTapeActive: boolean;
+  isGlueActive: boolean;
   dimensions: { width: number; height: number };
 }
 
@@ -427,6 +429,7 @@ export const Scrapbook: React.FC<ScrapbookProps> = ({
   onReturnScrap,
   onAddTapeStrip,
   isTapeActive,
+  isGlueActive,
   dimensions,
 }) => {
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -461,6 +464,7 @@ export const Scrapbook: React.FC<ScrapbookProps> = ({
               onChange={(newAttrs) => onUpdateScrap(scrap.id, newAttrs)}
               onReturn={() => onReturnScrap(scrap)}
               stageHeight={dimensions.height}
+              isGlueActive={isGlueActive}
             />
           ))}
           {page.journalEntries.map((entry) => (

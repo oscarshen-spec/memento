@@ -337,6 +337,7 @@ export default function App() {
                 onReturnScrap={handleReturnScrap}
                 onAddTapeStrip={handleAddTapeStrip}
                 isTapeActive={activeTool === 'tape'}
+                isGlueActive={activeTool === 'glue'}
                 dimensions={{ width: bookDims.width - 68, height: bookDims.height }}
               />
             </div>
