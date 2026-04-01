@@ -67,6 +67,7 @@ export default function App() {
       image,
     };
     setRawMaterials(prev => [newMaterial, ...prev]);
+    setSelectedScrapId(null);
     setView('drawer');
   };
 
@@ -161,6 +162,7 @@ export default function App() {
     updatedPages[currentPageIndex].scraps = updatedPages[currentPageIndex].scraps.filter(s => s.id !== scrap.id);
     setPages(updatedPages);
     setRawMaterials(prev => [{ id: Math.random().toString(36).substr(2, 9), image: scrap.image }, ...prev]);
+    setSelectedScrapId(null);
     setView('drawer');
   };
 
@@ -409,10 +411,11 @@ export default function App() {
         <MaterialDrawer
           materials={rawMaterials}
           isOpen={view === 'drawer'}
-          onToggle={(open) => { setActiveTool(null); setView(open ? 'drawer' : 'scrapbook'); }}
+          onToggle={(open) => { setActiveTool(null); if (open) { setSelectedScrapId(null); setView('drawer'); } else { setView('scrapbook'); } }}
           onSelect={(m) => {
             setActiveTool(null);
             setCurrentMaterial(m);
+            setSelectedScrapId(null);
             setView('cutting');
           }}
           onDragMaterial={handleDragMaterial}
