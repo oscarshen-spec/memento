@@ -8,7 +8,7 @@
 
 Replace the current CSS `rotateY` rigid-board flip with a true cylindrical paper curl using `react-pageflip` (which wraps StPageFlip). The page bends and curves as it turns, exactly like real paper. The effect is interactive: the curl deforms in real-time as the user drags, and snaps forward or back on release.
 
-The Konva canvas owns all pointer events in the page center. Flip gestures are captured exclusively by 30px edge-zone overlays, which forward synthetic `MouseEvent`s to the react-pageflip container — bypassing the gesture conflict entirely.
+The Konva canvas owns all pointer events in the page center. Flip gestures are captured exclusively by 30px edge-zone overlays, which forward synthetic events to the react-pageflip container — bypassing the gesture conflict entirely.
 
 ---
 
@@ -16,7 +16,7 @@ The Konva canvas owns all pointer events in the page center. Flip gestures are c
 
 - **Style:** Cylindrical paper curl rendered on HTML5 Canvas by StPageFlip
 - **Shadow:** Native StPageFlip shadow (`drawShadow: true`, `maxShadowOpacity: 0.5`) — dynamic, organic, peaks mid-curl
-- **Back face:** StPageFlip renders its own back face from page content (the kraft back-face PNG)
+- **Back face:** A dedicated kraft paper `<div>` (`#f0e8d8`) — always blank, never shows page content
 - **Physics:** StPageFlip's built-in spring/easing on snap-forward and snap-back
 - **Interactive:** Curl deforms live as the user drags; threshold-based snap on release
 
@@ -28,9 +28,11 @@ The Konva canvas owns all pointer events in the page center. Flip gestures are c
 
 ```
 z-index 4  │  Edge zone overlays (left 30px + right 30px) — own all pointer events
-z-index 3  │  HTMLFlipBook container — pointer-events: none; receives synthetic events only
-z-index 2  │  Current page Scrapbook — opacity 1 when idle, 0 when flipping
-z-index 1  │  Adjacent page Scrapbook — pre-rendered, opacity 0; used only for snapshot
+z-index 3  │  HTMLFlipBook — pointer-events: none; receives synthetic events only
+             │  Contains: [currentPagePng, kraftPage] (forward) or [kraftPage, currentPagePng] (backward)
+z-index 2  │  Static adjacent page <img> (nextPng or prevPng) — revealed underneath the curl
+z-index 1  │  Current page Scrapbook — opacity 1 when idle, 0 when flipping
+             │  Adjacent page Scrapbook — opacity 0, pre-rendered for snapshot only
 ```
 
 ### State Machine
@@ -39,25 +41,70 @@ z-index 1  │  Adjacent page Scrapbook — pre-rendered, opacity 0; used only f
 IDLE → FLIPPING → IDLE
 ```
 
-- `IDLE`: Konva visible, react-pageflip hidden (`opacity: 0`, `visibility: hidden`)
-- `FLIPPING`: Konva hidden, react-pageflip visible with PNG snapshots; pointer events forwarded from edge zones
+- `IDLE`: Konva visible, react-pageflip and static adjacent img hidden
+- `FLIPPING`: Konva hidden, react-pageflip + static adjacent img visible; pointer events forwarded from edge zones
+
+---
+
+## Snapshot Caching (Fix: no blocking on gesture start)
+
+`stage.toDataURL()` on a complex Konva scene can block the main thread for 50–200ms. Calling it on `onPointerDown` causes a visible stutter before the curl starts. Instead, snapshots are pre-cached.
+
+`PageFlipContainer` maintains `currentPageSnapshot: string | null` and `adjacentPageSnapshot: string | null` in state. These are updated via a debounced effect:
+
+```tsx
+// Re-snapshot 500ms after any page content change, after Konva has rendered
+useEffect(() => {
+  const timeout = setTimeout(() => {
+    const png = currentStageRef.current?.toDataURL() ?? null;
+    setCurrentSnapshot(png);
+  }, 500);
+  return () => clearTimeout(timeout);
+}, [currentPage]); // fires on every immutable page update
+
+useEffect(() => {
+  const timeout = setTimeout(() => {
+    const png = adjacentStageRef.current?.toDataURL() ?? null;
+    setAdjacentSnapshot(png);
+  }, 500);
+  return () => clearTimeout(timeout);
+}, [adjacentPage]);
+```
+
+On `onPointerDown`, both snapshots already exist in state. The transition to `FLIPPING` is instantaneous — no computation, no stutter.
+
+**Initial snapshot:** Each snapshot is also taken on first mount (and on `currentPage.id` change) via a separate `useEffect` with `requestAnimationFrame` to allow Konva's first render to complete.
 
 ---
 
 ## Konva Stage Ref Exposure
 
-`Scrapbook.tsx` is updated to use `React.forwardRef` so `PageFlipContainer` can hold refs to both the current and adjacent Konva stages and call `stage.toDataURL()` synchronously on gesture start.
+`Scrapbook.tsx` is updated to use `React.forwardRef` to expose its `Konva.Stage` ref:
 
 ```tsx
 export const Scrapbook = React.forwardRef<Konva.Stage, ScrapbookProps>((props, ref) => {
   return (
     <div className="w-full h-full">
-      <Stage ref={ref} ...>
+      <Stage ref={ref} width={...} height={...} ...>
 ```
+
+`PageFlipContainer` holds two forwarded refs: `currentStageRef` and `adjacentStageRef` (the latter pointing to the off-screen pre-rendered adjacent Scrapbook).
 
 ---
 
-## react-pageflip Configuration
+## react-pageflip Page Model (Fix: correct back face)
+
+StPageFlip in portrait mode renders the back of a flipping page from the *next item* in its pages array. To ensure the back face is always blank kraft paper — never a copy of the next page content — StPageFlip is given only **two pages**:
+
+**Forward flip:** `[currentPagePng, kraftPage]`, starting at index 0
+- Page curls from index 0 (current) → back face is index 1 (kraft) ✓
+- Next page content is shown as a separate static `<img>` at z-index 2 (below the flip)
+
+**Backward flip:** `[kraftPage, currentPagePng]`, starting at index 1
+- Page curls from index 1 (current) → back face is index 0 (kraft) ✓
+- Prev page content is shown as a separate static `<img>` at z-index 2 (below the flip)
+
+The `flipDir` set at gesture start ('next' | 'prev') determines which configuration to mount.
 
 ```tsx
 <HTMLFlipBook
@@ -71,17 +118,27 @@ export const Scrapbook = React.forwardRef<Konva.Stage, ScrapbookProps>((props, r
   maxShadowOpacity={0.5}
   showCover={false}
   flippingTime={700}
-  style={{ opacity: flipState === 'flipping' ? 1 : 0, visibility: flipState === 'flipping' ? 'visible' : 'hidden', pointerEvents: 'none' }}
+  style={{
+    position: 'absolute', inset: 0,
+    opacity: flipState === 'flipping' ? 1 : 0,
+    visibility: flipState === 'flipping' ? 'visible' : 'hidden',
+    pointerEvents: 'none',
+  }}
 >
-  <div><img src={prevPng} width={dimensions.width} height={dimensions.height} /></div>
-  <div><img src={currentPng} width={dimensions.width} height={dimensions.height} /></div>
-  <div><img src={nextPng} width={dimensions.width} height={dimensions.height} /></div>
+  {flipDir === 'next'
+    ? [
+        <div key="current"><img src={currentSnapshot} width={w} height={h} /></div>,
+        <div key="kraft" style={{ background: '#f0e8d8', width: w, height: h }} />,
+      ]
+    : [
+        <div key="kraft" style={{ background: '#f0e8d8', width: w, height: h }} />,
+        <div key="current"><img src={currentSnapshot} width={w} height={h} /></div>,
+      ]
+  }
 </HTMLFlipBook>
 ```
 
-Three pages are provided: `[prevPage, currentPage, nextPage]`. react-pageflip starts at index 1 (currentPage). A synthetic `mousedown` from the right edge triggers a forward flip; from the left edge triggers backward. When `prevPage` is null (first page), the left edge zone is disabled and `pages[0]` is omitted — react-pageflip is initialized with `[currentPage, nextPage]` starting at index 0.
-
-For the "add page" end state: `nextPng` is a rasterized kraft-paper PNG matching `AddPageView` (off-screen canvas render).
+For the "add page" end state: the static `<img>` at z-index 2 is replaced with an `AddPageView` component.
 
 ---
 
@@ -91,29 +148,66 @@ For the "add page" end state: `nextPng` is a rasterized kraft-paper PNG matching
 
 1. User presses edge zone → `onPointerDown` fires on the overlay
 2. `setPointerCapture` ensures all subsequent pointer events go to the overlay
-3. **Synchronously snapshot** both stages: `stageRef.current.toDataURL()`
-4. Set `flipState = 'flipping'` → Konva fades out, react-pageflip becomes visible
-5. `requestAnimationFrame(() => forwardToFlipBook('mousedown', clientX, clientY))` — one frame delay ensures react-pageflip's container is rendered before the mousedown fires
-6. On every `onPointerMove` from the overlay: `forwardToFlipBook('mousemove', clientX, clientY)`
-7. On `onPointerUp`: `forwardToFlipBook('mouseup', clientX, clientY)`
+3. Set `flipDir` ('next' | 'prev') and `flipState = 'flipping'`
+4. Pre-cached snapshots are already in state — no computation needed
+5. `requestAnimationFrame(() => forwardToFlipBook('down', e))` — one frame ensures the react-pageflip container is rendered and visible before the first event fires
+6. On every `onPointerMove`: `forwardToFlipBook('move', e)`
+7. On `onPointerUp`: `forwardToFlipBook('up', e)`
 8. react-pageflip animates snap-forward or snap-back
 
-### Event Forwarding Helper
+### Event Forwarding Helper (Fix: mobile support)
+
+`dispatchEvent` bypasses `pointer-events: none` and reaches StPageFlip's internal listeners. StPageFlip listens to both `mouse*` and `touch*` events. We dispatch based on `e.pointerType`:
 
 ```tsx
-const forwardToFlipBook = (type: string, clientX: number, clientY: number) => {
-  flipContainerRef.current?.dispatchEvent(
-    new MouseEvent(type, { clientX, clientY, bubbles: true, cancelable: true })
-  );
+const forwardToFlipBook = (phase: 'down' | 'move' | 'up', e: React.PointerEvent) => {
+  const el = flipContainerRef.current;
+  if (!el) return;
+
+  if (e.pointerType === 'touch') {
+    // Dispatch TouchEvent for mobile — StPageFlip uses touch velocity for physics
+    const touchEventType =
+      phase === 'down' ? 'touchstart' : phase === 'move' ? 'touchmove' : 'touchend';
+    const touch = new Touch({
+      identifier: e.pointerId,
+      target: el,
+      clientX: e.clientX,
+      clientY: e.clientY,
+      pageX: e.pageX,
+      pageY: e.pageY,
+      screenX: e.screenX,
+      screenY: e.screenY,
+      radiusX: e.width / 2,
+      radiusY: e.height / 2,
+    });
+    el.dispatchEvent(new TouchEvent(touchEventType, {
+      changedTouches: [touch],
+      touches: phase === 'up' ? [] : [touch],
+      bubbles: true,
+      cancelable: true,
+    }));
+  } else {
+    // Dispatch MouseEvent for mouse and stylus
+    const mouseEventType =
+      phase === 'down' ? 'mousedown' : phase === 'move' ? 'mousemove' : 'mouseup';
+    el.dispatchEvent(new MouseEvent(mouseEventType, {
+      clientX: e.clientX,
+      clientY: e.clientY,
+      bubbles: true,
+      cancelable: true,
+    }));
+  }
 };
 ```
 
-`dispatchEvent` bypasses `pointer-events: none` CSS and reaches react-pageflip's internal `addEventListener` listeners directly. StPageFlip does not check `event.isTrusted`.
+### Synthetic Event Coordinates for Corner Detection
 
-### Synthetic Event Coordinates
+StPageFlip detects which corner to curl from based on where the `mousedown`/`touchstart` lands relative to its container:
 
-- Right edge zone gesture: `mousedown` dispatched at `{ clientX: containerRight - 1, clientY: e.clientY }` — placing it at the right edge so react-pageflip starts a forward curl
-- Left edge zone gesture: `mousedown` dispatched at `{ clientX: containerLeft + 1, clientY: e.clientY }` — placing it at the left edge for backward curl
+- Right edge gesture (forward flip): `mousedown` coordinates are the actual pointer position (on the right edge) — StPageFlip correctly identifies right corner → forward curl
+- Left edge gesture (backward flip): `mousedown` coordinates are the actual pointer position (on the left edge) → left corner → backward curl
+
+No coordinate adjustment needed: the pointer's real position is already at the correct edge.
 
 ---
 
@@ -121,19 +215,18 @@ const forwardToFlipBook = (type: string, clientX: number, clientY: number) => {
 
 ### Forward/backward flip completed
 
-react-pageflip fires `onFlip` with `e.data` = new page index (0 = went backward, 2 = went forward):
+StPageFlip fires `onFlip` when the page settles. Since StPageFlip is configured with exactly 2 pages and we track `flipDir` ourselves, we don't need to inspect `e.data` to determine direction:
 
 ```tsx
-onFlip={(e) => {
-  const dir = e.data === 0 ? 'prev' : 'next';
+onFlip={() => {
   setFlipState('idle');
-  onFlipComplete(dir);
+  onFlipComplete(flipDir!);
 }}
 ```
 
 ### Snap-back (user releases before threshold)
 
-react-pageflip returns to page 1 without firing `onFlip`. We detect this via `onChangeState`:
+StPageFlip returns to the starting page without firing `onFlip`. We detect idle via `onChangeState`:
 
 ```tsx
 onChangeState={(e) => {
@@ -142,14 +235,6 @@ onChangeState={(e) => {
   }
 }}
 ```
-
----
-
-## Snapshots
-
-Both stage snapshots are captured synchronously at gesture start (`stage.toDataURL()` is synchronous on the Konva canvas). The adjacent page Scrapbook is always pre-rendered at z-index 1 (as in the existing implementation), so its stage is ready immediately.
-
-**Kraft back face:** In portrait mode, StPageFlip renders the back of the flipping page from `pages[2]` (the nextPage PNG). This means the back face and the revealed page are the same image — which is correct: the back of the curling page and the page being revealed are both the next page. No separate back-face element is needed.
 
 ---
 
@@ -164,8 +249,7 @@ None. `PageFlipContainer`'s props interface is unchanged. All changes are intern
 | File | Change |
 |---|---|
 | `src/components/Scrapbook.tsx` | Add `React.forwardRef` to expose `Konva.Stage` ref |
-| `src/components/PageFlipContainer.tsx` | Full rewrite: replace CSS rotateY + shadow with react-pageflip + synthetic delegation |
-| `src/components/AddPageView.tsx` | No change needed — its DOM can be snapshotted via off-screen canvas if needed; kraft PNG is the fallback |
+| `src/components/PageFlipContainer.tsx` | Full rewrite: replace CSS rotateY + shadow with react-pageflip + synthetic delegation + snapshot caching |
 | `package.json` | Add `react-pageflip` dependency |
 
 ---
