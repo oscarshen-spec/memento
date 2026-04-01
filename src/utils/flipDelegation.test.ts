@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll } from 'vitest';
-import { buildFlipEvent, extractPointerCoords } from './flipDelegation';
+import { buildFlipEvent, extractPointerCoords, PointerCoords } from './flipDelegation';
 // React import removed — extractPointerCoords now accepts the native PointerEvent type
 
 const coords = {
@@ -14,8 +14,10 @@ let mockTarget: Element;
 
 // Mock MouseEvent and TouchEvent for node environment
 beforeAll(() => {
-  if (typeof global.MouseEvent === 'undefined') {
-    (global as any).MouseEvent = class MouseEvent {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  if (typeof (globalThis as any).MouseEvent === 'undefined') {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (globalThis as any).MouseEvent = class MouseEvent {
       type: string;
       clientX: number;
       clientY: number;
@@ -32,8 +34,10 @@ beforeAll(() => {
     };
   }
 
-  if (typeof global.Touch === 'undefined') {
-    (global as any).Touch = class Touch {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  if (typeof (globalThis as any).Touch === 'undefined') {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (globalThis as any).Touch = class Touch {
       identifier: number;
       target: EventTarget;
       clientX: number;
@@ -60,8 +64,10 @@ beforeAll(() => {
     };
   }
 
-  if (typeof global.TouchEvent === 'undefined') {
-    (global as any).TouchEvent = class TouchEvent {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  if (typeof (globalThis as any).TouchEvent === 'undefined') {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (globalThis as any).TouchEvent = class TouchEvent {
       type: string;
       changedTouches: any[];
       touches: any[];
@@ -79,8 +85,10 @@ beforeAll(() => {
   }
 
   // Polyfill document.createElement for the node test environment
-  if (typeof global.document === 'undefined') {
-    (global as any).document = {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  if (typeof (globalThis as any).document === 'undefined') {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (globalThis as any).document = {
       createElement: (tag: string) => ({ tagName: tag.toUpperCase() }),
     };
   }
@@ -110,6 +118,39 @@ describe('buildFlipEvent — mouse', () => {
     const event = buildFlipEvent('down', 'pen', coords, mockTarget);
     expect(event instanceof MouseEvent).toBe(true);
     expect(event.type).toBe('mousedown');
+  });
+});
+
+describe('buildFlipEvent -- touch', () => {
+  it('builds a touchstart for phase down', () => {
+    const target = document.createElement('div');
+    const coords: PointerCoords = {
+      clientX: 10, clientY: 20,
+      pageX: 30, pageY: 40,
+      screenX: 50, screenY: 60,
+      pointerId: 2,
+      width: 8, height: 8,
+    };
+    const evt = buildFlipEvent('down', 'touch', coords, target) as TouchEvent;
+    expect(evt.type).toBe('touchstart');
+    expect(evt.touches.length).toBe(1);
+    expect(evt.changedTouches[0].clientX).toBe(10);
+    expect(evt.changedTouches[0].clientY).toBe(20);
+  });
+
+  it('builds a touchend with empty touches array for phase up', () => {
+    const target = document.createElement('div');
+    const coords: PointerCoords = {
+      clientX: 10, clientY: 20,
+      pageX: 30, pageY: 40,
+      screenX: 50, screenY: 60,
+      pointerId: 2,
+      width: 8, height: 8,
+    };
+    const evt = buildFlipEvent('up', 'touch', coords, target) as TouchEvent;
+    expect(evt.type).toBe('touchend');
+    expect(evt.touches.length).toBe(0);
+    expect(evt.changedTouches.length).toBe(1);
   });
 });
 

@@ -266,7 +266,7 @@ export const PageFlipContainer: React.FC<PageFlipContainerProps> = ({
               setFlipDir(null);
               if (dir) onFlipComplete(dir);
             }}
-            onChangeState={(e: { data: string }) => {
+            onChangeState={(e: { data: 'user_fold' | 'fold_corner' | 'flipping' | 'read' }) => {
               // 'read' fires on both completion and snap-back.
               // If flipDirRef is still set, onFlip didn't fire → snap-back.
               if (e.data === 'read' && flipDirRef.current !== null) {
