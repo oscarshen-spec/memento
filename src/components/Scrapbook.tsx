@@ -111,6 +111,10 @@ const ScrapItem: React.FC<ScrapItemProps> = ({ scrap, isSelected, onSelect, onCh
         rotation={scrap.rotation}
         scaleX={scrap.scale}
         scaleY={scrap.scale}
+        shadowColor="rgba(0,0,0,0.35)"
+        shadowBlur={4}
+        shadowOffsetX={0}
+        shadowOffsetY={3}
         onClick={onSelect}
         onTap={handleTap}
         onTouchStart={handleTouchStart}
@@ -139,16 +143,6 @@ const ScrapItem: React.FC<ScrapItemProps> = ({ scrap, isSelected, onSelect, onCh
         {isRect ? (
           <>
             {image && (
-              <Rect
-                x={4}
-                y={4}
-                width={image.width}
-                height={image.height}
-                fill="rgba(0,0,0,0.2)"
-                listening={false}
-              />
-            )}
-            {image && (
               <KonvaImage
                 image={image}
                 width={image.width}
@@ -158,17 +152,6 @@ const ScrapItem: React.FC<ScrapItemProps> = ({ scrap, isSelected, onSelect, onCh
           </>
         ) : (
           <>
-            <Shape
-              sceneFunc={(ctx, shape) => {
-                drawJaggedPath(ctx, scrap.points);
-                ctx.fillStrokeShape(shape);
-              }}
-              fill="rgba(0,0,0,0.2)"
-              offsetX={-4}
-              offsetY={4}
-              listening={false}
-            />
-
             <Group
               clipFunc={(ctx) => {
                 drawJaggedPath(ctx, scrap.points);
