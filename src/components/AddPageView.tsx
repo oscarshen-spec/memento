@@ -12,7 +12,7 @@ export const AddPageView: React.FC<AddPageViewProps> = ({ onAdd }) => (
   >
     <button
       onClick={onAdd}
-      className="flex flex-col items-center gap-2 group"
+      className="flex flex-col items-center gap-2"
     >
       <div
         className="w-16 h-16 rounded-full border-2 border-dashed flex items-center justify-center transition-colors"
