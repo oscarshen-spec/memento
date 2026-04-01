@@ -77,6 +77,22 @@ export const PageFlipContainer: React.FC<PageFlipContainerProps> = ({
     return () => cancelAnimationFrame(raf);
   }, [currentPage.id]);
 
+  useEffect(() => {
+    if (!prevPage) return;
+    const raf = requestAnimationFrame(() => {
+      setPrevSnapshot(prevStageRef.current?.toDataURL() ?? null);
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [prevPage?.id]);
+
+  useEffect(() => {
+    if (nextPage === 'add-page') return;
+    const raf = requestAnimationFrame(() => {
+      setNextSnapshot(nextStageRef.current?.toDataURL() ?? null);
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [nextPage === 'add-page' ? null : nextPage.id]);
+
   // ── Debounced snapshot refresh on content changes ─────────────────────────
   useEffect(() => {
     const t = setTimeout(() => {
