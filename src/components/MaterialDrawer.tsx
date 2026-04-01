@@ -1,6 +1,5 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import { Scissors, Plus } from 'lucide-react';
 import { RawMaterial } from '../types';
 import { motion, useAnimation, useMotionValue, useSpring } from 'motion/react';
 import type { PanInfo } from 'motion/react';
@@ -67,14 +66,11 @@ const MaterialCard: React.FC<MaterialCardProps> = ({ material, index, onSelect, 
           touchAction: 'none',
           opacity: isDragging ? 0 : 1,
         }}
-        className="bg-white border border-black/10 relative group shrink-0 w-24 h-24 rounded-sm cursor-grab active:cursor-grabbing"
+        className="bg-white border border-black/10 relative shrink-0 w-24 h-24 rounded-sm cursor-grab active:cursor-grabbing"
       >
         <div className="absolute inset-0 p-2 flex items-center justify-center">
           <div className="relative w-full h-full bg-white p-1 shadow-sm">
             <img src={material.image} className="w-full h-full object-cover pointer-events-none" alt="Material" />
-            <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
-              <Scissors size={16} className="text-white drop-shadow-lg" />
-            </div>
           </div>
         </div>
       </motion.div>
@@ -122,7 +118,7 @@ interface MaterialDrawerProps {
 }
 
 export const MaterialDrawer: React.FC<MaterialDrawerProps> = ({
-  materials, onSelect, onClose, onUpload, isOpen, onToggle, onDragMaterial
+  materials, onSelect, onClose, isOpen, onToggle, onDragMaterial
 }) => {
   const controls = useAnimation();
 
@@ -167,15 +163,10 @@ export const MaterialDrawer: React.FC<MaterialDrawerProps> = ({
       className="absolute inset-x-0 top-0 flex flex-col shadow-[0_10px_40px_rgba(0,0,0,0.5)]"
       style={{ height: '20vh', touchAction: 'none' }}
     >
-      <div className={`flex-1 overflow-hidden flex flex-col border-b border-black/40 transition-colors duration-300 ${isOpen ? 'bg-[#3d2b1f]' : 'bg-[#0f0805]'}`}>
-        <div className="px-6 py-2 border-b border-black/10 flex justify-between items-center bg-black/20 backdrop-blur-sm">
-          <h3 className="font-serif italic text-sm text-white/80">Materials</h3>
-          <label className="flex items-center gap-2 px-3 py-1 bg-white/10 text-white rounded-full text-[10px] font-bold cursor-pointer hover:bg-white/20 transition-all active:scale-95 shadow-md border border-white/10">
-            <Plus size={12} />
-            <span>ADD</span>
-            <input type="file" accept="image/*" className="hidden" onChange={onUpload} />
-          </label>
-        </div>
+      <div
+        className={`flex-1 overflow-hidden flex flex-col border-b border-black/40 transition-colors duration-300 ${isOpen ? '' : 'bg-[#0f0805]'}`}
+        style={isOpen ? { backgroundImage: 'url(/Drawer.png)', backgroundSize: 'cover', backgroundPosition: 'center' } : {}}
+      >
 
         <div className={`flex-1 overflow-x-auto p-4 flex gap-6 shadow-inner scrollbar-hide items-center transition-colors duration-300 ${isOpen ? 'bg-[#2a1a10]/60' : 'bg-black/30'}`}>
           {materials.length === 0 ? (
