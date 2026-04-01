@@ -31,6 +31,7 @@ export interface JournalEntry {
   fontSize: number;
   fontFamily?: string;
   color?: string;
+  hasPaperBackground?: boolean;
 }
 
 export interface TapeStrip {

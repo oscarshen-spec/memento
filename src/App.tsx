@@ -10,7 +10,7 @@ import { CuttingRoom } from './components/CuttingRoom';
 import { PageFlipContainer } from './components/PageFlipContainer';
 import { MaterialDrawer } from './components/MaterialDrawer';
 import { JournalModal } from './components/JournalModal';
-import { TextOverlay } from './components/TextOverlay';
+import { PaperScrapInput } from './components/PaperScrapInput';
 import { GlueAnimation } from './components/GlueAnimation';
 import type { GlueRect } from './components/GlueAnimation';
 import { ScissorsCutView } from './components/ScissorsCutView';
@@ -186,7 +186,7 @@ export default function App() {
     setPages(updatedPages);
   };
 
-  const handleAddText = (text: string, fontFamily: string, color: string, fontSize: number) => {
+  const handleAddText = (text: string) => {
     const newEntry: JournalEntry = {
       id: Math.random().toString(36).substr(2, 9),
       text,
@@ -194,9 +194,10 @@ export default function App() {
       x: (bookDims.width - 68) / 2 - 100,
       y: bookDims.height / 2 - 50,
       rotation: (Math.random() - 0.5) * 5,
-      fontSize,
-      fontFamily,
-      color,
+      fontSize: 18,
+      fontFamily: 'Caveat',
+      color: '#3a2a1a',
+      hasPaperBackground: true,
     };
     const updatedPages = [...pages];
     updatedPages[currentPageIndex].journalEntries.push(newEntry);
@@ -630,10 +631,11 @@ export default function App() {
         )}
 
         {activeTool === 'text' && (
-          <TextOverlay
-            key="text-overlay"
-            onAdd={handleAddText}
-            onClose={() => setActiveTool(null)}
+          <PaperScrapInput
+            key="paper-scrap-input"
+            onCommit={handleAddText}
+            onCancel={() => setActiveTool(null)}
+            containerRef={bookPageRef}
           />
         )}
 
