@@ -230,6 +230,7 @@ export const CuttingRoom: React.FC<CuttingRoomProps> = ({ image, onCut, onCancel
 
   const handleArrangeTouchStart = (piece: 'A' | 'B') => (e: React.TouchEvent) => {
     e.stopPropagation();
+    if (arrangeDragRef.current) return; // guard against multi-touch steal
     const t = e.changedTouches[0];
     const offset = piece === 'A' ? pieceAOffset : pieceBOffset;
     arrangeDragRef.current = {
