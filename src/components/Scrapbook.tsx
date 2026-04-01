@@ -489,7 +489,7 @@ const drawTornPaper = (ctx: Konva.Context, shape: Konva.Shape) => {
   const w = shape.width();
   const h = shape.height();
   const seed = shape.id()?.split('').reduce((a, c) => a + c.charCodeAt(0), 0) ?? 42;
-  const jag = (i: number) => Math.sin(seed + i * 2.7) * 3;
+  const jag = (i: number) => Math.sin(seed + i * 2.7) * 1.5;
 
   ctx.beginPath();
   // Top edge (jagged)
@@ -538,7 +538,7 @@ const TextItem: React.FC<TextItemProps> = ({ entry, isSelected, onSelect, onChan
     }
   }, [isSelected, entry.hasPaperBackground]);
 
-  const padding = 16;
+  const padding = 4;
 
   // Estimate paper dimensions from text content
   const longestLine = entry.text.split('\n').reduce((a, l) => (l.length > a.length ? l : a), '');
@@ -579,7 +579,7 @@ const TextItem: React.FC<TextItemProps> = ({ entry, isSelected, onSelect, onChan
             id={entry.id}
             width={paperWidth}
             height={paperHeight}
-            fill="#fffef8"
+            fill="#fffbe2"
             shadowColor="rgba(0,0,0,0.18)"
             shadowBlur={8}
             shadowOffsetX={2}
