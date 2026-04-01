@@ -7,7 +7,7 @@ import confetti from 'canvas-confetti';
 import { Scrap, Point, RawMaterial, ScrapbookPage, JournalEntry, TapeStrip } from './types';
 import { CameraView } from './components/CameraView';
 import { CuttingRoom } from './components/CuttingRoom';
-import { Scrapbook } from './components/Scrapbook';
+import { PageFlipContainer } from './components/PageFlipContainer';
 import { MaterialDrawer } from './components/MaterialDrawer';
 import { JournalModal } from './components/JournalModal';
 import { TextOverlay } from './components/TextOverlay';
@@ -359,8 +359,13 @@ export default function App() {
               ref={bookPageRef}
               className="book-page"
             >
-              <Scrapbook
-                page={currentPage}
+              <PageFlipContainer
+                currentPage={currentPage}
+                prevPage={currentPageIndex > 0 ? pages[currentPageIndex - 1] : null}
+                nextPage={currentPageIndex < pages.length - 1 ? pages[currentPageIndex + 1] : 'add-page'}
+                onFlipComplete={(dir) => handlePageTurn(dir)}
+                onAddPage={addPage}
+                dimensions={{ width: bookDims.width - 68, height: bookDims.height }}
                 onUpdateScrap={updateScrap}
                 onUpdateEntry={updateEntry}
                 onReturnScrap={handleReturnScrap}
@@ -369,7 +374,6 @@ export default function App() {
                 isGlueActive={activeTool === 'glue'}
                 fallingScrapIds={fallingOff?.scrapIds ?? null}
                 onFallComplete={handleFallComplete}
-                dimensions={{ width: bookDims.width - 68, height: bookDims.height }}
               />
             </div>
           </div>
