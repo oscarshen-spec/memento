@@ -160,10 +160,10 @@ export const MaterialDrawer: React.FC<MaterialDrawerProps> = ({
   React.useEffect(() => {
     setPositionsMap(prev => {
       const containerH = containerRef.current?.offsetHeight ?? 80;
-      const maxZ = Object.values(prev).reduce((m, p) => Math.max(m, p.zIndex), 0);
+      const maxZ = Object.values(prev).reduce((acc, p) => Math.max(acc, p.zIndex), 0);
       const next = { ...prev };
       let added = 0;
-      materials.forEach((m, i) => {
+      materials.forEach((m) => {
         if (!next[m.id]) {
           next[m.id] = makeScatterPosition(
             Object.keys(next).length + added,
