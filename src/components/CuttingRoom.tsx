@@ -190,6 +190,7 @@ export const CuttingRoom: React.FC<CuttingRoomProps> = ({ image, onCut, onCancel
     setPieceBOffset({ x: 0, y: 0 });
     ripSpeed.current = [];
     lastRipPos.current = null;
+    panRef.current = null;
     arrangeDragRef.current = null;
   };
 
