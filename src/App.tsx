@@ -217,9 +217,11 @@ export default function App() {
     if (!fallingOff) return;
     const dir = fallingOff.direction;
     const fallen = currentPage.scraps.filter(s => fallenIds.includes(s.id));
-    const updatedPages = [...pages];
-    updatedPages[currentPageIndex].scraps = currentPage.scraps.filter(s => !fallenIds.includes(s.id));
-    setPages(updatedPages);
+    setPages(prev => prev.map((p, i) =>
+      i === currentPageIndex
+        ? { ...p, scraps: p.scraps.filter(s => !fallenIds.includes(s.id)) }
+        : p
+    ));
     setRawMaterials(prev => [
       ...fallen.map(s => ({ id: Math.random().toString(36).substr(2, 9), image: s.image })),
       ...prev,
