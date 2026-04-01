@@ -300,22 +300,22 @@ const ScrapItem: React.FC<ScrapItemProps> = ({ scrap, isSelected, onSelect, onCh
     };
   }, [isFalling]);
 
-  const drawJaggedPath = (ctx: any, points: Point[]) => {
+  const drawJaggedPath = (ctx: any, points: Point[], jitterMultiplier = 1) => {
     if (points.length < 2) return;
     ctx.beginPath();
     ctx.moveTo(points[0].x, points[0].y);
 
     for (let i = 1; i < points.length; i++) {
-      const p1 = points[i-1];
+      const p1 = points[i - 1];
       const p2 = points[i];
       const midX = (p1.x + p2.x) / 2;
       const midY = (p1.y + p2.y) / 2;
       const dist = Math.sqrt(Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2));
-      const jitter = dist * 0.05;
+      const jitter = dist * 0.05 * jitterMultiplier;
 
       ctx.lineTo(
         midX + (Math.random() - 0.5) * jitter,
-        midY + (Math.random() - 0.5) * jitter
+        midY + (Math.random() - 0.5) * jitter,
       );
       ctx.lineTo(p2.x, p2.y);
     }
@@ -427,7 +427,7 @@ const ScrapItem: React.FC<ScrapItemProps> = ({ scrap, isSelected, onSelect, onCh
           <>
             <Group
               clipFunc={(ctx) => {
-                drawJaggedPath(ctx, scrap.points);
+                drawJaggedPath(ctx, scrap.points, 1);
               }}
             >
               {image && (
@@ -441,12 +441,12 @@ const ScrapItem: React.FC<ScrapItemProps> = ({ scrap, isSelected, onSelect, onCh
 
             <Shape
               sceneFunc={(ctx, shape) => {
-                drawJaggedPath(ctx, scrap.points);
+                drawJaggedPath(ctx, scrap.points, scrap.isTorn ? 2.5 : 1);
                 ctx.fillStrokeShape(shape);
               }}
               stroke="white"
-              strokeWidth={scrap.isTorn ? 3.5 : 1}
-              opacity={scrap.isTorn ? 0.65 : 0.3}
+              strokeWidth={scrap.isTorn ? 4.5 : 1}
+              opacity={scrap.isTorn ? 0.7 : 0.3}
               listening={false}
             />
 
