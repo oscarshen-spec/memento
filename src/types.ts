@@ -29,6 +29,8 @@ export interface JournalEntry {
   y: number;
   rotation: number;
   fontSize: number;
+  fontFamily?: string;
+  color?: string;
 }
 
 export interface TapeStrip {
