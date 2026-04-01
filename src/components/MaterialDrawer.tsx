@@ -251,22 +251,31 @@ export const MaterialDrawer: React.FC<MaterialDrawerProps> = ({
         style={isOpen ? { backgroundImage: 'url(/Drawer.png)', backgroundSize: 'cover', backgroundPosition: 'center' } : {}}
       >
 
-        <div className={`flex-1 overflow-x-auto p-4 px-6 flex gap-5 scrollbar-hide items-center transition-colors duration-300 ${isOpen ? 'bg-[#1e1008]/70 shadow-[inset_0_4px_20px_rgba(0,0,0,0.5)]' : 'bg-black/30 shadow-inner'}`}>
+        <div
+          ref={containerRef}
+          className={`flex-1 relative overflow-hidden transition-colors duration-300 ${isOpen ? 'bg-[#1e1008]/70 shadow-[inset_0_4px_20px_rgba(0,0,0,0.5)]' : 'bg-black/30 shadow-inner'}`}
+        >
           {materials.length === 0 ? (
-            <div className="flex-1 flex flex-col items-center justify-center gap-1">
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-1">
               <span className="text-white/20 font-serif italic text-sm tracking-wide">Empty drawer</span>
               <span className="text-white/10 text-[10px] uppercase tracking-[0.2em]">tap + to add materials</span>
             </div>
           ) : (
-            materials.map((m, i) => (
-              <MaterialCard
-                key={m.id}
-                material={m}
-                index={i}
-                onSelect={onSelect}
-                onDragMaterial={onDragMaterial}
-              />
-            ))
+            materials.map((m) => {
+              const pos = positionsMap[m.id];
+              if (!pos) return null;
+              return (
+                <MaterialCard
+                  key={m.id}
+                  material={m}
+                  position={pos}
+                  drawerRef={containerRef}
+                  onSelect={onSelect}
+                  onDragMaterial={onDragMaterial}
+                  onRearrange={onRearrange}
+                />
+              );
+            })
           )}
         </div>
       </div>
