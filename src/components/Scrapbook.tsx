@@ -392,6 +392,38 @@ const ScrapItem: React.FC<ScrapItemProps> = ({ scrap, isSelected, onSelect, onCh
   );
 };
 
+/** Draw a torn-edge rectangle for paper scrap backgrounds. */
+const drawTornPaper = (ctx: Konva.Context, shape: Konva.Shape) => {
+  const w = shape.width();
+  const h = shape.height();
+  const seed = shape.id()?.charCodeAt(0) ?? 42;
+  const jag = (i: number) => Math.sin(seed + i * 2.7) * 3;
+
+  ctx.beginPath();
+  // Top edge (jagged)
+  const topSteps = 8;
+  for (let i = 0; i <= topSteps; i++) {
+    const px = (i / topSteps) * w;
+    const py = jag(i);
+    if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+  }
+  // Right edge
+  const rightSteps = 6;
+  for (let i = 1; i <= rightSteps; i++) {
+    ctx.lineTo(w + jag(i + 20), (i / rightSteps) * h);
+  }
+  // Bottom edge (jagged)
+  for (let i = topSteps; i >= 0; i--) {
+    ctx.lineTo((i / topSteps) * w, h + jag(i + 40));
+  }
+  // Left edge
+  for (let i = rightSteps - 1; i >= 0; i--) {
+    ctx.lineTo(jag(i + 60), (i / rightSteps) * h);
+  }
+  ctx.closePath();
+  ctx.fillStrokeShape(shape);
+};
+
 // ─── TextItem ────────────────────────────────────────────────────────────────────
 
 interface TextItemProps {
@@ -404,14 +436,98 @@ interface TextItemProps {
 const TextItem: React.FC<TextItemProps> = ({ entry, isSelected, onSelect, onChange }) => {
   const shapeRef = useRef<any>(null);
   const trRef = useRef<any>(null);
+  const groupRef = useRef<any>(null);
 
   useEffect(() => {
-    if (isSelected && trRef.current && shapeRef.current) {
-      trRef.current.nodes([shapeRef.current]);
+    const targetRef = entry.hasPaperBackground ? groupRef : shapeRef;
+    if (isSelected && trRef.current && targetRef.current) {
+      trRef.current.nodes([targetRef.current]);
       trRef.current.getLayer().batchDraw();
     }
-  }, [isSelected]);
+  }, [isSelected, entry.hasPaperBackground]);
 
+  const padding = 16;
+
+  // Estimate paper dimensions from text content
+  const textWidth = entry.fontSize * entry.text.length * 0.55;
+  const lineCount = entry.text.split('\n').length;
+  const textHeight = entry.text.length > 0 ? entry.fontSize * 1.5 * lineCount : entry.fontSize;
+  const paperWidth = Math.max(120, Math.min(280, textWidth + padding * 2));
+  const paperHeight = textHeight + padding * 2;
+
+  if (entry.hasPaperBackground) {
+    return (
+      <>
+        <Group
+          ref={groupRef}
+          x={entry.x}
+          y={entry.y}
+          rotation={entry.rotation}
+          draggable
+          onClick={onSelect}
+          onTap={onSelect}
+          onDragEnd={(e) => {
+            onChange({ x: e.target.x(), y: e.target.y() });
+          }}
+          onTransformEnd={() => {
+            const node = groupRef.current;
+            const scaleX = node.scaleX();
+            onChange({
+              x: node.x(),
+              y: node.y(),
+              rotation: node.rotation(),
+              fontSize: entry.fontSize * scaleX,
+            });
+            node.scaleX(1);
+            node.scaleY(1);
+          }}
+        >
+          <Shape
+            id={entry.id}
+            width={paperWidth}
+            height={paperHeight}
+            fill="#fffef8"
+            shadowColor="rgba(0,0,0,0.18)"
+            shadowBlur={8}
+            shadowOffsetX={2}
+            shadowOffsetY={3}
+            sceneFunc={drawTornPaper}
+          />
+          <Text
+            ref={shapeRef}
+            text={entry.text}
+            x={padding}
+            y={padding}
+            width={paperWidth - padding * 2}
+            fontSize={entry.fontSize}
+            fontFamily="Caveat"
+            fill={entry.color ?? '#3a2a1a'}
+            align="center"
+            lineHeight={1.5}
+          />
+        </Group>
+        {isSelected && (
+          <Transformer
+            ref={trRef}
+            anchorSize={24}
+            anchorCornerRadius={12}
+            anchorStroke="#1a1a1a"
+            anchorFill="white"
+            borderStroke="#1a1a1a"
+            borderDash={[4, 4]}
+            rotateAnchorOffset={40}
+            enabledAnchors={['top-left', 'top-right', 'bottom-left', 'bottom-right']}
+            boundBoxFunc={(oldBox, newBox) => {
+              if (newBox.width < 5 || newBox.height < 5) return oldBox;
+              return newBox;
+            }}
+          />
+        )}
+      </>
+    );
+  }
+
+  // Original plain text rendering (backward compatible)
   return (
     <>
       <Text
@@ -438,7 +554,7 @@ const TextItem: React.FC<TextItemProps> = ({ entry, isSelected, onSelect, onChan
         onDragEnd={(e) => {
           onChange({ x: e.target.x(), y: e.target.y() });
         }}
-        onTransformEnd={(e) => {
+        onTransformEnd={() => {
           const node = shapeRef.current;
           onChange({
             x: node.x(),
