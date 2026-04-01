@@ -239,6 +239,7 @@ export const TapeLayer: React.FC<TapeLayerProps> = ({
     };
     ipRef.current = ip;
     setInProgress({ ...ip });
+    stopPullRef.current?.();
     stopPullRef.current = startTapePull();
   };
 
