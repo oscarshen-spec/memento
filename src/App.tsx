@@ -8,6 +8,7 @@ import { CuttingRoom } from './components/CuttingRoom';
 import { Scrapbook } from './components/Scrapbook';
 import { MaterialDrawer } from './components/MaterialDrawer';
 import { JournalModal } from './components/JournalModal';
+import { TextOverlay } from './components/TextOverlay';
 
 const INITIAL_PAGE: ScrapbookPage = {
   id: 'page-1',
@@ -29,7 +30,7 @@ export default function App() {
   
   const [view, setView] = useState<'scrapbook' | 'camera' | 'cutting' | 'drawer' | 'journal'>('scrapbook');
   const [currentMaterial, setCurrentMaterial] = useState<RawMaterial | null>(null);
-  const [activeTool, setActiveTool] = useState<'tape' | null>(null);
+  const [activeTool, setActiveTool] = useState<'tape' | 'text' | null>(null);
 
   const currentPage = pages[currentPageIndex];
 
@@ -166,6 +167,24 @@ export default function App() {
     setPages(updatedPages);
   };
 
+  const handleAddText = (text: string, fontFamily: string, color: string, fontSize: number) => {
+    const newEntry: JournalEntry = {
+      id: Math.random().toString(36).substr(2, 9),
+      text,
+      type: 'body',
+      x: (bookDims.width - 68) / 2 - 100,
+      y: bookDims.height / 2 - 50,
+      rotation: (Math.random() - 0.5) * 5,
+      fontSize,
+      fontFamily,
+      color,
+    };
+    const updatedPages = [...pages];
+    updatedPages[currentPageIndex].journalEntries.push(newEntry);
+    setPages(updatedPages);
+    setActiveTool(null);
+  };
+
   const updateScrap = (id: string, attrs: Partial<Scrap>) => {
     const updatedPages = [...pages];
     updatedPages[currentPageIndex].scraps = updatedPages[currentPageIndex].scraps.map(s => 
@@ -195,9 +214,9 @@ export default function App() {
   };
 
   return (
-    <div className="relative w-full h-screen overflow-hidden select-none flex flex-col wood-texture">
+    <div className="relative w-full h-screen overflow-hidden select-none flex flex-col bg-[#0f0805]">
       {/* Desk Area (Top 80%) */}
-      <div className="relative w-full h-[80vh] flex flex-col items-center z-10 shadow-[0_10px_30px_rgba(0,0,0,0.5)]">
+      <div className="relative w-full h-[80vh] flex flex-col items-center z-10 shadow-[0_10px_30px_rgba(0,0,0,0.5)] wood-texture">
         {/* Top Bar - Subtle icons on the desk */}
         <div className="w-full h-16 flex justify-between items-center px-6 md:px-12 shrink-0 z-10">
           <div className="flex gap-8">
@@ -224,6 +243,25 @@ export default function App() {
               </svg>
               {/* Active indicator dot */}
               {activeTool === 'tape' && (
+                <div className="w-1 h-1 rounded-full bg-white/80" />
+              )}
+            </button>
+            {/* Text tool */}
+            <button
+              onClick={() => setActiveTool(activeTool === 'text' ? null : 'text')}
+              className={`flex flex-col items-center gap-1 p-2 rounded-lg transition-colors ${
+                activeTool === 'text'
+                  ? 'bg-white/15 text-white/90'
+                  : 'text-white/50 hover:bg-white/10 hover:text-white/70'
+              }`}
+              title="Text tool"
+            >
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="4 7 4 4 20 4 20 7"/>
+                <line x1="9" y1="20" x2="15" y2="20"/>
+                <line x1="12" y1="4" x2="12" y2="20"/>
+              </svg>
+              {activeTool === 'text' && (
                 <div className="w-1 h-1 rounded-full bg-white/80" />
               )}
             </button>
@@ -347,6 +385,14 @@ export default function App() {
             key="journal"
             onAdd={handleAddJournal}
             onClose={() => { setActiveTool(null); setView('scrapbook'); }}
+          />
+        )}
+
+        {activeTool === 'text' && (
+          <TextOverlay
+            key="text-overlay"
+            onAdd={handleAddText}
+            onClose={() => setActiveTool(null)}
           />
         )}
       </AnimatePresence>
