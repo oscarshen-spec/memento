@@ -27,6 +27,68 @@ interface TearPair {
   bottomPolygon: Point[]; // lower half — shares tearLine
 }
 
+const TEAR_JITTER_BOOST = 1.5; // heavier fiber effect vs. scissors cuts
+
+const generateTearPair = (
+  trail: Point[],
+  roughness: number,
+  cw: number,
+  ch: number,
+): TearPair => {
+  const start = trail[0];
+  const end = trail[trail.length - 1];
+  const dx = end.x - start.x;
+  const dy = end.y - start.y;
+
+  let leftY: number;
+  let rightY: number;
+
+  if (Math.abs(dx) < 5) {
+    const midY = (start.y + end.y) / 2;
+    leftY = midY;
+    rightY = midY;
+  } else {
+    const slope = dy / dx;
+    leftY = start.y - slope * start.x;
+    rightY = start.y + slope * (cw - start.x);
+  }
+
+  leftY = Math.max(10, Math.min(ch - 10, leftY));
+  rightY = Math.max(10, Math.min(ch - 10, rightY));
+
+  const numSegs = 60;
+  const tearLine: Point[] = [];
+  for (let i = 0; i <= numSegs; i++) {
+    const t = i / numSegs;
+    const bx = t * cw;
+    const by = leftY + (rightY - leftY) * t;
+    const noise =
+      ((Math.random() - 0.5) * 50 * roughness +
+        (Math.random() - 0.5) * 18 * roughness) *
+      TEAR_JITTER_BOOST;
+    tearLine.push({ x: bx, y: by + noise });
+  }
+
+  // CRITICAL: use [...tearLine] copies — never mutate tearLine itself
+  const topPolygon: Point[] = [
+    { x: 0, y: 0 },
+    { x: cw, y: 0 },
+    { x: cw, y: tearLine[tearLine.length - 1].y },
+    ...[...tearLine].reverse(),
+    { x: 0, y: tearLine[0].y },
+  ];
+
+  const bottomPolygon: Point[] = [
+    { x: 0, y: tearLine[0].y },
+    ...tearLine,
+    { x: cw, y: tearLine[tearLine.length - 1].y },
+    { x: cw, y: ch },
+    { x: 0, y: ch },
+  ];
+
+  return { tearLine, topPolygon, bottomPolygon };
+};
+
 export const CuttingRoom: React.FC<CuttingRoomProps> = ({ image, onCut, onCancel }) => {
   const [gestureState, setGestureState] = useState<GestureState>('idle');
   const [fingerA, setFingerA] = useState<FingerA | null>(null);
@@ -60,68 +122,6 @@ export const CuttingRoom: React.FC<CuttingRoomProps> = ({ image, onCut, onCancel
       if (longPressTimer.current) clearTimeout(longPressTimer.current);
     };
   }, []);
-
-  const TEAR_JITTER_BOOST = 1.5; // heavier fiber effect vs. scissors cuts
-
-  const generateTearPair = (
-    trail: Point[],
-    roughness: number,
-    cw: number,
-    ch: number,
-  ): TearPair => {
-    const start = trail[0];
-    const end = trail[trail.length - 1];
-    const dx = end.x - start.x;
-    const dy = end.y - start.y;
-
-    let leftY: number;
-    let rightY: number;
-
-    if (Math.abs(dx) < 5) {
-      const midY = (start.y + end.y) / 2;
-      leftY = midY;
-      rightY = midY;
-    } else {
-      const slope = dy / dx;
-      leftY = start.y - slope * start.x;
-      rightY = start.y + slope * (cw - start.x);
-    }
-
-    leftY = Math.max(10, Math.min(ch - 10, leftY));
-    rightY = Math.max(10, Math.min(ch - 10, rightY));
-
-    const numSegs = 60;
-    const tearLine: Point[] = [];
-    for (let i = 0; i <= numSegs; i++) {
-      const t = i / numSegs;
-      const bx = t * cw;
-      const by = leftY + (rightY - leftY) * t;
-      const noise =
-        ((Math.random() - 0.5) * 50 * roughness +
-          (Math.random() - 0.5) * 18 * roughness) *
-        TEAR_JITTER_BOOST;
-      tearLine.push({ x: bx, y: by + noise });
-    }
-
-    // CRITICAL: use [...tearLine] copies — never mutate tearLine itself
-    const topPolygon: Point[] = [
-      { x: 0, y: 0 },
-      { x: cw, y: 0 },
-      { x: cw, y: tearLine[tearLine.length - 1].y },
-      ...[...tearLine].reverse(),
-      { x: 0, y: tearLine[0].y },
-    ];
-
-    const bottomPolygon: Point[] = [
-      { x: 0, y: tearLine[0].y },
-      ...tearLine,
-      { x: cw, y: tearLine[tearLine.length - 1].y },
-      { x: cw, y: ch },
-      { x: 0, y: ch },
-    ];
-
-    return { tearLine, topPolygon, bottomPolygon };
-  };
 
   const draw = () => {
     const canvas = canvasRef.current;
@@ -334,6 +334,7 @@ export const CuttingRoom: React.FC<CuttingRoomProps> = ({ image, onCut, onCancel
               : 0.5;
           // Linear map: 0.5 px/ms → roughness 0.3, 3.0 px/ms → roughness 2.0
           const roughness = Math.max(0.3, Math.min(2.0, 0.3 + (avgSpeed - 0.5) * 0.68));
+          // TODO Task 3: replace this with generateTearPair and update surrounding state
           const polygon = generateTearPolygon(fingerB.trail, roughness, canvas.width, canvas.height);
           setTearPolygon(polygon);
           if (navigator.vibrate) navigator.vibrate([30, 20, 60]);
