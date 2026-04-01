@@ -31,6 +31,8 @@ const ScrapItem: React.FC<ScrapItemProps> = ({ scrap, isSelected, onSelect, onCh
   const velocity = useRef<{ vx: number; vy: number }>({ vx: 0, vy: 0 });
   const baseRotation = useRef<number>(scrap.rotation);
   const activeTween = useRef<Konva.Tween | null>(null);
+  const isPointerDown = useRef(false);
+  const [showSheen, setShowSheen] = useState(false);
 
   const getPinchDistance = (t1: Touch, t2: Touch) => {
     const dx = t1.clientX - t2.clientX;
@@ -60,6 +62,10 @@ const ScrapItem: React.FC<ScrapItemProps> = ({ scrap, isSelected, onSelect, onCh
   const handleTouchEnd = (e: any) => {
     if (e.evt.touches.length < 2) {
       pinchStartDist.current = null;
+    }
+    if (isGlueActive) {
+      isPointerDown.current = false;
+      setShowSheen(false);
     }
   };
 
@@ -166,8 +172,21 @@ const ScrapItem: React.FC<ScrapItemProps> = ({ scrap, isSelected, onSelect, onCh
         onClick={onSelect}
         onTap={handleTap}
         onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
+        onTouchMove={(e) => {
+          handleTouchMove(e);
+          const touches: TouchList = e.evt.touches;
+          if (!isGlueActive || touches.length !== 1 || scrap.isGlued) return;
+          setShowSheen(true);
+          onChange({ isGlued: true });
+        }}
         onTouchEnd={handleTouchEnd}
+        onMouseDown={() => { isPointerDown.current = true; }}
+        onMouseUp={() => { isPointerDown.current = false; setShowSheen(false); }}
+        onMouseMove={() => {
+          if (!isGlueActive || !isPointerDown.current || scrap.isGlued) return;
+          setShowSheen(true);
+          onChange({ isGlued: true });
+        }}
         onDragStart={handleDragStart}
         onDragMove={handleDragMove}
         onDragEnd={(e) => {
@@ -258,6 +277,16 @@ const ScrapItem: React.FC<ScrapItemProps> = ({ scrap, isSelected, onSelect, onCh
             />
 
           </>
+        )}
+        {showSheen && image && (
+          <Rect
+            x={0}
+            y={0}
+            width={isRect ? image.width : Math.max(...scrap.points.map(p => p.x))}
+            height={isRect ? image.height : Math.max(...scrap.points.map(p => p.y))}
+            fill="rgba(255,255,255,0.38)"
+            listening={false}
+          />
         )}
       </Group>
 
