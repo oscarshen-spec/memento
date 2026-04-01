@@ -1,5 +1,3 @@
-import React from 'react';
-
 export type FlipPhase = 'down' | 'move' | 'up';
 
 export interface PointerCoords {
@@ -66,8 +64,8 @@ export function buildFlipEvent(
   });
 }
 
-/** Pull the coords needed by buildFlipEvent out of a React PointerEvent. */
-export function extractPointerCoords(e: React.PointerEvent): PointerCoords {
+/** Pull the coords needed by buildFlipEvent out of a PointerEvent. */
+export function extractPointerCoords(e: PointerEvent): PointerCoords {
   return {
     clientX: e.clientX,
     clientY: e.clientY,

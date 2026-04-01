@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import { buildFlipEvent, extractPointerCoords } from './flipDelegation';
+// React import removed — extractPointerCoords now accepts the native PointerEvent type
 
 const coords = {
   clientX: 100, clientY: 200,
@@ -8,8 +9,8 @@ const coords = {
   pointerId: 1, width: 1, height: 1,
 };
 
-// Mock target for testing
-const mockTarget = {} as EventTarget;
+// mockTarget is initialised in beforeAll so document is available (node env polyfill)
+let mockTarget: Element;
 
 // Mock MouseEvent and TouchEvent for node environment
 beforeAll(() => {
@@ -76,6 +77,14 @@ beforeAll(() => {
       }
     };
   }
+
+  // Polyfill document.createElement for the node test environment
+  if (typeof global.document === 'undefined') {
+    (global as any).document = {
+      createElement: (tag: string) => ({ tagName: tag.toUpperCase() }),
+    };
+  }
+  mockTarget = document.createElement('div') as unknown as Element;
 });
 
 describe('buildFlipEvent — mouse', () => {
@@ -105,16 +114,23 @@ describe('buildFlipEvent — mouse', () => {
 });
 
 describe('extractPointerCoords', () => {
-  it('extracts the six coordinate fields', () => {
+  it('extracts all nine coordinate fields', () => {
     const fakeEvent = {
       clientX: 10, clientY: 20,
-      pageX: 10, pageY: 20,
-      screenX: 10, screenY: 20,
-      pointerId: 3, width: 2, height: 2,
+      pageX: 30, pageY: 40,
+      screenX: 50, screenY: 60,
+      pointerId: 3, width: 2, height: 4,
       pointerType: 'mouse',
-    } as React.PointerEvent;
+    } as PointerEvent;
     const result = extractPointerCoords(fakeEvent);
     expect(result.clientX).toBe(10);
+    expect(result.clientY).toBe(20);
+    expect(result.pageX).toBe(30);
+    expect(result.pageY).toBe(40);
+    expect(result.screenX).toBe(50);
+    expect(result.screenY).toBe(60);
     expect(result.pointerId).toBe(3);
+    expect(result.width).toBe(2);
+    expect(result.height).toBe(4);
   });
 });
