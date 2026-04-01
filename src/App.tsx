@@ -30,7 +30,7 @@ export default function App() {
   
   const [view, setView] = useState<'scrapbook' | 'camera' | 'cutting' | 'drawer' | 'journal'>('scrapbook');
   const [currentMaterial, setCurrentMaterial] = useState<RawMaterial | null>(null);
-  const [activeTool, setActiveTool] = useState<'tape' | 'text' | null>(null);
+  const [activeTool, setActiveTool] = useState<'tape' | 'text' | 'glue' | null>(null);
 
   const currentPage = pages[currentPageIndex];
 
@@ -262,6 +262,26 @@ export default function App() {
                 <line x1="12" y1="4" x2="12" y2="20"/>
               </svg>
               {activeTool === 'text' && (
+                <div className="w-1 h-1 rounded-full bg-white/80" />
+              )}
+            </button>
+            {/* Glue tool */}
+            <button
+              onClick={() => setActiveTool(activeTool === 'glue' ? null : 'glue')}
+              className={`flex flex-col items-center gap-1 p-2 rounded-lg transition-colors ${
+                activeTool === 'glue'
+                  ? 'bg-white/15 text-white/90'
+                  : 'text-white/50 hover:bg-white/10 hover:text-white/70'
+              }`}
+              title="Glue tool"
+            >
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="8" y="10" width="8" height="11" rx="2" fill="currentColor" fillOpacity="0.15" stroke="currentColor"/>
+                <path d="M10 10 L10 7 L14 7 L14 10" fill="none"/>
+                <line x1="12" y1="7" x2="12" y2="4"/>
+                <path d="M11.2 4.5 Q13.2 6 12 7.5" strokeWidth="1.4"/>
+              </svg>
+              {activeTool === 'glue' && (
                 <div className="w-1 h-1 rounded-full bg-white/80" />
               )}
             </button>
