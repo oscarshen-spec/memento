@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useMotionValue } from 'motion/react';
 import { Scrap, JournalEntry, ScrapbookPage, TapeStrip } from '../types';
 import { Scrapbook } from './Scrapbook';
@@ -44,6 +44,11 @@ export const PageFlipContainer: React.FC<PageFlipContainerProps> = ({
   const [selectedScrapId, setSelectedScrapId] = useState<string | null>(null);
   const isFlipping = flipDir !== null;
 
+  const pointerStartX = useRef<number>(0);
+  const pointerLastX = useRef<number>(0);
+  const pointerPrevX = useRef<number>(0);
+  const pointerPrevT = useRef<number>(Date.now());
+
   const sharedScrapbookProps = {
     onUpdateScrap,
     onUpdateEntry,
@@ -56,6 +61,43 @@ export const PageFlipContainer: React.FC<PageFlipContainerProps> = ({
     dimensions,
     selectedScrapId,
     onSelectScrap: setSelectedScrapId,
+  };
+
+  const handleRightZoneDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    e.currentTarget.setPointerCapture(e.pointerId);
+    pointerStartX.current = e.clientX;
+    pointerLastX.current = e.clientX;
+    pointerPrevX.current = e.clientX;
+    pointerPrevT.current = Date.now();
+    setFlipDir('next');
+  };
+
+  const handleLeftZoneDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    e.currentTarget.setPointerCapture(e.pointerId);
+    pointerStartX.current = e.clientX;
+    pointerLastX.current = e.clientX;
+    pointerPrevX.current = e.clientX;
+    pointerPrevT.current = Date.now();
+    setFlipDir('prev');
+  };
+
+  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (flipDir === null) return;
+    const dx = e.clientX - pointerStartX.current;
+
+    pointerPrevX.current = pointerLastX.current;
+    pointerPrevT.current = Date.now();
+    pointerLastX.current = e.clientX;
+
+    if (flipDir === 'next') {
+      // Drag left: dx is negative, clamp to [-width, 0]
+      const clamped = Math.max(-dimensions.width, Math.min(0, dx));
+      rotateY.set((clamped / dimensions.width) * -180);
+    } else {
+      // Drag right: dx is positive, clamp to [0, width]
+      const clamped = Math.max(0, Math.min(dimensions.width, dx));
+      rotateY.set((clamped / dimensions.width) * 180);
+    }
   };
 
   return (
@@ -102,17 +144,21 @@ export const PageFlipContainer: React.FC<PageFlipContainerProps> = ({
         />
       </div>
 
-      {/* z-index 4: edge zone overlays (gesture handlers added in Task 4) */}
+      {/* z-index 4: edge zone overlays */}
       {/* Right edge — turn next */}
       <div
         className="absolute top-0 right-0 h-full"
         style={{ width: EDGE_ZONE_WIDTH, zIndex: 4, cursor: 'ew-resize' }}
+        onPointerDown={handleRightZoneDown}
+        onPointerMove={handlePointerMove}
       />
-      {/* Left edge — turn prev (only if prevPage exists) */}
+      {/* Left edge — turn prev */}
       {prevPage && (
         <div
           className="absolute top-0 left-0 h-full"
           style={{ width: EDGE_ZONE_WIDTH, zIndex: 4, cursor: 'ew-resize' }}
+          onPointerDown={handleLeftZoneDown}
+          onPointerMove={handlePointerMove}
         />
       )}
     </div>
