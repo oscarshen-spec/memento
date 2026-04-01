@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import HTMLFlipBook from 'react-pageflip';
 import Konva from 'konva';
 import { Scrap, JournalEntry, ScrapbookPage, TapeStrip } from '../types';
+import type { GlueRect } from './GlueAnimation';
 import { Scrapbook } from './Scrapbook';
 import { AddPageView } from './AddPageView';
 import { buildFlipEvent, extractPointerCoords, FlipPhase } from '../utils/flipDelegation';
@@ -41,6 +42,9 @@ interface PageFlipContainerProps {
   onFallComplete: (ids: string[]) => void;
   selectedScrapId: string | null;
   onSelectScrap: (id: string | null) => void;
+  gluingScrapId: string | null;
+  onGlueTap: (id: string, rect: GlueRect) => void;
+  onPeel: (id: string, rect: { x: number; y: number; width: number; height: number }) => void;
 }
 
 const EDGE_ZONE_WIDTH = 30;
@@ -64,6 +68,9 @@ export const PageFlipContainer: React.FC<PageFlipContainerProps> = ({
   onFallComplete,
   selectedScrapId,
   onSelectScrap,
+  gluingScrapId,
+  onGlueTap,
+  onPeel,
 }) => {
   const [flipState, setFlipState] = useState<'idle' | 'flipping'>('idle');
   const [flipDir, setFlipDir] = useState<'next' | 'prev' | null>(null);
@@ -201,6 +208,9 @@ export const PageFlipContainer: React.FC<PageFlipContainerProps> = ({
     dimensions,
     selectedScrapId,
     onSelectScrap,
+    gluingScrapId,
+    onGlueTap,
+    onPeel,
   };
 
   const adjacentSnapshot = flipDir === 'prev' ? prevSnapshot : nextSnapshot;

@@ -35,6 +35,14 @@ const TAPE_GRAIN_COLOR = 'rgba(200,180,140,0.22)';
 const WISP_COLOR = 'rgba(190,165,120,0.55)';
 const PREVIEW_SEED = 99999;
 
+const PASTEL_DOTS = [
+  [255, 182, 193], // blush pink
+  [167, 210, 167], // sage green
+  [174, 198, 232], // powder blue
+  [203, 179, 220], // soft lavender
+  [255, 218, 168], // peach
+];
+
 /**
  * Draws a masking tape strip from `start` to `end` directly onto a Konva
  * sceneFunc context. Pass `tearSeed` for a finalized strip (draws jagged torn
@@ -110,6 +118,34 @@ function drawTapeShape(
     ctx.moveTo(start.x + ax * i + px * 0.85, start.y + ay * i + py * 0.85);
     ctx.lineTo(start.x + ax * i - px * 0.85, start.y + ay * i - py * 0.85);
     ctx.stroke();
+  }
+  ctx.restore();
+
+  // ── Pastel polka dots (clipped to tape body) ──
+  const dotRng = seededRng((tearSeed ?? PREVIEW_SEED) + 800);
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(tl.x, tl.y);
+  ctx.lineTo(bl.x, bl.y);
+  ctx.lineTo(br.x, br.y);
+  ctx.lineTo(tr.x, tr.y);
+  ctx.closePath();
+  ctx.clip();
+  const DOT_SPACING = 16;
+  for (let i = DOT_SPACING / 2; i < len; i += DOT_SPACING) {
+    for (let j = DOT_SPACING / 2; j < width; j += DOT_SPACING) {
+      const jx = (dotRng() - 0.5) * DOT_SPACING * 0.5;
+      const jy = (dotRng() - 0.5) * DOT_SPACING * 0.5;
+      const r = 2.2 + dotRng() * 1.3;
+      const a = 0.55 + dotRng() * 0.25;
+      const [cr, cg, cb] = PASTEL_DOTS[Math.floor(dotRng() * PASTEL_DOTS.length)];
+      const cx = start.x + ax * i + px * (2 * j / width - 1) + jx;
+      const cy = start.y + ay * i + py * (2 * j / width - 1) + jy;
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(${cr},${cg},${cb},${a})`;
+      ctx.fill();
+    }
   }
   ctx.restore();
 

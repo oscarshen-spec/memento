@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Stage, Layer, Image as KonvaImage, Transformer, Group, Shape, Text, Rect, Line } from 'react-konva';
 import Konva from 'konva';
-import { TapeStrip, Scrap, Point, JournalEntry, ScrapbookPage } from '../types';
+import { TapeStrip, Scrap, Point, JournalEntry, ScrapbookPage, ResidueMark } from '../types';
+import type { GlueRect } from './GlueAnimation';
 import { TapeLayer } from './TapeLayer';
 import useImage from 'use-image';
 
@@ -17,12 +18,15 @@ interface ScrapItemProps {
   isGlueActive: boolean;
   isFalling: boolean;
   onFallDone: () => void;
+  isBeingGlued: boolean;
+  onGlueTap: (id: string, rect: GlueRect) => void;
+  onPeel: (id: string, rect: { x: number; y: number; width: number; height: number }) => void;
 }
 
 const MIN_SCALE = 0.5;
 const MAX_SCALE = 3.0;
 
-const ScrapItem: React.FC<ScrapItemProps> = ({ scrap, isSelected, onSelect, onChange, onReturn, stageHeight, isGlueActive, isFalling, onFallDone }) => {
+const ScrapItem: React.FC<ScrapItemProps> = ({ scrap, isSelected, onSelect, onChange, onReturn, stageHeight, isGlueActive, isFalling, onFallDone, isBeingGlued, onGlueTap, onPeel }) => {
   const [image] = useImage(scrap.image);
   const shapeRef = useRef<any>(null);
   const trRef = useRef<any>(null);
@@ -33,8 +37,33 @@ const ScrapItem: React.FC<ScrapItemProps> = ({ scrap, isSelected, onSelect, onCh
   const velocity = useRef<{ vx: number; vy: number }>({ vx: 0, vy: 0 });
   const baseRotation = useRef<number>(scrap.rotation);
   const activeTween = useRef<Konva.Tween | null>(null);
+  const wobbleTween = useRef<Konva.Tween | null>(null);
   const isPointerDown = useRef(false);
   const [showSheen, setShowSheen] = useState(false);
+
+  // Screen coords (fixed positioning) — used for GlueAnimation overlay.
+  // Uses actual image dimensions × scale (not axis-aligned bounding box)
+  // so the overlay card matches the scrap exactly.
+  const getScreenRect = () => {
+    const node = shapeRef.current;
+    if (!node) return null;
+    const stage = node.getStage();
+    if (!stage) return null;
+    const stageBR = stage.container().getBoundingClientRect();
+    const w = image ? image.width * scrap.scale : 80;
+    const h = image ? image.height * scrap.scale : 60;
+    const cx = stageBR.left + node.x();
+    const cy = stageBR.top + node.y();
+    return { x: cx - w / 2, y: cy - h / 2, width: w, height: h };
+  };
+
+  // Stage-relative coords — used for ResidueMark (Konva canvas space)
+  const getStageRect = () => {
+    const node = shapeRef.current;
+    if (!node) return null;
+    const cr = node.getClientRect();
+    return { x: cr.x, y: cr.y, width: cr.width, height: cr.height };
+  };
 
   const getPinchDistance = (t1: Touch, t2: Touch) => {
     const dx = t1.clientX - t2.clientX;
@@ -69,11 +98,23 @@ const ScrapItem: React.FC<ScrapItemProps> = ({ scrap, isSelected, onSelect, onCh
       isPointerDown.current = false;
       setShowSheen(false);
     }
+    // Peel: pinch released on a glued scrap → return to loose + create residue
+    if (wasPinching.current && scrap.isGlued && e.evt.touches.length === 0) {
+      wasPinching.current = false;
+      const rect = getStageRect();
+      if (rect) onPeel(scrap.id, rect);
+      return;
+    }
   };
 
   const handleTap = () => {
     if (wasPinching.current) {
       wasPinching.current = false;
+      return;
+    }
+    if (isGlueActive && !scrap.isGlued) {
+      const rect = getScreenRect();
+      if (rect) onGlueTap(scrap.id, { ...rect, rotation: scrap.rotation });
       return;
     }
     onSelect();
@@ -138,20 +179,72 @@ const ScrapItem: React.FC<ScrapItemProps> = ({ scrap, isSelected, onSelect, onCh
   useEffect(() => {
     return () => {
       activeTween.current?.destroy();
+      wobbleTween.current?.destroy();
     };
   }, []);
 
+  // Idle wobble while scrap is loose (not glued) — starts on placement
   useEffect(() => {
-    if (scrap.isGlued && shapeRef.current) {
-      activeTween.current?.destroy();
-      activeTween.current = null;
-      shapeRef.current.to({
-        shadowBlur: 3,
-        shadowOffsetY: 2,
-        shadowOffsetX: 0,
-        duration: 0.2,
-      });
+    if (scrap.isGlued || !shapeRef.current) {
+      wobbleTween.current?.destroy();
+      wobbleTween.current = null;
+      if (shapeRef.current) shapeRef.current.rotation(scrap.rotation);
+      return;
     }
+    const node = shapeRef.current;
+    const baseRot = scrap.rotation;
+    const stagger = (scrap.id.charCodeAt(0) + scrap.id.charCodeAt(scrap.id.length - 1)) % 120;
+    let cancelled = false;
+
+    const doWobble = (dir: 1 | -1) => {
+      if (cancelled || !shapeRef.current) return;
+      wobbleTween.current?.destroy();
+      wobbleTween.current = new Konva.Tween({
+        node,
+        duration: 0.42,
+        easing: Konva.Easings.EaseInOut,
+        rotation: baseRot + dir * 3,
+        onFinish: () => doWobble(dir === 1 ? -1 : 1),
+      });
+      wobbleTween.current.play();
+    };
+
+    const t = setTimeout(() => doWobble(1), stagger * 10);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+      wobbleTween.current?.destroy();
+      wobbleTween.current = null;
+      if (shapeRef.current) shapeRef.current.rotation(scrap.rotation);
+    };
+  }, [scrap.isGlued]);
+
+  useEffect(() => {
+    if (!scrap.isGlued || !shapeRef.current) return;
+    activeTween.current?.destroy();
+    activeTween.current = null;
+    const node = shapeRef.current;
+    const s = scrap.scale;
+    // Squish down as the bottle presses, then spring flat
+    node.to({
+      scaleX: s * 1.07,
+      scaleY: s * 0.88,
+      shadowBlur: 1,
+      shadowOffsetY: 1,
+      duration: 0.07,
+      easing: Konva.Easings.EaseIn,
+      onFinish: () => {
+        node.to({
+          scaleX: s,
+          scaleY: s,
+          shadowBlur: 3,
+          shadowOffsetY: 2,
+          shadowOffsetX: 0,
+          duration: 0.3,
+          easing: Konva.Easings.EaseOut,
+        });
+      },
+    });
   }, [scrap.isGlued]);
 
   useEffect(() => {
@@ -235,39 +328,38 @@ const ScrapItem: React.FC<ScrapItemProps> = ({ scrap, isSelected, onSelect, onCh
   return (
     <>
       <Group
+        visible={!isBeingGlued}
         draggable={!scrap.isGlued && !isGlueActive}
         x={scrap.x}
         y={scrap.y}
+        offsetX={image ? image.width / 2 : 0}
+        offsetY={image ? image.height / 2 : 0}
         rotation={scrap.rotation}
         scaleX={scrap.scale}
         scaleY={scrap.scale}
-        shadowColor="rgba(0,0,0,0.35)"
-        shadowBlur={4}
+        shadowColor={scrap.isGlued ? 'rgba(0,0,0,0.22)' : 'rgba(0,0,0,0.35)'}
+        shadowBlur={scrap.isGlued ? 3 : 4}
         shadowOffsetX={0}
-        shadowOffsetY={3}
-        onClick={onSelect}
+        shadowOffsetY={scrap.isGlued ? 2 : 3}
+        onClick={() => {
+          if (isGlueActive && !scrap.isGlued) {
+            const rect = getScreenRect();
+            if (rect) onGlueTap(scrap.id, { ...rect, rotation: scrap.rotation });
+            return;
+          }
+          onSelect();
+        }}
         onTap={handleTap}
         onTouchStart={handleTouchStart}
-        onTouchMove={(e) => {
-          handleTouchMove(e);
-          const touches: TouchList = e.evt.touches;
-          if (!isGlueActive || touches.length !== 1 || scrap.isGlued) return;
-          setShowSheen(true);
-          onChange({ isGlued: true });
-        }}
+        onTouchMove={(e) => { handleTouchMove(e); }}
         onTouchEnd={handleTouchEnd}
         onMouseDown={() => { isPointerDown.current = true; }}
         onMouseUp={() => { isPointerDown.current = false; setShowSheen(false); }}
-        onMouseMove={() => {
-          if (!isGlueActive || !isPointerDown.current || scrap.isGlued) return;
-          setShowSheen(true);
-          onChange({ isGlued: true });
-        }}
+        onMouseMove={() => {}}
         onDragStart={handleDragStart}
         onDragMove={handleDragMove}
         onDragEnd={(e) => {
           const node = e.target;
-          const x = node.x();
           const y = node.y();
 
           if (y > stageHeight) {
@@ -309,7 +401,7 @@ const ScrapItem: React.FC<ScrapItemProps> = ({ scrap, isSelected, onSelect, onCh
           activeTween.current = tween;
           navigator.vibrate?.(30);
         }}
-        onTransformEnd={(e) => {
+        onTransformEnd={() => {
           const node = shapeRef.current;
           const scaleX = node.scaleX();
           onChange({
@@ -438,7 +530,7 @@ const TextItem: React.FC<TextItemProps> = ({ entry, isSelected, onSelect, onChan
         onDragEnd={(e) => {
           onChange({ x: e.target.x(), y: e.target.y() });
         }}
-        onTransformEnd={(e) => {
+        onTransformEnd={() => {
           const node = shapeRef.current;
           onChange({
             x: node.x(),
@@ -533,6 +625,9 @@ interface ScrapbookProps {
   dimensions: { width: number; height: number };
   selectedScrapId: string | null;
   onSelectScrap: (id: string | null) => void;
+  gluingScrapId: string | null;
+  onGlueTap: (id: string, rect: GlueRect) => void;
+  onPeel: (id: string, rect: { x: number; y: number; width: number; height: number }) => void;
 }
 
 const DRAG_OVERFLOW = 180;
@@ -551,6 +646,9 @@ export const Scrapbook = React.forwardRef<Konva.Stage, ScrapbookProps>(({
   dimensions,
   selectedScrapId,
   onSelectScrap,
+  gluingScrapId,
+  onGlueTap,
+  onPeel,
 }, ref) => {
   const selectedId = selectedScrapId;
   const setSelectedId = onSelectScrap;
@@ -577,9 +675,25 @@ export const Scrapbook = React.forwardRef<Konva.Stage, ScrapbookProps>(({
         onMouseDown={checkDeselect}
         onTouchStart={checkDeselect}
       >
-        {/* Layer 0: lined paper background */}
+        {/* Layer 0: lined paper background + residue marks */}
         <Layer listening={false}>
           <LinedPaper width={dimensions.width} height={dimensions.height + DRAG_OVERFLOW} />
+          {(page.residueMarks ?? []).map((mark: ResidueMark) => (
+            <Rect
+              key={mark.id}
+              x={mark.x}
+              y={mark.y}
+              width={mark.width}
+              height={mark.height}
+              rotation={mark.rotation}
+              fillRadialGradientStartPoint={{ x: mark.width * 0.5, y: mark.height * 0.5 }}
+              fillRadialGradientStartRadius={0}
+              fillRadialGradientEndPoint={{ x: mark.width * 0.5, y: mark.height * 0.5 }}
+              fillRadialGradientEndRadius={Math.max(mark.width, mark.height) * 0.65}
+              fillRadialGradientColorStops={[0, 'rgba(190,155,90,0.22)', 1, 'rgba(180,140,80,0)']}
+              listening={false}
+            />
+          ))}
         </Layer>
 
         {/* Layer 1: scraps and journal entries */}
@@ -595,6 +709,7 @@ export const Scrapbook = React.forwardRef<Konva.Stage, ScrapbookProps>(({
               stageHeight={dimensions.height}
               isGlueActive={isGlueActive}
               isFalling={fallingScrapIds?.includes(scrap.id) ?? false}
+              isBeingGlued={scrap.id === gluingScrapId}
               onFallDone={() => {
                 if (!fallingScrapIds) return;
                 fallsDoneCount.current += 1;
@@ -603,6 +718,8 @@ export const Scrapbook = React.forwardRef<Konva.Stage, ScrapbookProps>(({
                   onFallComplete(fallingScrapIds);
                 }
               }}
+              onGlueTap={onGlueTap}
+              onPeel={onPeel}
             />
           ))}
           {page.journalEntries.map((entry) => (

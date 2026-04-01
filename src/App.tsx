@@ -243,6 +243,7 @@ export default function App() {
     setGlueAnimRect(null);
     setGlueToolRect(null);
     setIsGlueBottleAway(false);
+    setActiveTool(null);
   };
 
   const handlePeel = (scrapId: string, scrapRect: { x: number; y: number; width: number; height: number }) => {

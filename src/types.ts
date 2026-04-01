@@ -41,10 +41,20 @@ export interface TapeStrip {
   tearSeed: number;
 }
 
+export interface ResidueMark {
+  id: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  rotation: number;
+}
+
 export interface ScrapbookPage {
   id: string;
   scraps: Scrap[];
   journalEntries: JournalEntry[];
   tapeStrips: TapeStrip[];
+  residueMarks: ResidueMark[];
   background: string;
 }
