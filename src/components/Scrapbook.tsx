@@ -81,6 +81,35 @@ const ScrapItem: React.FC<ScrapItemProps> = ({ scrap, isSelected, onSelect, onCh
     navigator.vibrate?.(10);
   };
 
+  const handleDragMove = (e: any) => {
+    const node = e.target;
+    const now = Date.now();
+    const x = node.x();
+    const y = node.y();
+
+    if (lastDragPos.current) {
+      const dt = now - lastDragPos.current.t;
+      if (dt > 0) {
+        velocity.current = {
+          vx: (x - lastDragPos.current.x) / dt,
+          vy: (y - lastDragPos.current.y) / dt,
+        };
+      }
+    }
+    lastDragPos.current = { x, y, t: now };
+
+    const { vx, vy } = velocity.current;
+    const speed = Math.min(Math.sqrt(vx * vx + vy * vy), 40);
+
+    node.setAttrs({
+      shadowBlur: 8 + speed * 0.5,
+      shadowOffsetY: 6 + speed * 0.3,
+      shadowOffsetX: vx * 0.15,
+      skewX: vx * 0.012,
+      rotation: baseRotation.current + vx * 0.04,
+    });
+  };
+
   useEffect(() => {
     if (isSelected && trRef.current && shapeRef.current) {
       trRef.current.nodes([shapeRef.current]);
@@ -132,6 +161,7 @@ const ScrapItem: React.FC<ScrapItemProps> = ({ scrap, isSelected, onSelect, onCh
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
         onDragStart={handleDragStart}
+        onDragMove={handleDragMove}
         onDragEnd={(e) => {
           const y = e.target.y();
           if (y > stageHeight) {
