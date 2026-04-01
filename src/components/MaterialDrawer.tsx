@@ -29,17 +29,19 @@ function makeScatterPosition(index: number, containerHeight: number, baseZ: numb
 
 interface MaterialCardProps {
   material: RawMaterial;
-  index: number;
+  position: DrawerPosition;
+  drawerRef: React.RefObject<HTMLDivElement>;
   onSelect: (m: RawMaterial) => void;
   onDragMaterial: (m: RawMaterial, info: PanInfo) => void;
+  onRearrange: (m: RawMaterial, newX: number, newY: number) => void;
 }
 
-const MaterialCard: React.FC<MaterialCardProps> = ({ material, index, onSelect, onDragMaterial }) => {
-  const baseRot = (index % 5 - 2) * 1.2;
-
+const MaterialCard: React.FC<MaterialCardProps> = ({
+  material, position, drawerRef, onSelect, onDragMaterial, onRearrange,
+}) => {
   const scaleValue = useMotionValue(1);
   const springScale = useSpring(scaleValue, { stiffness: 350, damping: 12 });
-  const rotValue = useMotionValue(baseRot);
+  const rotValue = useMotionValue(position.rotation);
   const springRot = useSpring(rotValue, { stiffness: 280, damping: 18 });
 
   const portalX = useMotionValue(0);
@@ -68,26 +70,42 @@ const MaterialCard: React.FC<MaterialCardProps> = ({ material, index, onSelect, 
         onDrag={(_, info) => {
           portalX.set(info.offset.x);
           portalY.set(info.offset.y);
-          const targetRot = Math.max(-15, Math.min(15, baseRot + info.velocity.x * -0.02));
+          const targetRot = Math.max(-15, Math.min(15, position.rotation + info.velocity.x * -0.02));
           rotValue.set(targetRot);
         }}
         onDragEnd={(_, info) => {
           setIsDragging(false);
           setCardRect(null);
           scaleValue.set(1);
-          rotValue.set(baseRot);
+          rotValue.set(position.rotation);
           navigator.vibrate?.(30);
+          const drawerEl = drawerRef.current;
+          if (drawerEl && cardRect) {
+            const db = drawerEl.getBoundingClientRect();
+            const dropCenterX = cardRect.left + info.offset.x + cardRect.width / 2;
+            const dropCenterY = cardRect.top + info.offset.y + cardRect.height / 2;
+            const insideDrawer =
+              dropCenterX > db.left && dropCenterX < db.right &&
+              dropCenterY > db.top && dropCenterY < db.bottom;
+            if (insideDrawer) {
+              onRearrange(material, cardRect.left + info.offset.x - db.left, cardRect.top + info.offset.y - db.top);
+              return;
+            }
+          }
           onDragMaterial(material, info);
         }}
         onClick={(e) => { e.stopPropagation(); onSelect(material); }}
         style={{
+          position: 'absolute',
+          left: position.x,
+          top: position.y,
           scale: springScale,
           rotate: springRot,
-          zIndex: 1,
+          zIndex: position.zIndex,
           touchAction: 'none',
           opacity: isDragging ? 0 : 1,
         }}
-        className="relative shrink-0 w-[100px] h-[116px] cursor-grab active:cursor-grabbing"
+        className="w-[100px] h-[116px] cursor-grab active:cursor-grabbing"
       >
         {/* Polaroid-style card */}
         <div className="absolute inset-0 bg-[#faf6ee] rounded-[3px] shadow-[1px_2px_8px_rgba(0,0,0,0.25),_inset_0_0_0_1px_rgba(0,0,0,0.06)]">
