@@ -21,6 +21,12 @@ interface FingerB {
   trail: Point[];
 }
 
+interface TearPair {
+  tearLine: Point[];      // 61 points spanning x=0 to x=cw (generated once)
+  topPolygon: Point[];    // upper half — shares tearLine
+  bottomPolygon: Point[]; // lower half — shares tearLine
+}
+
 export const CuttingRoom: React.FC<CuttingRoomProps> = ({ image, onCut, onCancel }) => {
   const [gestureState, setGestureState] = useState<GestureState>('idle');
   const [fingerA, setFingerA] = useState<FingerA | null>(null);
@@ -55,7 +61,14 @@ export const CuttingRoom: React.FC<CuttingRoomProps> = ({ image, onCut, onCancel
     };
   }, []);
 
-  const generateTearPolygon = (trail: Point[], roughness: number, cw: number, ch: number): Point[] => {
+  const TEAR_JITTER_BOOST = 1.5; // heavier fiber effect vs. scissors cuts
+
+  const generateTearPair = (
+    trail: Point[],
+    roughness: number,
+    cw: number,
+    ch: number,
+  ): TearPair => {
     const start = trail[0];
     const end = trail[trail.length - 1];
     const dx = end.x - start.x;
@@ -78,24 +91,36 @@ export const CuttingRoom: React.FC<CuttingRoomProps> = ({ image, onCut, onCancel
     rightY = Math.max(10, Math.min(ch - 10, rightY));
 
     const numSegs = 60;
-    const tearPts: Point[] = [];
+    const tearLine: Point[] = [];
     for (let i = 0; i <= numSegs; i++) {
       const t = i / numSegs;
       const bx = t * cw;
       const by = leftY + (rightY - leftY) * t;
       const noise =
-        (Math.random() - 0.5) * 50 * roughness +
-        (Math.random() - 0.5) * 18 * roughness;
-      tearPts.push({ x: bx, y: by + noise });
+        ((Math.random() - 0.5) * 50 * roughness +
+          (Math.random() - 0.5) * 18 * roughness) *
+        TEAR_JITTER_BOOST;
+      tearLine.push({ x: bx, y: by + noise });
     }
 
-    return [
+    // CRITICAL: use [...tearLine] copies — never mutate tearLine itself
+    const topPolygon: Point[] = [
       { x: 0, y: 0 },
       { x: cw, y: 0 },
-      { x: cw, y: tearPts[tearPts.length - 1].y },
-      ...tearPts.slice().reverse(),
-      { x: 0, y: tearPts[0].y },
+      { x: cw, y: tearLine[tearLine.length - 1].y },
+      ...[...tearLine].reverse(),
+      { x: 0, y: tearLine[0].y },
     ];
+
+    const bottomPolygon: Point[] = [
+      { x: 0, y: tearLine[0].y },
+      ...tearLine,
+      { x: cw, y: tearLine[tearLine.length - 1].y },
+      { x: cw, y: ch },
+      { x: 0, y: ch },
+    ];
+
+    return { tearLine, topPolygon, bottomPolygon };
   };
 
   const draw = () => {
