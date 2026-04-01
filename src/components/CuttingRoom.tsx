@@ -185,6 +185,84 @@ export const CuttingRoom: React.FC<CuttingRoomProps> = ({ image, onCut, onCancel
     return () => window.removeEventListener('resize', handleResize);
   }, [gestureState, tearPath, tearPair, canvasTransform]);
 
+  // Render both torn pieces onto their arrange-mode canvases
+  useEffect(() => {
+    if (gestureState !== 'arranging' || !tearPair || !imgRef.current || !canvasRef.current) return;
+
+    const cw = canvasRef.current.width;
+    const ch = canvasRef.current.height;
+    const img = imgRef.current;
+    const imgScale = Math.min(cw / img.naturalWidth, ch / img.naturalHeight);
+    const imgX = (cw - img.naturalWidth * imgScale) / 2;
+    const imgY = (ch - img.naturalHeight * imgScale) / 2;
+
+    const drawPiece = (ref: React.RefObject<HTMLCanvasElement>, polygon: Point[]) => {
+      const pieceCanvas = ref.current;
+      if (!pieceCanvas) return;
+      pieceCanvas.width = cw;
+      pieceCanvas.height = ch;
+      const ctx = pieceCanvas.getContext('2d')!;
+      ctx.clearRect(0, 0, cw, ch);
+
+      // Clip to polygon and draw image
+      ctx.save();
+      ctx.beginPath();
+      polygon.forEach((p, i) => (i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y)));
+      ctx.closePath();
+      ctx.clip();
+      ctx.translate(canvasTransform.x, canvasTransform.y);
+      ctx.scale(canvasTransform.scale, canvasTransform.scale);
+      ctx.drawImage(img, imgX, imgY, img.naturalWidth * imgScale, img.naturalHeight * imgScale);
+      ctx.restore();
+
+      // Torn-edge stroke (on top of clip, in raw canvas space)
+      ctx.beginPath();
+      polygon.forEach((p, i) => (i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y)));
+      ctx.closePath();
+      ctx.strokeStyle = 'rgba(255,255,255,0.85)';
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
+    };
+
+    drawPiece(arrangePieceARef, tearPair.topPolygon);
+    drawPiece(arrangePieceBRef, tearPair.bottomPolygon);
+  }, [gestureState, tearPair, canvasTransform]);
+
+  const handleArrangeTouchStart = (piece: 'A' | 'B') => (e: React.TouchEvent) => {
+    e.stopPropagation();
+    const t = e.changedTouches[0];
+    const offset = piece === 'A' ? pieceAOffset : pieceBOffset;
+    arrangeDragRef.current = {
+      piece,
+      touchId: t.identifier,
+      startTouchX: t.clientX,
+      startTouchY: t.clientY,
+      startOffsetX: offset.x,
+      startOffsetY: offset.y,
+    };
+  };
+
+  const handleArrangeTouchMove = (e: React.TouchEvent) => {
+    const drag = arrangeDragRef.current;
+    if (!drag) return;
+    const t = Array.from(e.changedTouches).find(t => t.identifier === drag.touchId);
+    if (!t) return;
+    const newOffset = {
+      x: drag.startOffsetX + (t.clientX - drag.startTouchX),
+      y: drag.startOffsetY + (t.clientY - drag.startTouchY),
+    };
+    if (drag.piece === 'A') setPieceAOffset(newOffset);
+    else setPieceBOffset(newOffset);
+  };
+
+  const handleArrangeTouchEnd = () => {
+    arrangeDragRef.current = null;
+  };
+
+  const handleConfirmArrange = () => {
+    if (tearPair) onCut(tearPair.topPolygon, true, tearPair.bottomPolygon);
+  };
+
   const handleReset = () => {
     drawTouchId.current = null;
     drawPath.current = [];
@@ -391,26 +469,48 @@ export const CuttingRoom: React.FC<CuttingRoomProps> = ({ image, onCut, onCancel
         >
           <canvas ref={canvasRef} className="w-full h-full" />
 
-          {/* Anchored pulse ring */}
-          {gestureState === 'anchored' && fingerA && (
+          {gestureState === 'arranging' && (
             <div
-              className="absolute pointer-events-none"
-              style={{
-                left: fingerA.pos.x,
-                top: fingerA.pos.y,
-                transform: 'translate(-50%, -50%)',
-              }}
+              className="absolute inset-0 z-10"
+              style={{ background: 'rgba(10,6,4,0.88)' }}
             >
-              <div className="w-12 h-12 rounded-full border-2 border-amber-400 animate-ping" />
+              {/* Piece A — top half */}
+              <div
+                className="absolute inset-0"
+                style={{
+                  transform: `translate(${pieceAOffset.x}px, ${pieceAOffset.y}px)`,
+                  touchAction: 'none',
+                }}
+                onTouchStart={handleArrangeTouchStart('A')}
+                onTouchMove={handleArrangeTouchMove}
+                onTouchEnd={handleArrangeTouchEnd}
+              >
+                <canvas ref={arrangePieceARef} className="w-full h-full" />
+              </div>
+
+              {/* Piece B — bottom half */}
+              <div
+                className="absolute inset-0"
+                style={{
+                  transform: `translate(${pieceBOffset.x}px, ${pieceBOffset.y}px)`,
+                  touchAction: 'none',
+                }}
+                onTouchStart={handleArrangeTouchStart('B')}
+                onTouchMove={handleArrangeTouchMove}
+                onTouchEnd={handleArrangeTouchEnd}
+              >
+                <canvas ref={arrangePieceBRef} className="w-full h-full" />
+              </div>
             </div>
           )}
 
-          {/* Idle / pending center hint */}
-          {(gestureState === 'idle' || gestureState === 'pending') && (
+          {gestureState === 'idle' && (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
               <div className="text-center">
                 <p className="text-5xl mb-4 select-none" style={{ color: 'rgba(196,112,75,0.2)' }}>✂</p>
-                <p className="font-medium text-sm" style={{ color: 'rgba(232,213,184,0.35)' }}>Hold to anchor, swipe to tear</p>
+                <p className="font-medium text-sm" style={{ color: 'rgba(232,213,184,0.35)' }}>
+                  Swipe across to tear
+                </p>
               </div>
             </div>
           )}
@@ -418,20 +518,52 @@ export const CuttingRoom: React.FC<CuttingRoomProps> = ({ image, onCut, onCancel
 
         {/* Bottom actions */}
         <div className="flex justify-center gap-4 shrink-0 pb-4 md:pb-0">
-          <button
-            disabled={!canFinish}
-            onClick={handleFinish}
-            className="flex items-center gap-3 px-10 py-4 rounded-full font-bold tracking-wider text-sm transition-all active:scale-95"
-            style={{
-              background: canFinish ? 'linear-gradient(135deg, #e8d5b8 0%, #d4aa50 100%)' : 'rgba(255,255,255,0.06)',
-              color: canFinish ? '#2c1810' : 'rgba(255,255,255,0.15)',
-              boxShadow: canFinish ? '0 8px 24px rgba(212,170,80,0.3), inset 0 1px 0 rgba(255,255,255,0.3)' : 'none',
-              cursor: canFinish ? 'pointer' : 'not-allowed',
-            }}
-          >
-            <Check size={20} />
-            KEEP PIECE
-          </button>
+          {gestureState === 'arranging' ? (
+            <>
+              <button
+                onClick={() => setGestureState('torn')}
+                className="flex items-center gap-2 px-6 py-4 rounded-full font-bold tracking-wider text-sm transition-all active:scale-95"
+                style={{
+                  background: 'rgba(196,112,75,0.15)',
+                  color: '#c4704b',
+                }}
+              >
+                <RotateCcw size={18} />
+                RETEAR
+              </button>
+              <button
+                onClick={handleConfirmArrange}
+                className="flex items-center gap-3 px-10 py-4 rounded-full font-bold tracking-wider text-sm transition-all active:scale-95"
+                style={{
+                  background: 'linear-gradient(135deg, #e8d5b8 0%, #d4aa50 100%)',
+                  color: '#2c1810',
+                  boxShadow: '0 8px 24px rgba(212,170,80,0.3), inset 0 1px 0 rgba(255,255,255,0.3)',
+                }}
+              >
+                <Check size={20} />
+                KEEP BOTH
+              </button>
+            </>
+          ) : (
+            <button
+              disabled={!canFinish}
+              onClick={handleFinish}
+              className="flex items-center gap-3 px-10 py-4 rounded-full font-bold tracking-wider text-sm transition-all active:scale-95"
+              style={{
+                background: canFinish
+                  ? 'linear-gradient(135deg, #e8d5b8 0%, #d4aa50 100%)'
+                  : 'rgba(255,255,255,0.06)',
+                color: canFinish ? '#2c1810' : 'rgba(255,255,255,0.15)',
+                boxShadow: canFinish
+                  ? '0 8px 24px rgba(212,170,80,0.3), inset 0 1px 0 rgba(255,255,255,0.3)'
+                  : 'none',
+                cursor: canFinish ? 'pointer' : 'not-allowed',
+              }}
+            >
+              <Check size={20} />
+              TEAR & ARRANGE
+            </button>
+          )}
         </div>
 
       </div>
