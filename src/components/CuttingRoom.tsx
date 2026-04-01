@@ -244,6 +244,7 @@ export const CuttingRoom: React.FC<CuttingRoomProps> = ({ image, onCut, onCancel
   };
 
   const handleArrangeTouchMove = (e: React.TouchEvent) => {
+    e.preventDefault();
     const drag = arrangeDragRef.current;
     if (!drag) return;
     const t = Array.from(e.changedTouches).find(t => t.identifier === drag.touchId);
@@ -356,7 +357,7 @@ export const CuttingRoom: React.FC<CuttingRoomProps> = ({ image, onCut, onCancel
       }
       lastRipTime.current = now;
       lastRipPos.current = pos;
-      drawPath.current = [...drawPath.current, pos];
+      drawPath.current.push(pos);
       setTearPath([...drawPath.current]); // triggers canvas redraw
     }
   };
@@ -365,7 +366,8 @@ export const CuttingRoom: React.FC<CuttingRoomProps> = ({ image, onCut, onCancel
     e.preventDefault();
     const endedIds = new Set(Array.from(e.changedTouches).map(t => t.identifier));
 
-    if (gestureState === 'panning' && e.touches.length === 0) {
+    if (gestureState === 'panning' && e.touches.length < 2) {
+      panRef.current = null;
       setGestureState('idle');
 
     } else if (
