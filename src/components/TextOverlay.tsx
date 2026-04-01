@@ -55,7 +55,24 @@ export const TextOverlay: React.FC<TextOverlayProps> = ({ onAdd, onClose }) => {
   const [color, setColor]             = useState('#000000');
   const [thumbPos, setThumbPos]       = useState(1.0);
   const [activePanel, setActivePanel] = useState<'font' | 'color'>('font');
+  const [vpTop, setVpTop]             = useState(0);
+  const [vpHeight, setVpHeight]       = useState(() => window.visualViewport?.height ?? window.innerHeight);
   const stripRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const vp = window.visualViewport;
+    if (!vp) return;
+    const update = () => {
+      setVpTop(vp.offsetTop);
+      setVpHeight(vp.height);
+    };
+    vp.addEventListener('resize', update);
+    vp.addEventListener('scroll', update);
+    return () => {
+      vp.removeEventListener('resize', update);
+      vp.removeEventListener('scroll', update);
+    };
+  }, []);
 
   const selectedFont = FONTS[fontIndex];
   const canSubmit = text.trim().length > 0;
@@ -100,7 +117,8 @@ export const TextOverlay: React.FC<TextOverlayProps> = ({ onAdd, onClose }) => {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex flex-col bg-black/85 backdrop-blur-sm"
+      className="fixed z-50 flex flex-col bg-black/85 backdrop-blur-sm"
+      style={{ top: vpTop, left: 0, right: 0, height: vpHeight }}
     >
       {/* Top bar */}
       <div className="flex justify-end items-center px-6 pt-4 pt-safe pb-2 shrink-0">
@@ -184,7 +202,8 @@ export const TextOverlay: React.FC<TextOverlayProps> = ({ onAdd, onClose }) => {
           </div>
         )}
 
-        <div className="flex items-center gap-4 px-5 pb-4 pb-safe pt-1 border-t border-white/[0.05]">
+        <div className="flex items-center gap-4 px-5 pt-1 border-t border-white/[0.05]"
+          style={{ paddingBottom: 'max(16px, env(safe-area-inset-bottom, 16px))' }}>
           <button
             onClick={() => setActivePanel('font')}
             className={`px-3 py-1.5 rounded-lg text-sm font-bold transition-colors ${
