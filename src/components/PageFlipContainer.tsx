@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { motion, useMotionValue, useTransform } from 'motion/react';
 import { animate } from 'motion';
 import { Scrap, JournalEntry, ScrapbookPage, TapeStrip } from '../types';
+import { shouldSnapForward } from '../utils/flipUtils';
 import { Scrapbook } from './Scrapbook';
 import { AddPageView } from './AddPageView';
 
@@ -107,6 +108,41 @@ export const PageFlipContainer: React.FC<PageFlipContainerProps> = ({
     }
   };
 
+  const handlePointerUp = () => {
+    if (flipDir === null) return;
+
+    const dt = Date.now() - pointerPrevT.current;
+    const rawVelocity = dt > 0
+      ? (pointerLastX.current - pointerPrevX.current) / dt
+      : 0;
+
+    // Normalise: progress is always positive, velocity positive = moving in flip direction
+    const progress = Math.abs(rotateY.get()) / 180 * dimensions.width;
+    const velocity = flipDir === 'next' ? -rawVelocity : rawVelocity;
+
+    if (shouldSnapForward(progress, dimensions.width, velocity)) {
+      const target = flipDir === 'next' ? -180 : 180;
+      const currentDir = flipDir;
+      animate(rotateY, target, {
+        type: 'spring',
+        stiffness: 260,
+        damping: 28,
+        onComplete: () => {
+          onFlipComplete(currentDir);
+        },
+      });
+    } else {
+      animate(rotateY, 0, {
+        type: 'spring',
+        stiffness: 260,
+        damping: 28,
+        onComplete: () => {
+          setFlipDir(null);
+        },
+      });
+    }
+  };
+
   return (
     <div
       className="relative w-full h-full"
@@ -171,6 +207,7 @@ export const PageFlipContainer: React.FC<PageFlipContainerProps> = ({
         style={{ width: EDGE_ZONE_WIDTH, zIndex: 4, cursor: 'ew-resize' }}
         onPointerDown={handleRightZoneDown}
         onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
       />
       {/* Left edge — turn prev */}
       {prevPage && (
@@ -179,6 +216,7 @@ export const PageFlipContainer: React.FC<PageFlipContainerProps> = ({
           style={{ width: EDGE_ZONE_WIDTH, zIndex: 4, cursor: 'ew-resize' }}
           onPointerDown={handleLeftZoneDown}
           onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
         />
       )}
     </div>
