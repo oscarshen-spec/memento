@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Stage, Layer, Image as KonvaImage, Transformer, Group, Shape, Text, Rect, Line } from 'react-konva';
+import Konva from 'konva';
 import { TapeStrip, Scrap, Point, JournalEntry, ScrapbookPage } from '../types';
 import { TapeLayer } from './TapeLayer';
 import useImage from 'use-image';
@@ -15,10 +16,59 @@ interface ScrapItemProps {
   stageHeight: number;
 }
 
+const MIN_SCALE = 0.5;
+const MAX_SCALE = 3.0;
+
 const ScrapItem: React.FC<ScrapItemProps> = ({ scrap, isSelected, onSelect, onChange, onReturn, stageHeight }) => {
   const [image] = useImage(scrap.image);
   const shapeRef = useRef<any>(null);
   const trRef = useRef<any>(null);
+  const pinchStartDist = useRef<number | null>(null);
+  const pinchBaseScale = useRef<number>(scrap.scale);
+  const wasPinching = useRef(false);
+  const lastDragPos = useRef<{ x: number; y: number; t: number } | null>(null);
+  const velocity = useRef<{ vx: number; vy: number }>({ vx: 0, vy: 0 });
+  const baseRotation = useRef<number>(scrap.rotation);
+  const activeTween = useRef<Konva.Tween | null>(null);
+
+  const getPinchDistance = (t1: Touch, t2: Touch) => {
+    const dx = t1.clientX - t2.clientX;
+    const dy = t1.clientY - t2.clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+  };
+
+  const handleTouchStart = (e: any) => {
+    const touches: TouchList = e.evt.touches;
+    if (touches.length === 2) {
+      pinchStartDist.current = getPinchDistance(touches[0], touches[1]);
+      pinchBaseScale.current = scrap.scale;
+      wasPinching.current = true;
+    }
+  };
+
+  const handleTouchMove = (e: any) => {
+    const touches: TouchList = e.evt.touches;
+    if (touches.length !== 2 || pinchStartDist.current === null) return;
+    e.evt.preventDefault();
+    const newDist = getPinchDistance(touches[0], touches[1]);
+    const ratio = newDist / pinchStartDist.current;
+    const newScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, pinchBaseScale.current * ratio));
+    onChange({ scale: newScale });
+  };
+
+  const handleTouchEnd = (e: any) => {
+    if (e.evt.touches.length < 2) {
+      pinchStartDist.current = null;
+    }
+  };
+
+  const handleTap = () => {
+    if (wasPinching.current) {
+      wasPinching.current = false;
+      return;
+    }
+    onSelect();
+  };
 
   useEffect(() => {
     if (isSelected && trRef.current && shapeRef.current) {
@@ -51,35 +101,6 @@ const ScrapItem: React.FC<ScrapItemProps> = ({ scrap, isSelected, onSelect, onCh
 
   const isRect = scrap.points.length === 0;
 
-  const WashiTape: React.FC<{ x: number; y: number }> = ({ x, y }) => (
-    <Group x={x} y={y} rotation={-45}>
-      <Shape
-        sceneFunc={(ctx, shape) => {
-          ctx.beginPath();
-          ctx.rect(0, 0, 40, 15);
-          ctx.fillStrokeShape(shape);
-        }}
-        fill="rgba(0,0,0,0.8)"
-        opacity={0.6}
-        shadowBlur={2}
-      />
-      {[...Array(8)].map((_, i) => (
-        <Shape
-          key={i}
-          x={i * 5}
-          sceneFunc={(ctx, shape) => {
-            ctx.beginPath();
-            ctx.moveTo(0, 0);
-            ctx.lineTo(5, 15);
-            ctx.strokeShape(shape);
-          }}
-          stroke="white"
-          strokeWidth={1}
-          opacity={0.3}
-        />
-      ))}
-    </Group>
-  );
 
   return (
     <>
@@ -91,7 +112,10 @@ const ScrapItem: React.FC<ScrapItemProps> = ({ scrap, isSelected, onSelect, onCh
         scaleX={scrap.scale}
         scaleY={scrap.scale}
         onClick={onSelect}
-        onTap={onSelect}
+        onTap={handleTap}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
         onDragEnd={(e) => {
           const y = e.target.y();
           if (y > stageHeight) {
@@ -130,12 +154,6 @@ const ScrapItem: React.FC<ScrapItemProps> = ({ scrap, isSelected, onSelect, onCh
                 width={image.width}
                 height={image.height}
               />
-            )}
-            {!scrap.isGlued && image && (
-              <>
-                <WashiTape x={-10} y={-10} />
-                <WashiTape x={image.width - 20} y={image.height - 20} />
-              </>
             )}
           </>
         ) : (
@@ -176,12 +194,6 @@ const ScrapItem: React.FC<ScrapItemProps> = ({ scrap, isSelected, onSelect, onCh
               listening={false}
             />
 
-            {!scrap.isGlued && (
-              <>
-                <WashiTape x={-10} y={-10} />
-                <WashiTape x={180} y={180} />
-              </>
-            )}
           </>
         )}
       </Group>
@@ -350,7 +362,7 @@ export const Scrapbook: React.FC<ScrapbookProps> = ({
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const checkDeselect = (e: any) => {
-    if (isTapeActive) return; // tape mode captures all events
+    if (isTapeActive) return;
     const clickedOnEmpty = e.target === e.target.getStage();
     if (clickedOnEmpty) setSelectedId(null);
   };
