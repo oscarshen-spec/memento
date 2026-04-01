@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
-import { useMotionValue } from 'motion/react';
+import { motion, useMotionValue, useTransform } from 'motion/react';
+import { animate } from 'motion';
 import { Scrap, JournalEntry, ScrapbookPage, TapeStrip } from '../types';
 import { Scrapbook } from './Scrapbook';
 import { AddPageView } from './AddPageView';
@@ -43,6 +44,12 @@ export const PageFlipContainer: React.FC<PageFlipContainerProps> = ({
   const [flipDir, setFlipDir] = useState<'next' | 'prev' | null>(null);
   const [selectedScrapId, setSelectedScrapId] = useState<string | null>(null);
   const isFlipping = flipDir !== null;
+
+  const shadowOpacity = useTransform(rotateY, (v: number) => {
+    const abs = Math.abs(v);
+    if (abs === 0) return 0;
+    return (Math.min(abs, 180 - abs) / 90) * 0.45;
+  });
 
   const pointerStartX = useRef<number>(0);
   const pointerLastX = useRef<number>(0);
@@ -116,14 +123,27 @@ export const PageFlipContainer: React.FC<PageFlipContainerProps> = ({
         )}
       </div>
 
-      {/* z-index 2: shadow overlay (added in Task 5) */}
+      {/* z-index 2: shadow overlay */}
+      <motion.div
+        className="absolute inset-0"
+        style={{
+          zIndex: 2,
+          pointerEvents: 'none',
+          background: flipDir === 'prev'
+            ? 'linear-gradient(to left, rgba(0,0,0,0.4), transparent)'
+            : 'linear-gradient(to right, rgba(0,0,0,0.4), transparent)',
+          opacity: shadowOpacity,
+        }}
+      />
 
-      {/* z-index 3: current page (front + back face) — rotation added in Task 5 */}
-      <div
+      {/* z-index 3: current page (rotates on flip) */}
+      <motion.div
         className="absolute inset-0"
         style={{
           zIndex: 3,
           transformStyle: 'preserve-3d',
+          rotateY,
+          transformOrigin: flipDir === 'prev' ? 'right center' : 'left center',
         }}
       >
         {/* Front face */}
@@ -142,7 +162,7 @@ export const PageFlipContainer: React.FC<PageFlipContainerProps> = ({
             background: '#f0e8d8',
           }}
         />
-      </div>
+      </motion.div>
 
       {/* z-index 4: edge zone overlays */}
       {/* Right edge — turn next */}
