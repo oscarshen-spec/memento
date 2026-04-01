@@ -48,7 +48,8 @@ const MaterialCard: React.FC<MaterialCardProps> = ({
   const portalY = useMotionValue(0);
 
   const [isDragging, setIsDragging] = React.useState(false);
-  const [cardRect, setCardRect] = React.useState<DOMRect | null>(null);
+  const [portalRect, setPortalRect] = React.useState<DOMRect | null>(null);
+  const cardRectRef = React.useRef<DOMRect | null>(null);
   const cardRef = React.useRef<HTMLDivElement>(null);
 
   return (
@@ -60,7 +61,8 @@ const MaterialCard: React.FC<MaterialCardProps> = ({
         onPointerDown={(e) => e.stopPropagation()}
         onDragStart={() => {
           const rect = cardRef.current?.getBoundingClientRect() ?? null;
-          setCardRect(rect);
+          cardRectRef.current = rect;
+          setPortalRect(rect);
           portalX.set(0);
           portalY.set(0);
           setIsDragging(true);
@@ -75,20 +77,22 @@ const MaterialCard: React.FC<MaterialCardProps> = ({
         }}
         onDragEnd={(_, info) => {
           setIsDragging(false);
-          setCardRect(null);
+          setPortalRect(null);
           scaleValue.set(1);
           rotValue.set(position.rotation);
           navigator.vibrate?.(30);
+          const rect = cardRectRef.current;
+          cardRectRef.current = null;
           const drawerEl = drawerRef.current;
-          if (drawerEl && cardRect) {
+          if (drawerEl && rect && rect.width > 0) {
             const db = drawerEl.getBoundingClientRect();
-            const dropCenterX = cardRect.left + info.offset.x + cardRect.width / 2;
-            const dropCenterY = cardRect.top + info.offset.y + cardRect.height / 2;
+            const dropCenterX = rect.left + info.offset.x + rect.width / 2;
+            const dropCenterY = rect.top + info.offset.y + rect.height / 2;
             const insideDrawer =
               dropCenterX > db.left && dropCenterX < db.right &&
               dropCenterY > db.top && dropCenterY < db.bottom;
             if (insideDrawer) {
-              onRearrange(material, cardRect.left + info.offset.x - db.left, cardRect.top + info.offset.y - db.top);
+              onRearrange(material, rect.left + info.offset.x - db.left, rect.top + info.offset.y - db.top);
               return;
             }
           }
@@ -117,14 +121,14 @@ const MaterialCard: React.FC<MaterialCardProps> = ({
         </div>
       </motion.div>
 
-      {isDragging && cardRect && ReactDOM.createPortal(
+      {isDragging && portalRect && ReactDOM.createPortal(
         <motion.div
           style={{
             position: 'fixed',
-            left: cardRect.left,
-            top: cardRect.top,
-            width: cardRect.width,
-            height: cardRect.height,
+            left: portalRect.left,
+            top: portalRect.top,
+            width: portalRect.width,
+            height: portalRect.height,
             x: portalX,
             y: portalY,
             scale: springScale,
