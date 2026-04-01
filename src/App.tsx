@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
+import type { PanInfo } from 'motion/react';
 import { Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { partitionScraps } from './utils/scrapUtils';
@@ -51,6 +52,7 @@ export default function App() {
   };
 
   const [bookDims, setBookDims] = useState(getScrapbookDimensions());
+  const bookPageRef = useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
     const handleResize = () => setBookDims(getScrapbookDimensions());
@@ -112,15 +114,12 @@ export default function App() {
     });
   };
 
-  const handleMaterialDrop = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    const materialId = e.dataTransfer.getData('materialId');
-    const material = rawMaterials.find(m => m.id === materialId);
-    if (!material) return;
-
-    const rect = e.currentTarget.getBoundingClientRect();
-    const dropX = e.clientX - rect.left;
-    const dropY = e.clientY - rect.top;
+  const handleDragMaterial = (material: RawMaterial, info: PanInfo) => {
+    const rect = bookPageRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const dropX = info.point.x - rect.left;
+    const dropY = info.point.y - rect.top;
+    if (dropX < 0 || dropY < 0 || dropX > rect.width || dropY > rect.height) return;
 
     const newScrap: Scrap = {
       id: Math.random().toString(36).substr(2, 9),
@@ -137,7 +136,7 @@ export default function App() {
     const updatedPages = [...pages];
     updatedPages[currentPageIndex].scraps.push(newScrap);
     setPages(updatedPages);
-    setRawMaterials(prev => prev.filter(m => m.id !== materialId));
+    setRawMaterials(prev => prev.filter(m => m.id !== material.id));
   };
 
   const handleAddJournal = (text: string, type: 'title' | 'body' | 'date') => {
@@ -357,9 +356,8 @@ export default function App() {
             <div className="page-stack" />
             <div className="gutter" />
             <div
+              ref={bookPageRef}
               className="book-page"
-              onDragOver={(e) => e.preventDefault()}
-              onDrop={handleMaterialDrop}
             >
               <Scrapbook
                 page={currentPage}
@@ -397,9 +395,7 @@ export default function App() {
             setCurrentMaterial(m);
             setView('cutting');
           }}
-          onDragMaterial={() => {
-            if (view !== 'scrapbook') setView('scrapbook');
-          }}
+          onDragMaterial={handleDragMaterial}
           onClose={() => setView('scrapbook')}
           onUpload={handleFileUpload}
         />
