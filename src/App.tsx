@@ -238,6 +238,11 @@ export default function App() {
     setTimeout(() => setDrawerBounce(false), 300);
   };
 
+  const handleSelectScrap = (id: string | null) => {
+    if (id !== null) setActiveTool(null);
+    setSelectedScrapId(id);
+  };
+
   const addPage = () => {
     const newPage: ScrapbookPage = {
       id: `page-${pages.length + 1}`,
@@ -387,7 +392,7 @@ export default function App() {
               >
                 <ChevronRight size={18} />
               </button>
-              <button onClick={() => { setActiveTool(null); addPage(); }} className="p-2 text-white/60 hover:bg-white/10 rounded-lg">
+              <button onClick={() => { setActiveTool(null); setSelectedScrapId(null); addPage(); }} className="p-2 text-white/60 hover:bg-white/10 rounded-lg">
                 <Plus size={18} />
               </button>
             </div>
@@ -432,7 +437,7 @@ export default function App() {
                   onFallComplete={handleFallComplete}
                   dimensions={{ width: bookDims.width - 68, height: bookDims.height }}
                   selectedScrapId={selectedScrapId}
-                  onSelectScrap={setSelectedScrapId}
+                  onSelectScrap={handleSelectScrap}
                 />
               </div>
             </div>
