@@ -1,0 +1,155 @@
+<h2>Instagram-style Text Overlay</h2>
+<p class="subtitle">Tap T icon → full-screen overlay, keyboard opens immediately, controls float above keyboard</p>
+
+<div class="section">
+  <div class="label">Toolbar — icon only, no label</div>
+  <div style="background:#1a0f05;border-radius:12px;padding:16px 20px;display:inline-flex;gap:16px;align-items:center;margin-top:8px;">
+    <div style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px;border-radius:8px;color:rgba(255,255,255,0.45);">
+      <svg width="24" height="24" viewBox="0 0 26 26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="13" cy="13" r="11" fill="rgba(255,255,255,0.07)"/>
+        <circle cx="13" cy="13" r="4.5" fill="rgba(30,20,10,0.7)"/>
+        <path d="M3.5,10.5 Q13,8.5 22.5,10.5" stroke-opacity="0.4" stroke-width="0.7" fill="none"/>
+        <path d="M3,13 Q13,11 23,13" stroke-opacity="0.4" stroke-width="0.7" fill="none"/>
+        <path d="M3.5,15.5 Q13,13.5 22.5,15.5" stroke-opacity="0.4" stroke-width="0.7" fill="none"/>
+      </svg>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:center;padding:8px;border-radius:8px;color:rgba(255,255,255,0.45);">
+      <!-- Text icon: T with serifs -->
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="4 7 4 4 20 4 20 7"/>
+        <line x1="9" y1="20" x2="15" y2="20"/>
+        <line x1="12" y1="4" x2="12" y2="20"/>
+      </svg>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="label">Full-screen text editing overlay</div>
+  <!-- Phone frame mockup -->
+  <div style="width:320px;background:#111;border-radius:32px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.5);margin-top:12px;position:relative;font-family:sans-serif;">
+
+    <!-- Status bar -->
+    <div style="padding:12px 20px 0;display:flex;justify-content:space-between;align-items:center;">
+      <span style="color:white;font-size:13px;font-weight:600;">11:16</span>
+      <div style="display:flex;gap:4px;align-items:center;">
+        <div style="width:16px;height:10px;border:1.5px solid rgba(255,255,255,0.6);border-radius:2px;position:relative;">
+          <div style="position:absolute;left:1px;top:1px;right:1px;bottom:1px;background:rgba(255,255,255,0.5);width:60%;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Done button -->
+    <div style="padding:8px 20px;text-align:right;">
+      <span style="color:white;font-size:15px;font-weight:600;">Done</span>
+    </div>
+
+    <!-- Text area — center of screen -->
+    <div style="height:220px;display:flex;align-items:center;justify-content:center;padding:24px;">
+      <div style="text-align:center;position:relative;">
+        <!-- Simulated text with cursor -->
+        <span style="font-family:'Georgia',serif;font-style:italic;font-size:28px;font-weight:bold;color:white;letter-spacing:-0.5px;">Something like this</span><span style="display:inline-block;width:2px;height:32px;background:#4a90e2;vertical-align:middle;margin-left:2px;"></span>
+      </div>
+    </div>
+
+    <!-- Font style tab strip -->
+    <div style="padding:0 12px 12px;display:flex;gap:6px;overflow:hidden;">
+      <div style="flex:1;text-align:center;padding:8px 4px;background:rgba(255,255,255,0.12);border-radius:8px;">
+        <span style="font-family:'Georgia',serif;font-style:italic;font-size:13px;color:white;">Serif</span>
+      </div>
+      <div style="flex:1;text-align:center;padding:8px 4px;background:white;border-radius:8px;">
+        <span style="font-family:'Arial',sans-serif;font-size:13px;font-weight:700;color:#111;">Sans</span>
+      </div>
+      <div style="flex:1;text-align:center;padding:8px 4px;background:rgba(255,255,255,0.12);border-radius:8px;">
+        <span style="font-family:'Courier New',monospace;font-size:12px;color:white;">Mono</span>
+      </div>
+      <div style="flex:1;text-align:center;padding:8px 4px;background:rgba(255,255,255,0.12);border-radius:8px;">
+        <span style="font-family:'Comic Sans MS',cursive;font-size:13px;color:rgba(255,255,255,0.7);">Hand</span>
+      </div>
+    </div>
+
+    <!-- Controls row (above keyboard) -->
+    <div style="background:rgba(30,30,30,0.95);padding:10px 16px;display:flex;align-items:center;gap:14px;border-top:1px solid rgba(255,255,255,0.08);">
+      <!-- Size -->
+      <div style="background:rgba(255,255,255,0.15);border-radius:8px;padding:6px 10px;display:flex;align-items:center;gap:4px;">
+        <span style="color:white;font-size:13px;font-weight:600;">Aa</span>
+      </div>
+      <!-- Color wheel -->
+      <div style="width:28px;height:28px;border-radius:50%;background:conic-gradient(red,yellow,lime,cyan,blue,magenta,red);border:2px solid rgba(255,255,255,0.3);"></div>
+      <!-- Size indicator line -->
+      <div style="flex:1;height:3px;background:rgba(255,255,255,0.15);border-radius:2px;position:relative;">
+        <div style="position:absolute;left:0;top:0;width:55%;height:100%;background:white;border-radius:2px;"></div>
+        <div style="position:absolute;left:55%;top:50%;transform:translate(-50%,-50%);width:12px;height:12px;background:white;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,0.4);"></div>
+      </div>
+      <!-- Alignment -->
+      <div style="display:flex;flex-direction:column;gap:2px;">
+        <div style="width:16px;height:2px;background:rgba(255,255,255,0.6);border-radius:1px;"></div>
+        <div style="width:12px;height:2px;background:rgba(255,255,255,0.6);border-radius:1px;margin:0 auto;"></div>
+        <div style="width:16px;height:2px;background:rgba(255,255,255,0.6);border-radius:1px;"></div>
+      </div>
+    </div>
+
+    <!-- Keyboard (simplified) -->
+    <div style="background:#2a2a2a;padding:8px;">
+      <div style="display:flex;gap:4px;justify-content:center;margin-bottom:6px;">
+        <div style="background:white;color:black;font-size:10px;font-family:monospace;padding:4px 0;border-radius:4px;text-align:center;flex:1;box-shadow:0 2px 0 rgba(0,0,0,0.4);">"this"</div>
+        <div style="background:#555;color:white;font-size:10px;font-family:monospace;padding:4px 0;border-radius:4px;text-align:center;flex:1;">this'll</div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(10,1fr);gap:3px;margin-bottom:5px;">
+        <div style="background:#4a4a4a;border-radius:4px;padding:5px 0;text-align:center;font-size:10px;color:white;box-shadow:0 2px 0 rgba(0,0,0,0.5);">q</div>
+        <div style="background:#4a4a4a;border-radius:4px;padding:5px 0;text-align:center;font-size:10px;color:white;box-shadow:0 2px 0 rgba(0,0,0,0.5);">w</div>
+        <div style="background:#4a4a4a;border-radius:4px;padding:5px 0;text-align:center;font-size:10px;color:white;box-shadow:0 2px 0 rgba(0,0,0,0.5);">e</div>
+        <div style="background:#4a4a4a;border-radius:4px;padding:5px 0;text-align:center;font-size:10px;color:white;box-shadow:0 2px 0 rgba(0,0,0,0.5);">r</div>
+        <div style="background:#4a4a4a;border-radius:4px;padding:5px 0;text-align:center;font-size:10px;color:white;box-shadow:0 2px 0 rgba(0,0,0,0.5);">t</div>
+        <div style="background:#4a4a4a;border-radius:4px;padding:5px 0;text-align:center;font-size:10px;color:white;box-shadow:0 2px 0 rgba(0,0,0,0.5);">y</div>
+        <div style="background:#4a4a4a;border-radius:4px;padding:5px 0;text-align:center;font-size:10px;color:white;box-shadow:0 2px 0 rgba(0,0,0,0.5);">u</div>
+        <div style="background:#4a4a4a;border-radius:4px;padding:5px 0;text-align:center;font-size:10px;color:white;box-shadow:0 2px 0 rgba(0,0,0,0.5);">i</div>
+        <div style="background:#4a4a4a;border-radius:4px;padding:5px 0;text-align:center;font-size:10px;color:white;box-shadow:0 2px 0 rgba(0,0,0,0.5);">o</div>
+        <div style="background:#4a4a4a;border-radius:4px;padding:5px 0;text-align:center;font-size:10px;color:white;box-shadow:0 2px 0 rgba(0,0,0,0.5);">p</div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(9,1fr);gap:3px;padding:0 5%;margin-bottom:5px;">
+        <div style="background:#4a4a4a;border-radius:4px;padding:5px 0;text-align:center;font-size:10px;color:white;box-shadow:0 2px 0 rgba(0,0,0,0.5);">a</div>
+        <div style="background:#4a4a4a;border-radius:4px;padding:5px 0;text-align:center;font-size:10px;color:white;box-shadow:0 2px 0 rgba(0,0,0,0.5);">s</div>
+        <div style="background:#4a4a4a;border-radius:4px;padding:5px 0;text-align:center;font-size:10px;color:white;box-shadow:0 2px 0 rgba(0,0,0,0.5);">d</div>
+        <div style="background:#4a4a4a;border-radius:4px;padding:5px 0;text-align:center;font-size:10px;color:white;box-shadow:0 2px 0 rgba(0,0,0,0.5);">f</div>
+        <div style="background:#4a4a4a;border-radius:4px;padding:5px 0;text-align:center;font-size:10px;color:white;box-shadow:0 2px 0 rgba(0,0,0,0.5);">g</div>
+        <div style="background:#4a4a4a;border-radius:4px;padding:5px 0;text-align:center;font-size:10px;color:white;box-shadow:0 2px 0 rgba(0,0,0,0.5);">h</div>
+        <div style="background:#4a4a4a;border-radius:4px;padding:5px 0;text-align:center;font-size:10px;color:white;box-shadow:0 2px 0 rgba(0,0,0,0.5);">j</div>
+        <div style="background:#4a4a4a;border-radius:4px;padding:5px 0;text-align:center;font-size:10px;color:white;box-shadow:0 2px 0 rgba(0,0,0,0.5);">k</div>
+        <div style="background:#4a4a4a;border-radius:4px;padding:5px 0;text-align:center;font-size:10px;color:white;box-shadow:0 2px 0 rgba(0,0,0,0.5);">l</div>
+      </div>
+      <div style="display:flex;gap:3px;margin-bottom:5px;">
+        <div style="background:#3a3a3a;border-radius:4px;padding:5px 0;text-align:center;font-size:10px;color:white;flex:1.5;">⇧</div>
+        <div style="flex:7;display:grid;grid-template-columns:repeat(7,1fr);gap:3px;">
+          <div style="background:#4a4a4a;border-radius:4px;padding:5px 0;text-align:center;font-size:10px;color:white;box-shadow:0 2px 0 rgba(0,0,0,0.5);">z</div>
+          <div style="background:#4a4a4a;border-radius:4px;padding:5px 0;text-align:center;font-size:10px;color:white;box-shadow:0 2px 0 rgba(0,0,0,0.5);">x</div>
+          <div style="background:#4a4a4a;border-radius:4px;padding:5px 0;text-align:center;font-size:10px;color:white;box-shadow:0 2px 0 rgba(0,0,0,0.5);">c</div>
+          <div style="background:#4a4a4a;border-radius:4px;padding:5px 0;text-align:center;font-size:10px;color:white;box-shadow:0 2px 0 rgba(0,0,0,0.5);">v</div>
+          <div style="background:#4a4a4a;border-radius:4px;padding:5px 0;text-align:center;font-size:10px;color:white;box-shadow:0 2px 0 rgba(0,0,0,0.5);">b</div>
+          <div style="background:#4a4a4a;border-radius:4px;padding:5px 0;text-align:center;font-size:10px;color:white;box-shadow:0 2px 0 rgba(0,0,0,0.5);">n</div>
+          <div style="background:#4a4a4a;border-radius:4px;padding:5px 0;text-align:center;font-size:10px;color:white;box-shadow:0 2px 0 rgba(0,0,0,0.5);">m</div>
+        </div>
+        <div style="background:#3a3a3a;border-radius:4px;padding:5px 0;text-align:center;font-size:10px;color:white;flex:1.5;">⌫</div>
+      </div>
+      <div style="display:flex;gap:3px;">
+        <div style="background:#3a3a3a;border-radius:4px;padding:5px 0;text-align:center;font-size:9px;color:white;flex:1.5;">123</div>
+        <div style="background:#3a3a3a;border-radius:4px;padding:5px 0;text-align:center;font-size:12px;flex:0.8;">😊</div>
+        <div style="background:#4a4a4a;border-radius:4px;padding:5px 0;text-align:center;font-size:10px;color:white;flex:5;"></div>
+        <div style="background:#3a3a3a;border-radius:4px;padding:5px 0;text-align:center;font-size:10px;color:white;flex:2;">return</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="section">
+  <div class="label">Behavior summary</div>
+  <ul style="font-size:14px;line-height:1.8;color:#555;padding-left:20px;">
+    <li>Tap <strong>T icon</strong> → full-screen dark overlay with <code>autoFocus</code> textarea → keyboard opens immediately</li>
+    <li>Text renders centered, large, in the selected font style</li>
+    <li><strong>Font style tabs</strong> (Serif / Sans / Mono / Hand) scroll horizontally above controls</li>
+    <li><strong>Controls bar</strong>: Aa size toggle, color wheel (opens swatch strip), size slider, alignment</li>
+    <li>Tap <strong>Done</strong> → places text at center of canvas, draggable/rotatable like other elements</li>
+    <li>Editing is inline — no separate submit step</li>
+  </ul>
+</div>

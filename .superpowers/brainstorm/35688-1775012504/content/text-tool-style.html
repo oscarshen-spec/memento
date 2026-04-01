@@ -1,0 +1,66 @@
+<h2>What kind of text tool interaction do you want?</h2>
+<p class="subtitle">There's already a journal entry system under the hood — the question is how users trigger and place text.</p>
+
+<div class="cards">
+
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#fdfaf3;padding:20px;font-family:serif;position:relative;min-height:140px;border-bottom:1px solid #e5e0d5;">
+      <!-- Toolbar mockup -->
+      <div style="display:flex;gap:10px;margin-bottom:16px;align-items:center;">
+        <div style="width:36px;height:36px;background:#1a1a1a;border-radius:8px;display:flex;align-items:center;justify-content:center;color:white;font-size:18px;font-weight:bold;">T</div>
+        <span style="font-size:11px;color:#888;font-family:monospace;text-transform:uppercase;letter-spacing:2px;">Text Tool</span>
+      </div>
+      <!-- Modal mockup -->
+      <div style="background:white;border-radius:12px;padding:12px;box-shadow:0 4px 20px rgba(0,0,0,0.12);font-family:sans-serif;">
+        <div style="font-size:10px;color:#aaa;margin-bottom:6px;font-family:monospace;text-transform:uppercase;letter-spacing:1px;">Type your text</div>
+        <div style="background:#f5f5f5;border-radius:6px;padding:8px;font-family:serif;font-style:italic;font-size:15px;color:#1a1a1a;">Write something...</div>
+        <div style="margin-top:8px;display:flex;gap:6px;">
+          <div style="flex:1;height:28px;background:#1a1a1a;border-radius:6px;display:flex;align-items:center;justify-content:center;color:white;font-size:10px;font-family:monospace;">ADD TO PAGE</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>Modal Input</h3>
+      <p>Tap a toolbar button → type in a popup → text appears on canvas. Extends the existing journal modal flow. Simple, predictable.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#fdfaf3;padding:20px;font-family:serif;position:relative;min-height:140px;border-bottom:1px solid #e5e0d5;">
+      <!-- Toolbar mockup -->
+      <div style="display:flex;gap:10px;margin-bottom:16px;align-items:center;">
+        <div style="width:36px;height:36px;background:#1a1a1a;border-radius:8px;display:flex;align-items:center;justify-content:center;color:white;font-size:18px;font-weight:bold;">T</div>
+        <span style="font-size:11px;color:#888;font-family:monospace;text-transform:uppercase;letter-spacing:2px;">Active — tap to place</span>
+      </div>
+      <!-- Canvas with inline cursor -->
+      <div style="background:#fefcf5;border:1px dashed #ccc;border-radius:8px;padding:12px;position:relative;">
+        <div style="display:flex;align-items:center;gap:4px;margin-bottom:8px;">
+          <div style="width:2px;height:22px;background:#1a1a1a;animation:none;"></div>
+          <span style="font-family:serif;font-style:italic;font-size:18px;color:#1a1a1a;">Hello world_</span>
+        </div>
+        <div style="position:absolute;top:6px;right:6px;font-size:9px;color:#bbb;font-family:monospace;">tap anywhere to place</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>Tap-to-Place</h3>
+      <p>Activate text mode → tap on canvas to set insertion point → native keyboard appears → text renders in-place as you type. More direct, feels like placing a label.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#fdfaf3;padding:20px;font-family:serif;position:relative;min-height:140px;border-bottom:1px solid #e5e0d5;">
+      <!-- Sticker strip -->
+      <div style="display:flex;gap:8px;margin-bottom:14px;overflow:hidden;">
+        <div style="background:#fff9c4;border:1px solid #e0d070;border-radius:4px;padding:6px 10px;font-size:13px;font-family:serif;font-style:italic;white-space:nowrap;transform:rotate(-2deg);box-shadow:1px 2px 4px rgba(0,0,0,0.1);">June 2025</div>
+        <div style="background:#fce4ec;border:1px solid #e0b0b8;border-radius:4px;padding:6px 10px;font-size:13px;font-family:serif;font-style:italic;white-space:nowrap;transform:rotate(1.5deg);box-shadow:1px 2px 4px rgba(0,0,0,0.1);">memories ♥</div>
+        <div style="background:#e8f5e9;border:1px solid #a0c8a0;border-radius:4px;padding:6px 10px;font-size:13px;font-family:serif;font-style:italic;white-space:nowrap;transform:rotate(-1deg);box-shadow:1px 2px 4px rgba(0,0,0,0.1);">adventure</div>
+      </div>
+      <div style="font-size:10px;color:#999;font-family:monospace;text-transform:uppercase;letter-spacing:1px;">pre-styled labels + custom text option</div>
+    </div>
+    <div class="card-body">
+      <h3>Label Stamps</h3>
+      <p>Pick a pre-styled label (date, title, caption, tag) → type in it → stamp it onto the page. Each style has a distinct analog look: rubber stamp, handwritten, sticker strip.</p>
+    </div>
+  </div>
+
+</div>

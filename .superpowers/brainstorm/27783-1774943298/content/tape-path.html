@@ -1,0 +1,58 @@
+<h2>How does the tape follow your swipe?</h2>
+<p class="subtitle">This shapes the core interaction — does the tape go straight or follow the finger?</p>
+
+<div class="cards">
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#f8f4ee;display:flex;align-items:center;justify-content:center;height:140px;position:relative;overflow:hidden;">
+      <!-- Straight strip mockup -->
+      <svg width="260" height="80" viewBox="0 0 260 80">
+        <!-- Lined paper hint -->
+        <rect width="260" height="80" fill="#fefcf5"/>
+        <line x1="0" y1="20" x2="260" y2="20" stroke="#ccc5b5" stroke-width="0.6"/>
+        <line x1="0" y1="40" x2="260" y2="40" stroke="#ccc5b5" stroke-width="0.6"/>
+        <line x1="0" y1="60" x2="260" y2="60" stroke="#ccc5b5" stroke-width="0.6"/>
+        <!-- Masking tape strip at angle -->
+        <g transform="rotate(-5, 130, 40)">
+          <rect x="20" y="26" width="220" height="28" fill="rgba(240,225,190,0.88)" stroke="rgba(200,180,140,0.4)" stroke-width="0.5"/>
+          <!-- paper texture lines -->
+          <line x1="20" y1="26" x2="240" y2="26" stroke="rgba(200,180,140,0.3)" stroke-width="0.4"/>
+          <line x1="20" y1="54" x2="240" y2="54" stroke="rgba(200,180,140,0.3)" stroke-width="0.4"/>
+          <!-- torn left end -->
+          <path d="M30,26 Q25,32 28,38 Q23,44 30,54 L20,54 L20,26 Z" fill="#fefcf5" opacity="0.7"/>
+          <!-- torn right end jagged -->
+          <path d="M232,26 Q237,32 234,38 Q239,44 232,54 L240,54 L240,26 Z" fill="#fefcf5" opacity="0.7"/>
+        </g>
+        <!-- finger swipe arrow -->
+        <line x1="50" y1="70" x2="200" y2="70" stroke="#888" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#arrowA)"/>
+        <defs><marker id="arrowA" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#888"/></marker></defs>
+        <text x="125" y="79" text-anchor="middle" font-size="9" fill="#888" font-family="sans-serif">swipe direction</text>
+      </svg>
+    </div>
+    <div class="card-body">
+      <h3>A — Straight strip, any angle</h3>
+      <p>Tape is always a clean straight strip. The angle is set by the direction you begin swiping. Clean, predictable, authentic to how tape rolls dispense.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#f8f4ee;display:flex;align-items:center;justify-content:center;height:140px;position:relative;overflow:hidden;">
+      <!-- Free-form curved path mockup -->
+      <svg width="260" height="100" viewBox="0 0 260 100">
+        <rect width="260" height="100" fill="#fefcf5"/>
+        <line x1="0" y1="25" x2="260" y2="25" stroke="#ccc5b5" stroke-width="0.6"/>
+        <line x1="0" y1="50" x2="260" y2="50" stroke="#ccc5b5" stroke-width="0.6"/>
+        <line x1="0" y1="75" x2="260" y2="75" stroke="#ccc5b5" stroke-width="0.6"/>
+        <!-- Curved tape strip -->
+        <path d="M20,30 C60,20 100,70 150,55 C190,42 220,60 245,45" stroke="rgba(240,225,190,0.95)" stroke-width="22" fill="none" stroke-linecap="butt"/>
+        <path d="M20,30 C60,20 100,70 150,55 C190,42 220,60 245,45" stroke="rgba(200,180,140,0.35)" stroke-width="22" fill="none" stroke-linecap="butt"/>
+        <path d="M20,30 C60,20 100,70 150,55 C190,42 220,60 245,45" stroke="rgba(200,180,140,0.2)" stroke-width="1" fill="none"/>
+        <!-- finger path -->
+        <path d="M20,30 C60,20 100,70 150,55 C190,42 220,60 245,45" stroke="#888" stroke-width="1" fill="none" stroke-dasharray="4,3"/>
+      </svg>
+    </div>
+    <div class="card-body">
+      <h3>B — Free-form path, follows finger</h3>
+      <p>Tape wraps exactly where you drag, curves and all. More expressive and playful — like pulling tape off a roll and sticking it anywhere.</p>
+    </div>
+  </div>
+</div>

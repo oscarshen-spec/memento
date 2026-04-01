@@ -1,0 +1,70 @@
+<h2>What texture should the scrapbook page have?</h2>
+<p class="subtitle">The reference image shows a dot-grid journal page. Which style fits best?</p>
+
+<div class="cards">
+  <div class="card" data-choice="dotgrid" onclick="toggleSelect(this)">
+    <div class="card-image" style="background: #fdfaf3; display:flex; align-items:center; justify-content:center; height:160px; border-radius:8px; overflow:hidden;">
+      <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <pattern id="dots" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
+            <circle cx="10" cy="10" r="1" fill="#c8bfb0" opacity="0.6"/>
+          </pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="#fdfaf3"/>
+        <rect width="100%" height="100%" fill="url(#dots)"/>
+      </svg>
+    </div>
+    <div class="card-body">
+      <h3>Dot Grid</h3>
+      <p>Subtle dots on cream — matches the reference image. Clean, modern journal feel.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="lined" onclick="toggleSelect(this)">
+    <div class="card-image" style="background: #fdfaf3; display:flex; align-items:center; justify-content:center; height:160px; border-radius:8px; overflow:hidden;">
+      <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <pattern id="lines" x="0" y="0" width="100%" height="24" patternUnits="userSpaceOnUse">
+            <line x1="0" y1="23" x2="100%" y2="23" stroke="#c8bfb0" stroke-width="0.8" opacity="0.7"/>
+          </pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="#fdfaf3"/>
+        <rect width="100%" height="100%" fill="url(#lines)"/>
+        <line x1="40" y1="0" x2="40" y2="100%" stroke="#e8a0a0" stroke-width="0.8" opacity="0.4"/>
+      </svg>
+    </div>
+    <div class="card-body">
+      <h3>Lined Paper</h3>
+      <p>Classic ruled lines with a red margin. Notebook / diary feel.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="kraft" onclick="toggleSelect(this)">
+    <div class="card-image" style="background: #c8a882; display:flex; align-items:center; justify-content:center; height:160px; border-radius:8px; overflow:hidden; position:relative;">
+      <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" style="position:absolute;top:0;left:0;">
+        <filter id="noise">
+          <feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch"/>
+          <feColorMatrix type="saturate" values="0"/>
+          <feBlend in="SourceGraphic" mode="multiply" result="blend"/>
+          <feComposite in="blend" in2="SourceGraphic"/>
+        </filter>
+        <rect width="100%" height="100%" fill="#c8a882" filter="url(#noise)" opacity="0.4"/>
+      </svg>
+      <span style="color:#7a5a3a; font-size:12px; font-weight:600; letter-spacing:2px; text-transform:uppercase; position:relative;">Kraft</span>
+    </div>
+    <div class="card-body">
+      <h3>Kraft Paper</h3>
+      <p>Brown recycled-paper texture. Raw, crafty, vintage scrapbook feel.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="plain" onclick="toggleSelect(this)">
+    <div class="card-image" style="background: #fdfaf3; display:flex; align-items:center; justify-content:center; height:160px; border-radius:8px; border: 1px solid #e8e0d0;">
+      <span style="color:#c0b8a8; font-size:12px; letter-spacing:2px; text-transform:uppercase;">Plain Cream</span>
+    </div>
+    <div class="card-body">
+      <h3>Plain Paper</h3>
+      <p>Clean cream — minimal and classic, lets the photos speak.</p>
+    </div>
+  </div>
+</div>

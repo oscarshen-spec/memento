@@ -1,0 +1,76 @@
+<h2>How should the text modal work?</h2>
+<p class="subtitle">Entry point is settled (toolbar button next to tape). The question is what happens inside the modal.</p>
+
+<div class="cards">
+
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:white;padding:20px;min-height:180px;border-bottom:1px solid #e5e0d5;">
+      <div style="font-size:10px;color:#aaa;font-family:monospace;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">Choose a style</div>
+      <div style="display:flex;gap:8px;margin-bottom:14px;">
+        <div style="flex:1;border:2px solid #1a1a1a;border-radius:10px;padding:10px;text-align:center;">
+          <div style="font-family:'Georgia',serif;font-style:italic;font-size:18px;font-weight:bold;">Aa</div>
+          <div style="font-size:8px;font-family:monospace;text-transform:uppercase;letter-spacing:1px;margin-top:4px;color:#666;">Serif</div>
+        </div>
+        <div style="flex:1;border:2px solid #ddd;border-radius:10px;padding:10px;text-align:center;">
+          <div style="font-family:'Courier New',monospace;font-size:16px;">Aa</div>
+          <div style="font-size:8px;font-family:monospace;text-transform:uppercase;letter-spacing:1px;margin-top:4px;color:#999;">Mono</div>
+        </div>
+        <div style="flex:1;border:2px solid #ddd;border-radius:10px;padding:10px;text-align:center;">
+          <div style="font-family:'Comic Sans MS',cursive;font-size:17px;">Aa</div>
+          <div style="font-size:8px;font-family:monospace;text-transform:uppercase;letter-spacing:1px;margin-top:4px;color:#999;">Hand</div>
+        </div>
+      </div>
+      <div style="background:#f5f5f5;border-radius:8px;padding:10px;font-family:'Georgia',serif;font-style:italic;font-size:16px;color:#1a1a1a;">Write something...</div>
+    </div>
+    <div class="card-body">
+      <h3>Style Picker + Text</h3>
+      <p>Pick a font style (serif, mono, handwritten), then type. Minimal controls, matches existing modal pattern. <strong>Recommended.</strong></p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:white;padding:20px;min-height:180px;border-bottom:1px solid #e5e0d5;">
+      <div style="background:#f5f5f5;border-radius:8px;padding:10px;font-family:'Georgia',serif;font-style:italic;font-size:16px;color:#1a1a1a;margin-bottom:12px;">Summer adventures</div>
+      <div style="font-size:10px;color:#aaa;font-family:monospace;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Preview</div>
+      <!-- Live preview card -->
+      <div style="background:#fdfaf3;border:1px solid #e5e0d5;border-radius:8px;padding:16px;display:flex;gap:10px;overflow:hidden;">
+        <div style="flex:1;text-align:center;padding:8px;border:1px solid #1a1a1a;border-radius:6px;">
+          <div style="font-family:'Georgia',serif;font-style:italic;font-size:15px;color:#1a1a1a;">Summer adventures</div>
+        </div>
+        <div style="flex:1;text-align:center;padding:8px;border:1px solid #ddd;border-radius:6px;">
+          <div style="font-family:'Courier New',monospace;font-size:12px;color:#555;">Summer adventures</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>Type First, Pick Style</h3>
+      <p>Type text first, then see it rendered live in each style side-by-side. More tactile preview experience but two-step flow.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:white;padding:20px;min-height:180px;border-bottom:1px solid #e5e0d5;">
+      <div style="background:#f5f5f5;border-radius:8px;padding:10px;font-family:'Georgia',serif;font-style:italic;font-size:16px;color:#1a1a1a;margin-bottom:12px;">Write something...</div>
+      <div style="display:flex;gap:8px;margin-bottom:10px;">
+        <div style="font-size:10px;color:#aaa;font-family:monospace;text-transform:uppercase;letter-spacing:1px;">Style</div>
+        <div style="font-size:10px;color:#aaa;font-family:monospace;text-transform:uppercase;letter-spacing:1px;">·</div>
+        <div style="font-size:10px;color:#aaa;font-family:monospace;text-transform:uppercase;letter-spacing:1px;">Size</div>
+        <div style="font-size:10px;color:#aaa;font-family:monospace;text-transform:uppercase;letter-spacing:1px;">·</div>
+        <div style="font-size:10px;color:#aaa;font-family:monospace;text-transform:uppercase;letter-spacing:1px;">Color</div>
+      </div>
+      <div style="display:flex;gap:6px;align-items:center;">
+        <div style="width:18px;height:18px;border-radius:50%;background:#1a1a1a;border:2px solid #1a1a1a;"></div>
+        <div style="width:18px;height:18px;border-radius:50%;background:#8b0000;border:2px solid #ddd;"></div>
+        <div style="width:18px;height:18px;border-radius:50%;background:#1a3a6a;border:2px solid #ddd;"></div>
+        <div style="flex:1;height:6px;background:#f5f5f5;border-radius:3px;margin-left:8px;">
+          <div style="width:40%;height:100%;background:#1a1a1a;border-radius:3px;"></div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>Full Controls</h3>
+      <p>Text + font style + size slider + color swatches. Maximum expressiveness, but heavier UI — more "tool", less "analog craft".</p>
+    </div>
+  </div>
+
+</div>

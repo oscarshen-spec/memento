@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Scrapbook Canvas Design</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #1a0f08;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 20px;
+    gap: 40px;
+  }
+
+  h2 {
+    color: #fff;
+    font-size: 18px;
+    font-weight: 500;
+    text-align: center;
+    opacity: 0.9;
+  }
+  .subtitle {
+    color: rgba(255,255,255,0.5);
+    font-size: 13px;
+    text-align: center;
+    margin-top: 6px;
+  }
+
+  /* ---- WOOD DESK ---- */
+  .desk {
+    width: 100%;
+    max-width: 680px;
+    background-color: #8b5e3c;
+    background-image: repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 40px,
+      rgba(0,0,0,0.04) 40px,
+      rgba(0,0,0,0.04) 80px
+    ),
+    repeating-linear-gradient(
+      180deg,
+      transparent,
+      transparent 4px,
+      rgba(255,255,255,0.02) 4px,
+      rgba(255,255,255,0.02) 8px
+    );
+    border-radius: 16px;
+    padding: 32px 40px 40px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    box-shadow:
+      0 20px 60px rgba(0,0,0,0.7),
+      inset 0 1px 0 rgba(255,255,255,0.08);
+  }
+
+  /* ---- BOOK WRAPPER ---- */
+  .book {
+    display: flex;
+    width: 100%;
+    max-width: 560px;
+    height: 360px;
+    border-radius: 6px;
+    overflow: hidden;
+    box-shadow:
+      0 20px 50px rgba(0,0,0,0.6),
+      0 2px 8px rgba(0,0,0,0.4);
+    position: relative;
+  }
+
+  /* ---- LEFT COVER BOARD ---- */
+  .cover-left {
+    width: 28px;
+    flex-shrink: 0;
+    background: linear-gradient(
+      to right,
+      #3d1f0f 0%,
+      #6b3820 30%,
+      #8a4a28 50%,
+      #6b3820 70%,
+      #3d1f0f 100%
+    );
+    position: relative;
+    z-index: 2;
+  }
+  .cover-left::after {
+    content: '';
+    position: absolute;
+    top: 0; right: 0;
+    width: 10px; height: 100%;
+    background: linear-gradient(to right, rgba(0,0,0,0.5), transparent);
+  }
+  /* Leather grain lines */
+  .cover-left::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 8px,
+      rgba(255,255,255,0.03) 8px,
+      rgba(255,255,255,0.03) 9px
+    );
+  }
+
+  /* ---- RIGHT COVER BOARD ---- */
+  .cover-right {
+    width: 28px;
+    flex-shrink: 0;
+    background: linear-gradient(
+      to left,
+      #3d1f0f 0%,
+      #6b3820 30%,
+      #8a4a28 50%,
+      #6b3820 70%,
+      #3d1f0f 100%
+    );
+    position: relative;
+    z-index: 2;
+  }
+  .cover-right::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 10px; height: 100%;
+    background: linear-gradient(to left, rgba(0,0,0,0.5), transparent);
+  }
+  .cover-right::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 8px,
+      rgba(255,255,255,0.03) 8px,
+      rgba(255,255,255,0.03) 9px
+    );
+  }
+
+  /* ---- PAGE AREA ---- */
+  .page {
+    flex: 1;
+    background: #fefcf5;
+    position: relative;
+    overflow: hidden;
+    /* Subtle page-edge shadow on both sides */
+    box-shadow: inset 6px 0 12px rgba(0,0,0,0.08), inset -6px 0 12px rgba(0,0,0,0.08);
+  }
+
+  /* ---- LINED PAPER SVG ---- */
+  .page-lines {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  /* ---- SCRAP PLACEHOLDERS ---- */
+  .scrap {
+    position: absolute;
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .scrap-1 {
+    width: 120px; height: 90px;
+    top: 60px; left: 80px;
+    transform: rotate(-4deg);
+    background: linear-gradient(135deg, #a8c4e0, #7a9fcc);
+    box-shadow: 3px 6px 16px rgba(0,0,0,0.3), 0 1px 3px rgba(0,0,0,0.2);
+  }
+  .scrap-2 {
+    width: 100px; height: 80px;
+    top: 100px; right: 100px;
+    transform: rotate(3deg);
+    background: linear-gradient(135deg, #d4a882, #b08060);
+    box-shadow: 3px 6px 16px rgba(0,0,0,0.3);
+  }
+  .scrap-tape {
+    position: absolute;
+    width: 44px; height: 14px;
+    background: repeating-linear-gradient(
+      45deg,
+      rgba(0,0,0,0.7),
+      rgba(0,0,0,0.7) 4px,
+      rgba(255,255,255,0.3) 4px,
+      rgba(255,255,255,0.3) 8px
+    );
+    opacity: 0.75;
+    border-radius: 1px;
+  }
+
+  /* ---- ANNOTATION CALLOUTS ---- */
+  .annotations {
+    width: 100%;
+    max-width: 560px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .annotation {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 8px;
+    padding: 12px 14px;
+  }
+  .annotation .label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.4);
+    margin-bottom: 4px;
+  }
+  .annotation p {
+    font-size: 12px;
+    color: rgba(255,255,255,0.75);
+    line-height: 1.5;
+  }
+  .swatch {
+    display: inline-block;
+    width: 12px; height: 12px;
+    border-radius: 2px;
+    vertical-align: middle;
+    margin-right: 4px;
+  }
+</style>
+</head>
+<body>
+
+<h2>Scrapbook Canvas — Design Preview</h2>
+<p class="subtitle">Hybrid approach: CSS hardcover boards + Konva lined-paper layer</p>
+
+<div class="desk">
+  <div class="book">
+    <!-- Left leather board -->
+    <div class="cover-left"></div>
+
+    <!-- Page -->
+    <div class="page">
+      <!-- Lined paper (will be Konva Layer 0) -->
+      <svg class="page-lines" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <pattern id="ruled" x="0" y="0" width="100%" height="28" patternUnits="userSpaceOnUse">
+            <line x1="0" y1="27" x2="100%" y2="27" stroke="#ccc5b5" stroke-width="0.8"/>
+          </pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="#fefcf5"/>
+        <rect width="100%" height="100%" fill="url(#ruled)"/>
+        <!-- Red margin -->
+        <line x1="52" y1="0" x2="52" y2="100%" stroke="#e8a0a0" stroke-width="1" opacity="0.6"/>
+        <!-- Top header line -->
+        <line x1="0" y1="32" x2="100%" y2="32" stroke="#ccc5b5" stroke-width="1.5" opacity="0.5"/>
+      </svg>
+
+      <!-- Scrap items (will be Konva Layer 1) -->
+      <div class="scrap scrap-1">
+        <div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:9px;color:rgba(255,255,255,0.6);">photo</div>
+      </div>
+      <!-- Tape on scrap 1 -->
+      <div class="scrap-tape" style="top:48px; left:96px; transform:rotate(-4deg);"></div>
+      <div class="scrap-tape" style="top:136px; left:166px; transform:rotate(-4deg);"></div>
+
+      <div class="scrap scrap-2">
+        <div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:9px;color:rgba(255,255,255,0.6);">photo</div>
+      </div>
+    </div>
+
+    <!-- Right leather board -->
+    <div class="cover-right"></div>
+  </div>
+</div>
+
+<!-- Annotation grid -->
+<div class="annotations">
+  <div class="annotation">
+    <div class="label">Cover Boards</div>
+    <p><span class="swatch" style="background:#6b3820;"></span>Dark leather CSS divs, 28px wide. Grain texture via CSS gradients. Hinge shadow on inner edge.</p>
+  </div>
+  <div class="annotation">
+    <div class="label">Lined Paper</div>
+    <p><span class="swatch" style="background:#fefcf5; border:1px solid #ccc;"></span>Cream base, horizontal rules every 28px, red margin line at 52px. Konva Layer 0 (exports with page).</p>
+  </div>
+  <div class="annotation">
+    <div class="label">Scraps Layer</div>
+    <p>Existing Konva Layer — no changes to scrap logic. Just moved to Layer 1 on the same Stage.</p>
+  </div>
+  <div class="annotation">
+    <div class="label">Page Shadow</div>
+    <p>Inset box-shadow on page div: subtle darkening on both edges where boards meet paper.</p>
+  </div>
+</div>
+
+</body>
+</html>

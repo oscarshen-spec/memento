@@ -1,0 +1,69 @@
+<h2>What does tearing the tape look like?</h2>
+<p class="subtitle">When you swipe back the opposite direction, how does the tape end?</p>
+
+<div class="cards">
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#f8f4ee;display:flex;align-items:center;justify-content:center;height:150px;position:relative;overflow:hidden;'>">
+      <svg width="260" height="120" viewBox="0 0 260 120">
+        <rect width="260" height="120" fill="#fefcf5"/>
+        <line x1="0" y1="30" x2="260" y2="30" stroke="#ccc5b5" stroke-width="0.6"/>
+        <line x1="0" y1="60" x2="260" y2="60" stroke="#ccc5b5" stroke-width="0.6"/>
+        <line x1="0" y1="90" x2="260" y2="90" stroke="#ccc5b5" stroke-width="0.6"/>
+        <!-- Tape body -->
+        <rect x="20" y="46" width="160" height="28" fill="rgba(240,225,190,0.88)"/>
+        <!-- torn right end - jagged organic tear -->
+        <path d="M180,46 L183,49 L178,53 L184,57 L179,61 L183,65 L178,69 L181,72 L180,74 L164,74 L164,46 Z" fill="rgba(240,225,190,0.88)"/>
+        <path d="M180,46 L183,49 L178,53 L184,57 L179,61 L183,65 L178,69 L181,72 L180,74" fill="none" stroke="rgba(180,155,110,0.7)" stroke-width="1.2" stroke-linejoin="round"/>
+        <!-- paper fiber wisps -->
+        <path d="M182,50 L188,48" stroke="rgba(200,175,130,0.5)" stroke-width="0.8"/>
+        <path d="M181,56 L189,55" stroke="rgba(200,175,130,0.5)" stroke-width="0.8"/>
+        <path d="M183,63 L190,62" stroke="rgba(200,175,130,0.5)" stroke-width="0.8"/>
+        <path d="M180,70 L186,72" stroke="rgba(200,175,130,0.5)" stroke-width="0.8"/>
+        <!-- clean left end -->
+        <path d="M28,46 Q22,52 24,60 Q20,66 28,74 L20,74 L20,46 Z" fill="#fefcf5" opacity="0.6"/>
+        <!-- swipe arrows -->
+        <line x1="60" y1="105" x2="170" y2="105" stroke="#bbb" stroke-width="1.5" stroke-dasharray="4,3"/>
+        <polygon points="170,102 178,105 170,108" fill="#bbb"/>
+        <text x="115" y="114" text-anchor="middle" font-size="8" fill="#bbb" font-family="sans-serif">→ place</text>
+        <line x1="170" y1="115" x2="100" y2="115" stroke="#c44" stroke-width="1.5" stroke-dasharray="4,3"/>
+        <polygon points="100,112 92,115 100,118" fill="#c44"/>
+        <text x="135" y="119" text-anchor="middle" font-size="8" fill="#c44" font-family="sans-serif">← tear</text>
+      </svg>
+    </div>
+    <div class="card-body">
+      <h3>A — Organic jagged tear</h3>
+      <p>The tape ends with a realistic torn paper edge — randomized zigzag with tiny fiber wisps. The tear point is wherever you reversed direction.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#f8f4ee;display:flex;align-items:center;justify-content:center;height:150px;overflow:hidden;">
+      <svg width="260" height="120" viewBox="0 0 260 120">
+        <rect width="260" height="120" fill="#fefcf5"/>
+        <line x1="0" y1="30" x2="260" y2="30" stroke="#ccc5b5" stroke-width="0.6"/>
+        <line x1="0" y1="60" x2="260" y2="60" stroke="#ccc5b5" stroke-width="0.6"/>
+        <line x1="0" y1="90" x2="260" y2="90" stroke="#ccc5b5" stroke-width="0.6"/>
+        <!-- Tape body -->
+        <rect x="20" y="46" width="160" height="28" fill="rgba(240,225,190,0.88)"/>
+        <!-- serrated/notched right end -->
+        <path d="M180,46 L184,50 L180,54 L184,58 L180,62 L184,66 L180,70 L180,74 L164,74 L164,46 Z" fill="rgba(240,225,190,0.88)"/>
+        <path d="M180,46 L184,50 L180,54 L184,58 L180,62 L184,66 L180,70 L180,74" fill="none" stroke="rgba(180,155,110,0.6)" stroke-width="1"/>
+        <!-- clean left end -->
+        <path d="M28,46 Q22,52 24,60 Q20,66 28,74 L20,74 L20,46 Z" fill="#fefcf5" opacity="0.6"/>
+        <!-- cutter icon hint -->
+        <text x="200" y="64" font-size="18" fill="rgba(180,155,110,0.4)" font-family="sans-serif">✂</text>
+        <!-- swipe arrows -->
+        <line x1="60" y1="105" x2="170" y2="105" stroke="#bbb" stroke-width="1.5" stroke-dasharray="4,3"/>
+        <polygon points="170,102 178,105 170,108" fill="#bbb"/>
+        <text x="115" y="114" text-anchor="middle" font-size="8" fill="#bbb" font-family="sans-serif">→ place</text>
+        <line x1="170" y1="115" x2="100" y2="115" stroke="#c44" stroke-width="1.5" stroke-dasharray="4,3"/>
+        <polygon points="100,112 92,115 100,118" fill="#c44"/>
+        <text x="135" y="119" text-anchor="middle" font-size="8" fill="#c44" font-family="sans-serif">← tear</text>
+      </svg>
+    </div>
+    <div class="card-body">
+      <h3>B — Serrated/notched cut</h3>
+      <p>Clean sawtooth edge, like tape cut with a dispenser's blade. More regular and crisp — still handmade-feeling but less ragged.</p>
+    </div>
+  </div>
+</div>

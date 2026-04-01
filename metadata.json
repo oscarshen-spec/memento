@@ -1,0 +1,7 @@
+{
+  "name": "Analog Scrapbook",
+  "description": "A tactile digital collage experience with manual cutting, photo capturing, and authentic paper aesthetics.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}

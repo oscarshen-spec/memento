@@ -1,0 +1,101 @@
+<h2>How should the book binding look?</h2>
+<p class="subtitle">The reference image shows a thick fabric spine on the left. Pick the binding style.</p>
+
+<div class="cards">
+  <div class="card" data-choice="fabric-spine" onclick="toggleSelect(this)">
+    <div class="card-image" style="height:180px; border-radius:8px; overflow:hidden; display:flex;">
+      <!-- Fabric spine on left -->
+      <div style="width:28px; background: linear-gradient(to right, #2a2a2a, #4a4a4a, #2a2a2a); flex-shrink:0; display:flex; flex-direction:column; align-items:center; justify-content:space-evenly;">
+        <div style="width:3px; height:3px; background:#888; border-radius:50%;"></div>
+        <div style="width:3px; height:3px; background:#888; border-radius:50%;"></div>
+        <div style="width:3px; height:3px; background:#888; border-radius:50%;"></div>
+      </div>
+      <!-- Page -->
+      <div style="flex:1; background:#fdfaf3; position:relative; overflow:hidden;">
+        <svg width="100%" height="100%" style="position:absolute;">
+          <defs>
+            <pattern id="l1" x="0" y="0" width="100%" height="24" patternUnits="userSpaceOnUse">
+              <line x1="0" y1="23" x2="100%" y2="23" stroke="#c8bfb0" stroke-width="0.8"/>
+            </pattern>
+          </defs>
+          <rect width="100%" height="100%" fill="url(#l1)"/>
+          <line x1="36" y1="0" x2="36" y2="100%" stroke="#e8a0a0" stroke-width="0.8" opacity="0.5"/>
+        </svg>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>Fabric Spine</h3>
+      <p>Dark cloth binding on the left edge — exactly like the reference image.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="ring-bound" onclick="toggleSelect(this)">
+    <div class="card-image" style="height:180px; border-radius:8px; overflow:hidden; display:flex; background:#fdfaf3; position:relative;">
+      <!-- Ring holes on left -->
+      <div style="width:32px; flex-shrink:0; display:flex; flex-direction:column; align-items:center; justify-content:space-evenly; background:#f0ebe0; border-right: 1px solid #e0d8cc;">
+        <div style="width:14px; height:14px; border-radius:50%; border: 2px solid #b0a898; background:#fdfaf3;"></div>
+        <div style="width:14px; height:14px; border-radius:50%; border: 2px solid #b0a898; background:#fdfaf3;"></div>
+        <div style="width:14px; height:14px; border-radius:50%; border: 2px solid #b0a898; background:#fdfaf3;"></div>
+      </div>
+      <div style="flex:1; position:relative; overflow:hidden;">
+        <svg width="100%" height="100%" style="position:absolute;">
+          <defs>
+            <pattern id="l2" x="0" y="0" width="100%" height="24" patternUnits="userSpaceOnUse">
+              <line x1="0" y1="23" x2="100%" y2="23" stroke="#c8bfb0" stroke-width="0.8"/>
+            </pattern>
+          </defs>
+          <rect width="100%" height="100%" fill="url(#l2)"/>
+        </svg>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>Ring Bound</h3>
+      <p>Spiral / ring holes punched along the left side. Notebook feel.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="hardcover" onclick="toggleSelect(this)">
+    <div class="card-image" style="height:180px; border-radius:8px; overflow:hidden; display:flex; gap:0;">
+      <!-- Left hardcover board -->
+      <div style="width:16px; background: linear-gradient(to right, #5a3a1a, #8a5a2a); flex-shrink:0; border-radius:8px 0 0 8px;"></div>
+      <!-- Hinge shadow -->
+      <div style="width:6px; background: linear-gradient(to right, rgba(0,0,0,0.3), transparent); flex-shrink:0;"></div>
+      <!-- Page area -->
+      <div style="flex:1; background:#fdfaf3; position:relative; overflow:hidden;">
+        <svg width="100%" height="100%" style="position:absolute;">
+          <defs>
+            <pattern id="l3" x="0" y="0" width="100%" height="24" patternUnits="userSpaceOnUse">
+              <line x1="0" y1="23" x2="100%" y2="23" stroke="#c8bfb0" stroke-width="0.8"/>
+            </pattern>
+          </defs>
+          <rect width="100%" height="100%" fill="url(#l3)"/>
+          <line x1="36" y1="0" x2="36" y2="100%" stroke="#e8a0a0" stroke-width="0.8" opacity="0.5"/>
+        </svg>
+      </div>
+      <!-- Right hardcover board -->
+      <div style="width:16px; background: linear-gradient(to left, #5a3a1a, #8a5a2a); flex-shrink:0; border-radius:0 8px 8px 0;"></div>
+    </div>
+    <div class="card-body">
+      <h3>Hardcover Book</h3>
+      <p>Leather-look boards on both sides with a hinge shadow. Premium bound book feel.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="borderless" onclick="toggleSelect(this)">
+    <div class="card-image" style="height:180px; border-radius:8px; overflow:hidden; background:#fdfaf3; position:relative; box-shadow: inset 0 0 0 2px #e8e0d0;">
+      <svg width="100%" height="100%" style="position:absolute;">
+        <defs>
+          <pattern id="l4" x="0" y="0" width="100%" height="24" patternUnits="userSpaceOnUse">
+            <line x1="0" y1="23" x2="100%" y2="23" stroke="#c8bfb0" stroke-width="0.8"/>
+          </pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="url(#l4)"/>
+        <line x1="40" y1="0" x2="40" y2="100%" stroke="#e8a0a0" stroke-width="0.8" opacity="0.5"/>
+      </svg>
+    </div>
+    <div class="card-body">
+      <h3>No Binding</h3>
+      <p>Just the paper — a clean floating page with a soft drop shadow.</p>
+    </div>
+  </div>
+</div>

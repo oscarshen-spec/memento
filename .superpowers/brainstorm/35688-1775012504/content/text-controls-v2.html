@@ -1,0 +1,97 @@
+<h2>Controls Bar — Two States</h2>
+<p class="subtitle">Two icons in the bottom row. Upper row changes based on which is active.</p>
+
+<div class="split">
+
+  <div class="mockup">
+    <div class="mockup-header">Font Style active</div>
+    <div class="mockup-body" style="background:#111;padding:0;overflow:hidden;">
+
+      <!-- Text area -->
+      <div style="height:120px;display:flex;align-items:center;justify-content:center;">
+        <span style="font-family:'Georgia',serif;font-style:italic;font-size:22px;font-weight:bold;color:white;">Something like this</span><span style="display:inline-block;width:2px;height:26px;background:#4a90e2;vertical-align:middle;margin-left:2px;"></span>
+      </div>
+
+      <!-- Upper row: 4 font options -->
+      <div style="background:rgba(30,30,30,0.95);padding:10px 12px;display:flex;gap:6px;border-top:1px solid rgba(255,255,255,0.07);">
+        <div style="flex:1;text-align:center;padding:8px 4px;background:white;border-radius:8px;">
+          <span style="font-family:'Georgia',serif;font-style:italic;font-weight:bold;font-size:14px;color:#111;">Serif</span>
+        </div>
+        <div style="flex:1;text-align:center;padding:8px 4px;background:rgba(255,255,255,0.1);border-radius:8px;">
+          <span style="font-family:Arial,sans-serif;font-size:14px;font-weight:700;color:white;">Sans</span>
+        </div>
+        <div style="flex:1;text-align:center;padding:8px 4px;background:rgba(255,255,255,0.1);border-radius:8px;">
+          <span style="font-family:'Courier New',monospace;font-size:13px;color:white;">Mono</span>
+        </div>
+        <div style="flex:1;text-align:center;padding:8px 4px;background:rgba(255,255,255,0.1);border-radius:8px;">
+          <span style="font-family:'Comic Sans MS',cursive;font-size:14px;color:rgba(255,255,255,0.75);">Hand</span>
+        </div>
+      </div>
+
+      <!-- Bottom row: 2 icons -->
+      <div style="background:rgba(20,20,20,0.98);padding:10px 20px;display:flex;align-items:center;gap:16px;border-top:1px solid rgba(255,255,255,0.05);">
+        <!-- Aa — active -->
+        <div style="background:rgba(255,255,255,0.18);border-radius:8px;padding:7px 12px;">
+          <span style="color:white;font-size:14px;font-weight:700;font-family:sans-serif;">Aa</span>
+        </div>
+        <!-- Color wheel — inactive -->
+        <div style="width:32px;height:32px;border-radius:50%;background:conic-gradient(red,yellow,lime,cyan,blue,magenta,red);opacity:0.6;"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="mockup">
+    <div class="mockup-header">Color active</div>
+    <div class="mockup-body" style="background:#111;padding:0;overflow:hidden;">
+
+      <!-- Text area -->
+      <div style="height:120px;display:flex;align-items:center;justify-content:center;">
+        <span style="font-family:'Georgia',serif;font-style:italic;font-size:22px;font-weight:bold;color:#e8a87c;">Something like this</span><span style="display:inline-block;width:2px;height:26px;background:#4a90e2;vertical-align:middle;margin-left:2px;"></span>
+      </div>
+
+      <!-- Upper row: Instagram-style color strip -->
+      <div style="background:rgba(30,30,30,0.95);padding:14px 16px;border-top:1px solid rgba(255,255,255,0.07);">
+        <!-- Gradient strip -->
+        <div style="position:relative;height:28px;border-radius:14px;background:linear-gradient(to right, #fff, #ff0000, #ff8c00, #ffff00, #00c800, #00c8ff, #0000ff, #8b00ff, #ff00ff, #000);box-shadow:0 1px 6px rgba(0,0,0,0.4);">
+          <!-- Thumb -->
+          <div style="position:absolute;left:62%;top:50%;transform:translate(-50%,-50%);width:24px;height:24px;border-radius:50%;background:#e8a87c;border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.5);"></div>
+        </div>
+        <!-- Swatch row below strip -->
+        <div style="display:flex;gap:8px;margin-top:10px;justify-content:center;">
+          <div style="width:24px;height:24px;border-radius:50%;background:white;border:2px solid rgba(255,255,255,0.4);"></div>
+          <div style="width:24px;height:24px;border-radius:50%;background:#ff3b30;"></div>
+          <div style="width:24px;height:24px;border-radius:50%;background:#ff9500;"></div>
+          <div style="width:24px;height:24px;border-radius:50%;background:#ffcc00;"></div>
+          <div style="width:24px;height:24px;border-radius:50%;background:#34c759;"></div>
+          <div style="width:24px;height:24px;border-radius:50%;background:#007aff;"></div>
+          <div style="width:24px;height:24px;border-radius:50%;background:#5856d6;"></div>
+          <div style="width:24px;height:24px;border-radius:50%;background:#000;border:2px solid rgba(255,255,255,0.2);"></div>
+        </div>
+      </div>
+
+      <!-- Bottom row: 2 icons -->
+      <div style="background:rgba(20,20,20,0.98);padding:10px 20px;display:flex;align-items:center;gap:16px;border-top:1px solid rgba(255,255,255,0.05);">
+        <!-- Aa — inactive -->
+        <div style="border-radius:8px;padding:7px 12px;">
+          <span style="color:rgba(255,255,255,0.5);font-size:14px;font-weight:700;font-family:sans-serif;">Aa</span>
+        </div>
+        <!-- Color wheel — active -->
+        <div style="width:32px;height:32px;border-radius:50%;background:conic-gradient(red,yellow,lime,cyan,blue,magenta,red);border:2px solid white;box-shadow:0 0 0 2px rgba(255,255,255,0.3);"></div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<div class="section">
+  <div class="label">Interaction</div>
+  <ul style="font-size:14px;line-height:2;color:#555;padding-left:20px;margin-top:8px;">
+    <li><strong>Default state:</strong> Font (Aa) is active, shows 4 font option tiles above</li>
+    <li>Tap <strong>Aa</strong> → upper row switches to Serif / Sans / Mono / Hand tiles</li>
+    <li>Tap <strong>color wheel</strong> → upper row switches to gradient strip + quick swatches; text color updates live as you drag</li>
+    <li>Selected font tile is white-filled; inactive tiles are dim</li>
+    <li>Color strip thumb slides to pick any color; swatches are quick-picks</li>
+  </ul>
+</div>
