@@ -159,15 +159,12 @@ export const ScissorsCutView: React.FC<ScissorsCutViewProps> = ({ image, onCut, 
     return () => window.removeEventListener('resize', resize);
   }, [draw, imgLoaded]);
 
-  // --- TASK 3: Touch event handlers ---
+  // --- Input-agnostic drawing helpers (shared by touch + mouse) ---
 
-  const getCanvasPoint = (touch: React.Touch): { x: number; y: number } => {
+  const canvasPointFrom = (clientX: number, clientY: number) => {
     const canvas = canvasRef.current!;
     const rect = canvas.getBoundingClientRect();
-    return {
-      x: touch.clientX - rect.left,
-      y: touch.clientY - rect.top,
-    };
+    return { x: clientX - rect.left, y: clientY - rect.top };
   };
 
   const computeJitter = (): number => {
@@ -184,9 +181,7 @@ export const ScissorsCutView: React.FC<ScissorsCutViewProps> = ({ image, onCut, 
     return Math.max(0.5, Math.min(4.0, 0.5 + (avgSpeed - 0.3) * 2.5));
   };
 
-  const handleTouchStart = (e: React.TouchEvent) => {
-    if (e.touches.length !== 1) return;
-    const pt = getCanvasPoint(e.touches[0]);
+  const startDrawing = (pt: { x: number; y: number }) => {
     lassoPoints.current = [{ ...pt, jitter: 0.5 }];
     velocitySamples.current = [{ time: Date.now(), ...pt }];
     pointCount.current = 0;
@@ -194,9 +189,8 @@ export const ScissorsCutView: React.FC<ScissorsCutViewProps> = ({ image, onCut, 
     draw();
   };
 
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (!isDrawing.current || e.touches.length !== 1) return;
-    const pt = getCanvasPoint(e.touches[0]);
+  const continueDrawing = (pt: { x: number; y: number }) => {
+    if (!isDrawing.current) return;
     const points = lassoPoints.current;
     const last = points[points.length - 1];
 
@@ -219,7 +213,7 @@ export const ScissorsCutView: React.FC<ScissorsCutViewProps> = ({ image, onCut, 
     animFrameId.current = requestAnimationFrame(draw);
   };
 
-  const handleTouchEnd = () => {
+  const finishDrawing = () => {
     if (!isDrawing.current) return;
     isDrawing.current = false;
 
@@ -243,6 +237,33 @@ export const ScissorsCutView: React.FC<ScissorsCutViewProps> = ({ image, onCut, 
 
     applyCut(points);
   };
+
+  // --- Touch handlers ---
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length !== 1) return;
+    startDrawing(canvasPointFrom(e.touches[0].clientX, e.touches[0].clientY));
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (e.touches.length !== 1) return;
+    continueDrawing(canvasPointFrom(e.touches[0].clientX, e.touches[0].clientY));
+  };
+
+  const handleTouchEnd = () => finishDrawing();
+
+  // --- Mouse handlers (desktop click-and-drag) ---
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (e.button !== 0) return; // left-click only
+    startDrawing(canvasPointFrom(e.clientX, e.clientY));
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    continueDrawing(canvasPointFrom(e.clientX, e.clientY));
+  };
+
+  const handleMouseUp = () => finishDrawing();
 
   // --- TASK 4: Image clipping ---
 
@@ -325,6 +346,9 @@ export const ScissorsCutView: React.FC<ScissorsCutViewProps> = ({ image, onCut, 
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
       />
     </motion.div>
   );
