@@ -133,6 +133,8 @@ const ScrapItem: React.FC<ScrapItemProps> = ({ scrap, isSelected, onSelect, onCh
 
   useEffect(() => {
     if (scrap.isGlued && shapeRef.current) {
+      activeTween.current?.destroy();
+      activeTween.current = null;
       shapeRef.current.to({
         shadowBlur: 3,
         shadowOffsetY: 2,
