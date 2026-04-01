@@ -1,6 +1,7 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Layer, Shape, Rect } from 'react-konva';
 import { TapeStrip, Point } from '../types';
+import { startTapePull, playSound } from '../services/soundService';
 
 // ── Math helpers ────────────────────────────────────────────────────────────
 
@@ -200,6 +201,11 @@ export const TapeLayer: React.FC<TapeLayerProps> = ({
 }) => {
   const [inProgress, setInProgress] = useState<InProgress | null>(null);
   const ipRef = useRef<InProgress | null>(null);
+  const stopPullRef = useRef<(() => void) | null>(null);
+
+  useEffect(() => {
+    return () => { stopPullRef.current?.(); };
+  }, []);
 
   const getPos = (e: any): Point | null => {
     const pos = e.target.getStage()?.getPointerPosition();
@@ -207,6 +213,8 @@ export const TapeLayer: React.FC<TapeLayerProps> = ({
   };
 
   const finalize = (start: Point, end: Point) => {
+    stopPullRef.current?.();
+    stopPullRef.current = null;
     ipRef.current = null;
     setInProgress(null);
     if (vecLen({ x: end.x - start.x, y: end.y - start.y }) < DIRECTION_LOCK_DIST) return;
@@ -217,6 +225,7 @@ export const TapeLayer: React.FC<TapeLayerProps> = ({
       width: TAPE_WIDTH,
       tearSeed: Math.random() * 100000,
     });
+    playSound('tapeRip');
   };
 
   const handleDown = (e: any) => {
@@ -230,6 +239,7 @@ export const TapeLayer: React.FC<TapeLayerProps> = ({
     };
     ipRef.current = ip;
     setInProgress({ ...ip });
+    stopPullRef.current = startTapePull();
   };
 
   const handleMove = (e: any) => {
