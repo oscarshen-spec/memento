@@ -216,65 +216,41 @@ export const CuttingRoom: React.FC<CuttingRoomProps> = ({ image, onCut, onCancel
     const allTouches = e.touches;
     const changedTouches = e.changedTouches;
 
-    if ((gestureState === 'idle' || gestureState === 'pending') && allTouches.length === 2) {
-      // Two fingers — go straight to panning regardless of whether they arrived
-      // simultaneously (idle→panning) or sequentially (pending→panning)
-      if (longPressTimer.current) clearTimeout(longPressTimer.current);
+    if (gestureState === 'idle' && allTouches.length === 2) {
+      // Two fingers → pan/zoom
       const t1 = allTouches[0];
       const t2 = allTouches[1];
       panRef.current = { dist: pinchDistance(t1, t2), mid: pinchMidpoint(t1, t2) };
-      setFingerA(null);
       setGestureState('panning');
 
     } else if (gestureState === 'idle' && allTouches.length === 1) {
+      // Single finger → start drawing the tear line
       const touch = changedTouches[0];
-      setFingerA({ id: touch.identifier, pos: getTouchPos(touch) });
-      setGestureState('pending');
-      longPressTimer.current = setTimeout(() => {
-        setGestureState('anchored');
-        if (navigator.vibrate) navigator.vibrate(80);
-      }, 400);
-
-    } else if (gestureState === 'anchored' && allTouches.length === 2) {
-      const newTouch = Array.from(changedTouches).find(t => t.identifier !== fingerA?.id);
-      if (newTouch) {
-        const pos = getTouchPos(newTouch);
-        ripSpeed.current = [];
-        lastRipTime.current = performance.now();
-        lastRipPos.current = pos;
-        setFingerB({ id: newTouch.identifier, pos, trail: [pos] });
-        setGestureState('ripping');
-      }
+      const pos = getTouchPos(touch);
+      drawTouchId.current = touch.identifier;
+      drawPath.current = [pos];
+      ripSpeed.current = [];
+      lastRipTime.current = performance.now();
+      lastRipPos.current = pos;
+      setTearPath([pos]);
+      setGestureState('drawing');
 
     } else if (gestureState === 'torn' && allTouches.length === 1) {
-      const touch = changedTouches[0];
-      setTearPolygon(null);
-      setFingerB(null);
-      setFingerA({ id: touch.identifier, pos: getTouchPos(touch) });
-      setGestureState('pending');
-      longPressTimer.current = setTimeout(() => {
-        setGestureState('anchored');
-        if (navigator.vibrate) navigator.vibrate(80);
-      }, 400);
+      // Tap in torn state → start a new draw
+      handleReset();
     }
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
     e.preventDefault();
 
-    if (gestureState === 'pending' && fingerA) {
-      // Track finger drift during hold so the anchor ring appears at the actual finger position
-      const touch = Array.from(e.touches).find(t => t.identifier === fingerA.id);
-      if (touch) setFingerA(prev => prev ? { ...prev, pos: getTouchPos(touch) } : null);
-
-    } else if (gestureState === 'panning' && e.touches.length === 2) {
+    if (gestureState === 'panning' && e.touches.length === 2) {
       if (!panRef.current) return;
       const t1 = e.touches[0];
       const t2 = e.touches[1];
       const newDist = pinchDistance(t1, t2);
       const newMid = pinchMidpoint(t1, t2);
       const scaleFactor = panRef.current.dist > 0 ? newDist / panRef.current.dist : 1;
-
       setCanvasTransform(prev => ({
         scale: Math.max(0.5, Math.min(4, prev.scale * scaleFactor)),
         x: prev.x + (newMid.x - panRef.current!.mid.x),
@@ -282,23 +258,21 @@ export const CuttingRoom: React.FC<CuttingRoomProps> = ({ image, onCut, onCancel
       }));
       panRef.current = { dist: newDist, mid: newMid };
 
-    } else if (gestureState === 'ripping' && fingerB) {
-      const touch = Array.from(e.touches).find(t => t.identifier === fingerB.id);
+    } else if (gestureState === 'drawing') {
+      const touch = Array.from(e.touches).find(t => t.identifier === drawTouchId.current);
       if (!touch) return;
-
       const pos = getTouchPos(touch);
       const now = performance.now();
       const dt = now - lastRipTime.current;
-
       if (dt > 0 && lastRipPos.current) {
         const dx = pos.x - lastRipPos.current.x;
         const dy = pos.y - lastRipPos.current.y;
         ripSpeed.current.push(Math.sqrt(dx * dx + dy * dy) / dt);
       }
-
       lastRipTime.current = now;
       lastRipPos.current = pos;
-      setFingerB(prev => prev ? { ...prev, pos, trail: [...prev.trail, pos] } : null);
+      drawPath.current = [...drawPath.current, pos];
+      setTearPath([...drawPath.current]); // triggers canvas redraw
     }
   };
 
@@ -306,41 +280,28 @@ export const CuttingRoom: React.FC<CuttingRoomProps> = ({ image, onCut, onCancel
     e.preventDefault();
     const endedIds = new Set(Array.from(e.changedTouches).map(t => t.identifier));
 
-    if (gestureState === 'pending' && fingerA && endedIds.has(fingerA.id)) {
-      if (longPressTimer.current) clearTimeout(longPressTimer.current);
-      setFingerA(null);
+    if (gestureState === 'panning' && e.touches.length === 0) {
       setGestureState('idle');
 
-    } else if (gestureState === 'panning' && e.touches.length === 0) {
-      setGestureState('idle');
-
-    } else if (gestureState === 'anchored' && fingerA && endedIds.has(fingerA.id)) {
-      setFingerA(null);
-      setGestureState('idle');
-
-    } else if (gestureState === 'ripping') {
-      if (fingerA && endedIds.has(fingerA.id)) {
-        setFingerA(null);
-        setFingerB(null);
-        setGestureState('idle');
-      } else if (fingerB && endedIds.has(fingerB.id)) {
-        const canvas = canvasRef.current;
-        if (canvas && fingerB.trail.length >= 2) {
-          const samples = ripSpeed.current;
-          const avgSpeed =
-            samples.length > 0
-              ? samples.reduce((a, b) => a + b, 0) / samples.length
-              : 0.5;
-          // Linear map: 0.5 px/ms → roughness 0.3, 3.0 px/ms → roughness 2.0
-          const roughness = Math.max(0.3, Math.min(2.0, 0.3 + (avgSpeed - 0.5) * 0.68));
-          // TODO Task 3: replace this with generateTearPair and update surrounding state
-          const polygon = generateTearPolygon(fingerB.trail, roughness, canvas.width, canvas.height);
-          setTearPolygon(polygon);
-          if (navigator.vibrate) navigator.vibrate([30, 20, 60]);
-        }
-        setFingerB(null);
-        setGestureState('torn');
+    } else if (
+      gestureState === 'drawing' &&
+      drawTouchId.current !== null &&
+      endedIds.has(drawTouchId.current)
+    ) {
+      const canvas = canvasRef.current;
+      if (canvas && drawPath.current.length >= 3) {
+        const samples = ripSpeed.current;
+        const avgSpeed =
+          samples.length > 0
+            ? samples.reduce((a, b) => a + b, 0) / samples.length
+            : 0.5;
+        const roughness = Math.max(0.3, Math.min(2.0, 0.3 + (avgSpeed - 0.5) * 0.68));
+        const pair = generateTearPair(drawPath.current, roughness, canvas.width, canvas.height);
+        setTearPair(pair);
+        if (navigator.vibrate) navigator.vibrate([30, 20, 60]);
       }
+      drawTouchId.current = null;
+      setGestureState('torn');
     }
   };
 
@@ -348,10 +309,14 @@ export const CuttingRoom: React.FC<CuttingRoomProps> = ({ image, onCut, onCancel
     handleReset();
   };
 
-  const canFinish = gestureState === 'torn' && tearPolygon !== null;
+  const canFinish = gestureState === 'torn' && tearPair !== null;
 
   const handleFinish = () => {
-    if (tearPolygon) onCut(tearPolygon, true);
+    if (tearPair) {
+      setPieceAOffset({ x: 0, y: 0 });
+      setPieceBOffset({ x: 0, y: 0 });
+      setGestureState('arranging');
+    }
   };
 
   const hintText: Partial<Record<GestureState, string>> = {
