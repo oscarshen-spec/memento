@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion, useMotionValue, useTransform } from 'motion/react';
 import { animate } from 'motion';
 import { Scrap, JournalEntry, ScrapbookPage, TapeStrip } from '../types';
@@ -51,6 +51,12 @@ export const PageFlipContainer: React.FC<PageFlipContainerProps> = ({
     if (abs === 0) return 0;
     return (Math.min(abs, 180 - abs) / 90) * 0.45;
   });
+
+  // Reset flip state when the page actually changes (after fall animation or direct)
+  useEffect(() => {
+    rotateY.set(0);
+    setFlipDir(null);
+  }, [currentPage.id]);
 
   const pointerStartX = useRef<number>(0);
   const pointerLastX = useRef<number>(0);
