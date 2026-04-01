@@ -70,6 +70,17 @@ const ScrapItem: React.FC<ScrapItemProps> = ({ scrap, isSelected, onSelect, onCh
     onSelect();
   };
 
+  const handleDragStart = (e: any) => {
+    const node = e.target;
+    baseRotation.current = scrap.rotation;
+    velocity.current = { vx: 0, vy: 0 };
+    lastDragPos.current = { x: node.x(), y: node.y(), t: Date.now() };
+    activeTween.current?.destroy();
+    activeTween.current = null;
+    node.setAttrs({ shadowBlur: 12, shadowOffsetY: 8, shadowOffsetX: 0 });
+    navigator.vibrate?.(10);
+  };
+
   useEffect(() => {
     if (isSelected && trRef.current && shapeRef.current) {
       trRef.current.nodes([shapeRef.current]);
@@ -120,6 +131,7 @@ const ScrapItem: React.FC<ScrapItemProps> = ({ scrap, isSelected, onSelect, onCh
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
+        onDragStart={handleDragStart}
         onDragEnd={(e) => {
           const y = e.target.y();
           if (y > stageHeight) {
