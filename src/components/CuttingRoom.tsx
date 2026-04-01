@@ -141,11 +141,13 @@ export const CuttingRoom: React.FC<CuttingRoomProps> = ({ image, onCut, onCancel
     }
 
     // Overlays drawn in raw canvas space (no transform)
-    if (gestureState === 'ripping' && fingerB && fingerB.trail.length >= 2) {
+
+    // During drawing: show the live tear path
+    if (gestureState === 'drawing' && tearPath.length >= 2) {
       ctx.beginPath();
-      ctx.moveTo(fingerB.trail[0].x, fingerB.trail[0].y);
-      for (let i = 1; i < fingerB.trail.length; i++) {
-        ctx.lineTo(fingerB.trail[i].x, fingerB.trail[i].y);
+      ctx.moveTo(tearPath[0].x, tearPath[0].y);
+      for (let i = 1; i < tearPath.length; i++) {
+        ctx.lineTo(tearPath[i].x, tearPath[i].y);
       }
       ctx.strokeStyle = '#F59E0B';
       ctx.lineWidth = 2;
@@ -154,9 +156,12 @@ export const CuttingRoom: React.FC<CuttingRoomProps> = ({ image, onCut, onCancel
       ctx.setLineDash([]);
     }
 
-    if (gestureState === 'torn' && tearPolygon) {
+    // After drawing: show topPolygon preview
+    if (gestureState === 'torn' && tearPair) {
       ctx.beginPath();
-      tearPolygon.forEach((p, i) => (i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y)));
+      tearPair.topPolygon.forEach((p, i) =>
+        i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y),
+      );
       ctx.closePath();
       ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
       ctx.fill();
@@ -178,7 +183,7 @@ export const CuttingRoom: React.FC<CuttingRoomProps> = ({ image, onCut, onCancel
     window.addEventListener('resize', handleResize);
     handleResize();
     return () => window.removeEventListener('resize', handleResize);
-  }, [image, gestureState, fingerB, tearPolygon, canvasTransform]);
+  }, [gestureState, tearPath, tearPair, canvasTransform]);
 
   const handleReset = () => {
     drawTouchId.current = null;
@@ -321,9 +326,9 @@ export const CuttingRoom: React.FC<CuttingRoomProps> = ({ image, onCut, onCancel
   };
 
   const hintText: Partial<Record<GestureState, string>> = {
-    idle: 'Hold to anchor, swipe to tear',
-    pending: 'Hold…',
-    anchored: 'Now swipe to rip',
+    idle: 'Swipe across to tear',
+    drawing: 'Draw the tear line…',
+    arranging: 'Drag pieces apart, then confirm',
   };
 
   return (
