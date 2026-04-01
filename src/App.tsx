@@ -214,6 +214,8 @@ export default function App() {
   };
 
   const handleFallComplete = (fallenIds: string[]) => {
+    if (!fallingOff) return;
+    const dir = fallingOff.direction;
     const fallen = currentPage.scraps.filter(s => fallenIds.includes(s.id));
     const updatedPages = [...pages];
     updatedPages[currentPageIndex].scraps = currentPage.scraps.filter(s => !fallenIds.includes(s.id));
@@ -222,7 +224,6 @@ export default function App() {
       ...fallen.map(s => ({ id: Math.random().toString(36).substr(2, 9), image: s.image })),
       ...prev,
     ]);
-    const dir = fallingOff!.direction;
     setFallingOff(null);
     setCurrentPageIndex(prev => dir === 'next' ? prev + 1 : prev - 1);
     setDrawerBounce(true);

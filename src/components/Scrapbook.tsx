@@ -154,39 +154,49 @@ const ScrapItem: React.FC<ScrapItemProps> = ({ scrap, isSelected, onSelect, onCh
     const origY = node.y();
     const origRot = node.rotation();
     let shakeCount = 0;
+    let cancelled = false;
+    let currentTween: Konva.Tween | null = null;
 
     const doFall = () => {
-      const finalRot = origRot + (Math.random() > 0.5 ? 28 : -28);
-      new Konva.Tween({
+      if (cancelled) return;
+      const finalRot = origRot + (Math.random() * 56 - 28);
+      currentTween = new Konva.Tween({
         node,
         duration: 0.55,
         easing: Konva.Easings.EaseIn,
         y: stageHeight + 250,
         rotation: finalRot,
-        onFinish: () => onFallDone(),
-      }).play();
+        onFinish: () => { if (!cancelled) onFallDone(); },
+      });
+      currentTween.play();
     };
 
     const doShake = () => {
+      if (cancelled) return;
       if (shakeCount >= 6) {
         doFall();
         return;
       }
       const dx = shakeCount % 2 === 0 ? 5 : -5;
       const dr = shakeCount % 2 === 0 ? 4 : -4;
-      new Konva.Tween({
+      currentTween = new Konva.Tween({
         node,
         duration: 0.05,
         x: origX + dx,
         y: origY,
         rotation: origRot + dr,
         onFinish: () => { shakeCount++; doShake(); },
-      }).play();
+      });
+      currentTween.play();
     };
 
     const delay = Math.random() * 150;
     const timer = setTimeout(doShake, delay);
-    return () => clearTimeout(timer);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+      currentTween?.destroy();
+    };
   }, [isFalling]);
 
   const drawJaggedPath = (ctx: any, points: Point[]) => {
