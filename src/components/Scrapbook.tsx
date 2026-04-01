@@ -588,7 +588,7 @@ export const Scrapbook = React.forwardRef<Konva.Stage, ScrapbookProps>(({
               key={scrap.id}
               scrap={scrap}
               isSelected={scrap.id === selectedId}
-              onSelect={() => setSelectedId(scrap.id)}
+              onSelect={() => { if (!isGlueActive) setSelectedId(scrap.id); }}
               onChange={(newAttrs) => onUpdateScrap(scrap.id, newAttrs)}
               onReturn={() => onReturnScrap(scrap)}
               stageHeight={dimensions.height}

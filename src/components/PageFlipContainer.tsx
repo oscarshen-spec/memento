@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { HTMLFlipBook } from 'react-pageflip';
+import HTMLFlipBook from 'react-pageflip';
 import Konva from 'konva';
 import { Scrap, JournalEntry, ScrapbookPage, TapeStrip } from '../types';
 import { Scrapbook } from './Scrapbook';

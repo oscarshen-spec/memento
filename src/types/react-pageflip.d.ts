@@ -33,7 +33,7 @@ declare module 'react-pageflip' {
     onUpdate?: (e: { data: unknown }) => void;
   }
 
-  export class HTMLFlipBook extends Component<HTMLFlipBookProps> {
+  export default class HTMLFlipBook extends Component<HTMLFlipBookProps> {
     pageFlip(): {
       flipNext: (corner?: 'top' | 'bottom') => void;
       flipPrev: (corner?: 'top' | 'bottom') => void;
