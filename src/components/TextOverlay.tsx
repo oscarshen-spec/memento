@@ -103,7 +103,7 @@ export const TextOverlay: React.FC<TextOverlayProps> = ({ onAdd, onClose }) => {
       className="fixed inset-0 z-50 flex flex-col bg-black/85 backdrop-blur-sm"
     >
       {/* Top bar */}
-      <div className="flex justify-end items-center px-6 pt-safe pb-2 shrink-0">
+      <div className="flex justify-end items-center px-6 pt-4 pt-safe pb-2 shrink-0">
         <button
           onClick={handleDone}
           className="text-white text-[17px] font-semibold active:opacity-60"
@@ -184,7 +184,7 @@ export const TextOverlay: React.FC<TextOverlayProps> = ({ onAdd, onClose }) => {
           </div>
         )}
 
-        <div className="flex items-center gap-4 px-5 pb-safe pt-1 border-t border-white/[0.05]">
+        <div className="flex items-center gap-4 px-5 pb-4 pb-safe pt-1 border-t border-white/[0.05]">
           <button
             onClick={() => setActivePanel('font')}
             className={`px-3 py-1.5 rounded-lg text-sm font-bold transition-colors ${

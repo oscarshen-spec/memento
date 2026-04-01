@@ -10,7 +10,6 @@
 :root {
   --paper-cream: #fdfaf3;
   --paper-shadow: rgba(0, 0, 0, 0.15);
-  --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 body {
@@ -20,11 +19,11 @@ body {
 }
 
 @utility pt-safe {
-  padding-top: max(env(safe-area-inset-top), 1rem);
+  padding-top: env(safe-area-inset-top, 0px);
 }
 
 @utility pb-safe {
-  padding-bottom: max(env(safe-area-inset-bottom), 1rem);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 .wood-texture {
