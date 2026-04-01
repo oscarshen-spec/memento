@@ -11,5 +11,6 @@ export function shouldSnapForward(
   pageWidth: number,
   velocity: number,
 ): boolean {
+  // >= 0.35: boundary case (exactly 35%) is treated as snap-forward (inclusive threshold)
   return progress >= pageWidth * 0.35 || velocity > 0.5;
 }
