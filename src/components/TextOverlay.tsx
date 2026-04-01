@@ -7,10 +7,10 @@ export interface TextOverlayProps {
 }
 
 const FONTS = [
-  { label: 'Serif', family: 'Cormorant Garamond' },
-  { label: 'Sans',  family: 'Inter' },
-  { label: 'Mono',  family: 'Courier New' },
-  { label: 'Hand',  family: 'Caveat' },
+  { label: 'Serif', family: 'Cormorant Garamond', fontStyle: 'italic' as const, fontWeight: 700 },
+  { label: 'Sans',  family: 'Inter',               fontStyle: 'normal' as const, fontWeight: 600 },
+  { label: 'Mono',  family: 'Courier New',          fontStyle: 'normal' as const, fontWeight: 400 },
+  { label: 'Hand',  family: 'Caveat',               fontStyle: 'normal' as const, fontWeight: 400 },
 ] as const;
 
 const SWATCHES = [
@@ -18,7 +18,12 @@ const SWATCHES = [
   '#34c759', '#007aff', '#5856d6', '#000000',
 ];
 
-// Maps a 0–1 position on the gradient strip to an RGB string
+const SWATCH_SNAP_MAP: Record<string, number> = {
+  '#ffffff': 0, '#ff3b30': 0.1, '#ff9500': 0.25,
+  '#ffcc00': 0.35, '#34c759': 0.5, '#007aff': 0.65,
+  '#5856d6': 0.75, '#000000': 1.0,
+};
+
 const COLOR_STOPS: [number, [number, number, number]][] = [
   [0.00, [255, 255, 255]],
   [0.10, [255,   0,   0]],
@@ -48,7 +53,7 @@ export const TextOverlay: React.FC<TextOverlayProps> = ({ onAdd, onClose }) => {
   const [text, setText]               = useState('');
   const [fontIndex, setFontIndex]     = useState(0);
   const [color, setColor]             = useState('#000000');
-  const [thumbPos, setThumbPos]       = useState(1.0); // 1.0 = black end
+  const [thumbPos, setThumbPos]       = useState(1.0);
   const [activePanel, setActivePanel] = useState<'font' | 'color'>('font');
   const stripRef = useRef<HTMLDivElement>(null);
 
@@ -64,29 +69,28 @@ export const TextOverlay: React.FC<TextOverlayProps> = ({ onAdd, onClose }) => {
     setColor(lerpColor(t));
   }, []);
 
-  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+  const handlePointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
     e.currentTarget.setPointerCapture(e.pointerId);
     resolveColorFromStrip(e.clientX);
-  };
+  }, [resolveColorFromStrip]);
 
-  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+  const handlePointerMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
     if (e.buttons !== 1) return;
     resolveColorFromStrip(e.clientX);
-  };
+  }, [resolveColorFromStrip]);
 
-  const handleDone = () => {
+  const handleDone = useCallback(() => {
     if (canSubmit) {
       onAdd(text.trim(), selectedFont.family, color, 28);
     } else {
       onClose();
     }
-  };
+  }, [canSubmit, text, selectedFont.family, color, onAdd, onClose]);
 
-  // font-style for the live preview textarea
   const previewStyle: React.CSSProperties = {
     fontFamily: selectedFont.family,
-    fontStyle:  selectedFont.family === 'Cormorant Garamond' ? 'italic' : 'normal',
-    fontWeight: selectedFont.family === 'Cormorant Garamond' || selectedFont.family === 'Inter' ? 700 : 400,
+    fontStyle:  selectedFont.fontStyle,
+    fontWeight: selectedFont.fontWeight,
     fontSize:   '28px',
     color,
   };
@@ -99,7 +103,7 @@ export const TextOverlay: React.FC<TextOverlayProps> = ({ onAdd, onClose }) => {
       className="fixed inset-0 z-50 flex flex-col bg-black/85 backdrop-blur-sm"
     >
       {/* Top bar */}
-      <div className="flex justify-end items-center px-6 pt-4 pb-2 shrink-0">
+      <div className="flex justify-end items-center px-6 pt-safe pb-2 shrink-0">
         <button
           onClick={handleDone}
           className="text-white text-[17px] font-semibold active:opacity-60"
@@ -108,7 +112,7 @@ export const TextOverlay: React.FC<TextOverlayProps> = ({ onAdd, onClose }) => {
         </button>
       </div>
 
-      {/* Live text display — vertically centered in remaining space */}
+      {/* Live text display */}
       <div className="flex-1 flex items-center justify-center px-8 overflow-hidden">
         <textarea
           autoFocus
@@ -122,12 +126,10 @@ export const TextOverlay: React.FC<TextOverlayProps> = ({ onAdd, onClose }) => {
         />
       </div>
 
-      {/* Controls area — sticks above the native keyboard */}
+      {/* Controls area */}
       <div className="shrink-0 bg-[#181818]/95 border-t border-white/[0.06]">
 
-        {/* Upper row: font panel or color panel */}
         {activePanel === 'font' ? (
-          /* Four font option tiles */
           <div className="flex gap-2 px-4 pt-3 pb-2">
             {FONTS.map((font, i) => (
               <button
@@ -135,8 +137,8 @@ export const TextOverlay: React.FC<TextOverlayProps> = ({ onAdd, onClose }) => {
                 onClick={() => setFontIndex(i)}
                 style={{
                   fontFamily: font.family,
-                  fontStyle:  font.family === 'Cormorant Garamond' ? 'italic' : 'normal',
-                  fontWeight: font.family === 'Cormorant Garamond' || font.family === 'Inter' ? 700 : 400,
+                  fontStyle:  font.fontStyle,
+                  fontWeight: font.fontWeight,
                 }}
                 className={`flex-1 py-2 rounded-xl text-[14px] transition-colors active:scale-95 ${
                   fontIndex === i ? 'bg-white text-black' : 'bg-white/10 text-white'
@@ -147,7 +149,6 @@ export const TextOverlay: React.FC<TextOverlayProps> = ({ onAdd, onClose }) => {
             ))}
           </div>
         ) : (
-          /* Color picker: gradient strip + swatches */
           <div className="px-4 pt-3 pb-2 space-y-2">
             <div
               ref={stripRef}
@@ -169,13 +170,7 @@ export const TextOverlay: React.FC<TextOverlayProps> = ({ onAdd, onClose }) => {
                   key={swatch}
                   onClick={() => {
                     setColor(swatch);
-                    // snap thumb to approximate strip position for the swatch
-                    const snapMap: Record<string, number> = {
-                      '#ffffff': 0, '#ff3b30': 0.1, '#ff9500': 0.25,
-                      '#ffcc00': 0.35, '#34c759': 0.5, '#007aff': 0.65,
-                      '#5856d6': 0.75, '#000000': 1.0,
-                    };
-                    setThumbPos(snapMap[swatch] ?? 0.5);
+                    setThumbPos(SWATCH_SNAP_MAP[swatch] ?? 0.5);
                   }}
                   className="w-6 h-6 rounded-full border-2 transition-transform active:scale-90"
                   style={{
@@ -189,8 +184,7 @@ export const TextOverlay: React.FC<TextOverlayProps> = ({ onAdd, onClose }) => {
           </div>
         )}
 
-        {/* Bottom row: Aa + color wheel toggle icons */}
-        <div className="flex items-center gap-4 px-5 pb-4 pt-1 border-t border-white/[0.05]">
+        <div className="flex items-center gap-4 px-5 pb-safe pt-1 border-t border-white/[0.05]">
           <button
             onClick={() => setActivePanel('font')}
             className={`px-3 py-1.5 rounded-lg text-sm font-bold transition-colors ${

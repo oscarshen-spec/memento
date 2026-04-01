@@ -19,6 +19,14 @@ body {
   overflow: hidden;
 }
 
+@utility pt-safe {
+  padding-top: max(env(safe-area-inset-top), 1rem);
+}
+
+@utility pb-safe {
+  padding-bottom: max(env(safe-area-inset-bottom), 1rem);
+}
+
 .wood-texture {
   background-color: #8B6B3A;
   background-image: url('/desk-texture.jpg');
