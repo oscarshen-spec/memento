@@ -7,7 +7,9 @@ export type SoundName =
   | 'settle'
   | 'peel'
   | 'sparkle'
-  | 'tapeRip';
+  | 'tapeRip'
+  | 'scissorTrace'
+  | 'scissorSnip';
 
 let _ctx: AudioContext | null = null;
 
@@ -197,6 +199,47 @@ function tapeRip() {
   noise.stop(t + 0.12);
 }
 
+function scissorTrace() {
+  const ctx = getCtx();
+  const t = ctx.currentTime;
+  // Short high-pitched metallic click — like scissor blades brushing
+  const noise = whiteNoise(ctx, 0.03);
+  const filter = ctx.createBiquadFilter();
+  filter.type = 'highpass';
+  filter.frequency.value = 3000;
+  filter.Q.value = 2.0;
+  const gain = ctx.createGain();
+  gain.gain.setValueAtTime(0.15, t);
+  gain.gain.exponentialRampToValueAtTime(0.001, t + 0.03);
+  noise.connect(filter);
+  filter.connect(gain);
+  gain.connect(ctx.destination);
+  noise.start(t);
+  noise.stop(t + 0.03);
+}
+
+function scissorSnip() {
+  const ctx = getCtx();
+  const t = ctx.currentTime;
+  // Two overlapping metallic clicks — like scissor blades closing
+  [0, 0.04].forEach((offset) => {
+    const noise = whiteNoise(ctx, 0.06);
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.value = 2500 - offset * 5000;
+    filter.Q.value = 1.5;
+    const gain = ctx.createGain();
+    const start = t + offset;
+    gain.gain.setValueAtTime(0.35, start);
+    gain.gain.exponentialRampToValueAtTime(0.001, start + 0.06);
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(ctx.destination);
+    noise.start(start);
+    noise.stop(start + 0.06);
+  });
+}
+
 function wobbleStart() {
   const ctx = getCtx();
   const t = ctx.currentTime;
@@ -224,6 +267,8 @@ const soundFns: Record<SoundName, () => void> = {
   peel,
   sparkle,
   tapeRip,
+  scissorTrace,
+  scissorSnip,
 };
 
 export function playSound(name: SoundName): void {
@@ -243,7 +288,7 @@ export function startTapePull(): () => void {
     const ctx = getCtx();
     const t = ctx.currentTime;
 
-    // Looping white noise buffer (1 second, looped)
+    // ── Background rasp ──────────────────────────────────────────────────────
     const bufferSize = ctx.sampleRate;
     const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
     const data = buffer.getChannelData(0);
@@ -259,18 +304,50 @@ export function startTapePull(): () => void {
 
     const gain = ctx.createGain();
     gain.gain.setValueAtTime(0, t);
-    gain.gain.linearRampToValueAtTime(0.04, t + 0.05);
+    gain.gain.linearRampToValueAtTime(0.03, t + 0.05);
 
     source.connect(filter);
     filter.connect(gain);
     gain.connect(ctx.destination);
     source.start(t);
 
+    // ── Wheel click layer (~13 clicks/sec) ───────────────────────────────────
+    // A short buffer with a decaying noise transient at the start, looped.
+    // Each period = 1/13s ≈ 77ms. The transient occupies the first ~8ms,
+    // the rest is silence — giving a clean click-click-click cadence.
+    const clickRate = 13;
+    const clickPeriod = Math.ceil(ctx.sampleRate / clickRate);
+    const clickBuf = ctx.createBuffer(1, clickPeriod, ctx.sampleRate);
+    const clickData = clickBuf.getChannelData(0);
+    const clickDur = Math.ceil(ctx.sampleRate * 0.008);
+    for (let i = 0; i < clickDur; i++) {
+      clickData[i] = Math.exp(-i / (ctx.sampleRate * 0.002)) * (Math.random() * 2 - 1);
+    }
+
+    const clickSrc = ctx.createBufferSource();
+    clickSrc.buffer = clickBuf;
+    clickSrc.loop = true;
+
+    const clickFilter = ctx.createBiquadFilter();
+    clickFilter.type = 'highpass';
+    clickFilter.frequency.value = 1800;
+
+    const clickGain = ctx.createGain();
+    clickGain.gain.setValueAtTime(0, t);
+    clickGain.gain.linearRampToValueAtTime(0.18, t + 0.05);
+
+    clickSrc.connect(clickFilter);
+    clickFilter.connect(clickGain);
+    clickGain.connect(ctx.destination);
+    clickSrc.start(t);
+
+    // ── Stop ─────────────────────────────────────────────────────────────────
     let stopped = false;
     return () => {
       if (stopped) return;
       stopped = true;
       const now = ctx.currentTime;
+
       gain.gain.cancelScheduledValues(now);
       gain.gain.setValueAtTime(gain.gain.value, now);
       gain.gain.linearRampToValueAtTime(0, now + 0.04);
@@ -279,6 +356,16 @@ export function startTapePull(): () => void {
         source.disconnect();
         filter.disconnect();
         gain.disconnect();
+      };
+
+      clickGain.gain.cancelScheduledValues(now);
+      clickGain.gain.setValueAtTime(clickGain.gain.value, now);
+      clickGain.gain.linearRampToValueAtTime(0, now + 0.04);
+      clickSrc.stop(now + 0.05);
+      clickSrc.onended = () => {
+        clickSrc.disconnect();
+        clickFilter.disconnect();
+        clickGain.disconnect();
       };
     };
   } catch {
