@@ -95,35 +95,54 @@ export default function App() {
     }
   };
 
-  const handleCut = (points: Point[], isTorn?: boolean) => {
+  const handleCut = (points: Point[], isTorn?: boolean, secondPoints?: Point[]) => {
     if (!currentMaterial) return;
 
-    const newScrap: Scrap = {
-      id: Math.random().toString(36).substr(2, 9),
+    const centerX = (bookDims.width - 68) / 2;
+    const centerY = bookDims.height / 2;
+
+    const baseProps = {
       image: currentMaterial.image,
-      points,
-      x: (bookDims.width - 68) / 2 - 100,
-      y: bookDims.height / 2 - 100,
       rotation: (Math.random() - 0.5) * 20,
       scale: 0.5,
-      zIndex: currentPage.scraps.length,
       isGlued: false,
       isTorn: isTorn ?? false,
     };
 
+    const scraps: Scrap[] = [
+      {
+        id: Math.random().toString(36).substr(2, 9),
+        points,
+        x: secondPoints ? centerX - 60 : centerX - 100,
+        y: secondPoints ? centerY - 80 : centerY - 100,
+        zIndex: currentPage.scraps.length,
+        ...baseProps,
+      },
+    ];
+
+    if (secondPoints) {
+      scraps.push({
+        id: Math.random().toString(36).substr(2, 9),
+        points: secondPoints,
+        x: centerX + 60,
+        y: centerY + 80,
+        zIndex: currentPage.scraps.length + 1,
+        ...baseProps,
+      });
+    }
+
     const updatedPages = [...pages];
-    updatedPages[currentPageIndex].scraps.push(newScrap);
+    updatedPages[currentPageIndex].scraps.push(...scraps);
     setPages(updatedPages);
-    
-    setRawMaterials(prev => prev.filter(m => m.id !== currentMaterial.id));
+    setRawMaterials(prev => prev.filter(m => m.id !== currentMaterial!.id));
     setCurrentMaterial(null);
     setView('scrapbook');
-    
+
     confetti({
-      particleCount: 40,
+      particleCount: 60,
       spread: 70,
       origin: { y: 0.6 },
-      colors: ['#fdfaf3', '#e5e7eb', '#000000']
+      colors: ['#e8d5b8', '#d4aa50', '#c4704b'],
     });
   };
 

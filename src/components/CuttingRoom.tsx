@@ -4,7 +4,7 @@ import { Point } from '../types';
 
 interface CuttingRoomProps {
   image: string;
-  onCut: (points: Point[], isTorn?: boolean) => void;
+  onCut: (points: Point[], isTorn?: boolean, secondPoints?: Point[]) => void;
   onCancel: () => void;
 }
 
