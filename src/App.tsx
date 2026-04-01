@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import type { PanInfo } from 'motion/react';
 import { Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { partitionScraps } from './utils/scrapUtils';
+import { partitionScraps, tapeTouchesScrap } from './utils/scrapUtils';
 import confetti from 'canvas-confetti';
 import { Scrap, Point, RawMaterial, ScrapbookPage, JournalEntry, TapeStrip } from './types';
 import { CameraView } from './components/CameraView';
@@ -35,13 +35,14 @@ export default function App() {
   const [activeTool, setActiveTool] = useState<'tape' | 'text' | 'glue' | null>(null);
   const [fallingOff, setFallingOff] = useState<{ direction: 'prev' | 'next'; scrapIds: string[] } | null>(null);
   const [drawerBounce, setDrawerBounce] = useState(false);
+  const [selectedScrapId, setSelectedScrapId] = useState<string | null>(null);
 
   const currentPage = pages[currentPageIndex];
 
   // Calculate scrapbook dimensions based on screen size (desk is 80vh)
   const getScrapbookDimensions = () => {
     const deskHeight = window.innerHeight * 0.8;
-    const padding = window.innerWidth < 768 ? 40 : 100;
+    const padding = 0;
     const verticalPadding = window.innerWidth < 768 ? 60 : 100;
     const topBarHeight = 64;
     
@@ -166,6 +167,9 @@ export default function App() {
   const handleAddTapeStrip = (strip: TapeStrip) => {
     const updatedPages = [...pages];
     updatedPages[currentPageIndex].tapeStrips.push(strip);
+    updatedPages[currentPageIndex].scraps = updatedPages[currentPageIndex].scraps.map(s =>
+      !s.isGlued && tapeTouchesScrap(strip, s) ? { ...s, isGlued: true } : s
+    );
     setPages(updatedPages);
   };
 
@@ -204,6 +208,7 @@ export default function App() {
   };
 
   const handlePageTurn = (direction: 'prev' | 'next') => {
+    setSelectedScrapId(null);
     const { falling } = partitionScraps(currentPage.scraps);
     if (falling.length === 0) {
       setCurrentPageIndex(prev => direction === 'next' ? prev + 1 : prev - 1);
@@ -347,33 +352,48 @@ export default function App() {
         </div>
 
         {/* Scrapbook on Desk */}
-        <div className="relative flex-1 flex items-center justify-center w-full px-6 md:px-0">
-          <div
-            className="book-container"
-            style={{ width: bookDims.width, height: bookDims.height }}
-          >
-            <div className="spine" />
-            <div className="page-stack" />
-            <div className="gutter" />
+        <div className="relative flex-1 flex items-center justify-start w-full">
+          {/* Cover + book wrapper — cover bleeds 28px beyond book on all sides.
+              Shifted left by 96px (28 cover bleed + 36 spine + 14 page-stack + 18 gutter)
+              so the Konva canvas left edge aligns to x=0 of the screen. */}
+          <div className="relative" style={{ width: bookDims.width + 56, height: bookDims.height + 56, marginLeft: -96 }}>
+            {/* Leather cover — sits behind everything */}
+            <img
+              src="/scrapbook_cover.png"
+              alt=""
+              aria-hidden="true"
+              className="absolute inset-0 w-full h-full object-cover rounded-lg pointer-events-none"
+              style={{ filter: 'drop-shadow(0 24px 60px rgba(0,0,0,0.65))' }}
+            />
+            {/* Book positioned inset 28px from cover edges */}
             <div
-              ref={bookPageRef}
-              className="book-page"
+              className="absolute book-container"
+              style={{ top: 28, left: 28, width: bookDims.width, height: bookDims.height }}
             >
-              <Scrapbook
-                page={currentPage}
-                onUpdateScrap={updateScrap}
-                onUpdateEntry={updateEntry}
-                onReturnScrap={handleReturnScrap}
-                onAddTapeStrip={handleAddTapeStrip}
-                isTapeActive={activeTool === 'tape'}
-                isGlueActive={activeTool === 'glue'}
-                fallingScrapIds={fallingOff?.scrapIds ?? null}
-                onFallComplete={handleFallComplete}
-                dimensions={{ width: bookDims.width - 68, height: bookDims.height }}
-              />
+              <div className="spine" />
+              <div className="page-stack" />
+              <div className="gutter" />
+              <div
+                ref={bookPageRef}
+                className="book-page"
+              >
+                <Scrapbook
+                  page={currentPage}
+                  onUpdateScrap={updateScrap}
+                  onUpdateEntry={updateEntry}
+                  onReturnScrap={handleReturnScrap}
+                  onAddTapeStrip={handleAddTapeStrip}
+                  isTapeActive={activeTool === 'tape'}
+                  isGlueActive={activeTool === 'glue'}
+                  fallingScrapIds={fallingOff?.scrapIds ?? null}
+                  onFallComplete={handleFallComplete}
+                  dimensions={{ width: bookDims.width - 68, height: bookDims.height }}
+                  selectedScrapId={selectedScrapId}
+                  onSelectScrap={setSelectedScrapId}
+                />
+              </div>
             </div>
           </div>
-
         </div>
       </div>
 
