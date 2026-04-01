@@ -396,7 +396,7 @@ const ScrapItem: React.FC<ScrapItemProps> = ({ scrap, isSelected, onSelect, onCh
 const drawTornPaper = (ctx: Konva.Context, shape: Konva.Shape) => {
   const w = shape.width();
   const h = shape.height();
-  const seed = shape.id()?.charCodeAt(0) ?? 42;
+  const seed = shape.id()?.split('').reduce((a, c) => a + c.charCodeAt(0), 0) ?? 42;
   const jag = (i: number) => Math.sin(seed + i * 2.7) * 3;
 
   ctx.beginPath();
@@ -409,7 +409,7 @@ const drawTornPaper = (ctx: Konva.Context, shape: Konva.Shape) => {
   }
   // Right edge
   const rightSteps = 6;
-  for (let i = 1; i <= rightSteps; i++) {
+  for (let i = 0; i <= rightSteps; i++) {
     ctx.lineTo(w + jag(i + 20), (i / rightSteps) * h);
   }
   // Bottom edge (jagged)
@@ -449,10 +449,11 @@ const TextItem: React.FC<TextItemProps> = ({ entry, isSelected, onSelect, onChan
   const padding = 16;
 
   // Estimate paper dimensions from text content
-  const textWidth = entry.fontSize * entry.text.length * 0.55;
+  const longestLine = entry.text.split('\n').reduce((a, l) => (l.length > a.length ? l : a), '');
+  const textWidth = entry.fontSize * longestLine.length * 0.55;
   const lineCount = entry.text.split('\n').length;
   const textHeight = entry.text.length > 0 ? entry.fontSize * 1.5 * lineCount : entry.fontSize;
-  const paperWidth = Math.max(120, Math.min(280, textWidth + padding * 2));
+  const paperWidth = Math.max(120, textWidth + padding * 2);
   const paperHeight = textHeight + padding * 2;
 
   if (entry.hasPaperBackground) {
@@ -494,7 +495,6 @@ const TextItem: React.FC<TextItemProps> = ({ entry, isSelected, onSelect, onChan
             sceneFunc={drawTornPaper}
           />
           <Text
-            ref={shapeRef}
             text={entry.text}
             x={padding}
             y={padding}
