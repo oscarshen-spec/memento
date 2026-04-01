@@ -4,19 +4,24 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { partitionScraps, tapeTouchesScrap } from './utils/scrapUtils';
 import confetti from 'canvas-confetti';
-import { Scrap, Point, RawMaterial, ScrapbookPage, JournalEntry, TapeStrip } from './types';
+import { Scrap, Point, RawMaterial, ScrapbookPage, JournalEntry, TapeStrip, ResidueMark } from './types';
 import { CameraView } from './components/CameraView';
 import { CuttingRoom } from './components/CuttingRoom';
 import { PageFlipContainer } from './components/PageFlipContainer';
 import { MaterialDrawer } from './components/MaterialDrawer';
 import { JournalModal } from './components/JournalModal';
 import { TextOverlay } from './components/TextOverlay';
+import { GlueAnimation } from './components/GlueAnimation';
+import type { GlueRect } from './components/GlueAnimation';
+import { ScissorsCutView } from './components/ScissorsCutView';
+import { playSound } from './services/soundService';
 
 const INITIAL_PAGE: ScrapbookPage = {
   id: 'page-1',
   scraps: [],
   journalEntries: [],
   tapeStrips: [],
+  residueMarks: [],
   background: '#fdfaf3',
 };
 
@@ -36,6 +41,12 @@ export default function App() {
   const [fallingOff, setFallingOff] = useState<{ direction: 'prev' | 'next'; scrapIds: string[] } | null>(null);
   const [drawerBounce, setDrawerBounce] = useState(false);
   const [selectedScrapId, setSelectedScrapId] = useState<string | null>(null);
+  const [gluingScrapId, setGluingScrapId] = useState<string | null>(null);
+  const [isGlueBottleAway, setIsGlueBottleAway] = useState(false);
+  const [glueAnimRect, setGlueAnimRect] = useState<GlueRect | null>(null);
+  const [glueToolRect, setGlueToolRect] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
+  const [scissorTarget, setScissorTarget] = useState<Scrap | null>(null);
+  const glueButtonRef = useRef<HTMLButtonElement>(null);
 
   const currentPage = pages[currentPageIndex];
 
@@ -209,6 +220,70 @@ export default function App() {
     setPages(updatedPages);
   };
 
+  const handleGlueTap = (scrapId: string, rect: GlueRect) => {
+    const br = glueButtonRef.current?.getBoundingClientRect();
+    playSound('wobbleStart');
+    setGluingScrapId(scrapId);
+    setGlueAnimRect(rect);
+    if (br) setGlueToolRect({ x: br.x, y: br.y, width: br.width, height: br.height });
+  };
+
+  // Called when the bottle finishes pressing — lock the scrap now so the Konva squish fires
+  const handleGluePress = () => {
+    setPages(prev => prev.map((page, i) =>
+      i === currentPageIndex
+        ? { ...page, scraps: page.scraps.map(s => s.id === gluingScrapId ? { ...s, isGlued: true } : s) }
+        : page
+    ));
+  };
+
+  // Called after glow/sparkles — clean up animation state
+  const handleGlueComplete = () => {
+    setGluingScrapId(null);
+    setGlueAnimRect(null);
+    setGlueToolRect(null);
+    setIsGlueBottleAway(false);
+  };
+
+  const handlePeel = (scrapId: string, scrapRect: { x: number; y: number; width: number; height: number }) => {
+    const scrap = currentPage.scraps.find(s => s.id === scrapId);
+    if (!scrap) return;
+    playSound('peel');
+    const residue: ResidueMark = {
+      id: crypto.randomUUID(),
+      x: scrapRect.x - 5,
+      y: scrapRect.y - 3,
+      width: scrapRect.width + 10,
+      height: scrapRect.height + 8,
+      rotation: scrap.rotation + (Math.random() * 4 - 2),
+    };
+    setPages(prev => prev.map((page, i) =>
+      i === currentPageIndex
+        ? {
+            ...page,
+            residueMarks: [...(page.residueMarks ?? []), residue],
+            scraps: page.scraps.map(s => s.id === scrapId ? { ...s, isGlued: false } : s),
+          }
+        : page
+    ));
+  };
+
+  const handleScissorCut = (insideImage: string, insidePoints: Point[], outsideImage: string) => {
+    if (!scissorTarget) return;
+    // Update the scrap with clipped image and new points
+    updateScrap(scissorTarget.id, {
+      image: insideImage,
+      points: insidePoints,
+    });
+    // Create RawMaterial from leftover and add to drawer
+    setRawMaterials(prev => [
+      { id: Math.random().toString(36).substr(2, 9), image: outsideImage },
+      ...prev,
+    ]);
+    setScissorTarget(null);
+    setSelectedScrapId(null);
+  };
+
   const handlePageTurn = (direction: 'prev' | 'next') => {
     setSelectedScrapId(null);
 
@@ -219,6 +294,7 @@ export default function App() {
         scraps: [],
         journalEntries: [],
         tapeStrips: [],
+        residueMarks: [],
         background: '#fdfaf3',
       };
       setPages(prev => [...prev, newPage]);
@@ -262,6 +338,7 @@ export default function App() {
       scraps: [],
       journalEntries: [],
       tapeStrips: [],
+      residueMarks: [],
       background: '#fdfaf3',
     };
     setPages([...pages, newPage]);
@@ -278,7 +355,10 @@ export default function App() {
             <>
               <motion.button
                 key="scissor-tool"
-                onClick={() => {}}
+                onClick={() => {
+                  const scrap = currentPage.scraps.find(s => s.id === selectedScrapId);
+                  if (scrap) setScissorTarget(scrap);
+                }}
                 style={{ position: 'absolute', top: -60, left: -20, rotate: '102deg', zIndex: 20 }}
                 className="p-1"
                 title="Cut"
@@ -362,12 +442,13 @@ export default function App() {
               </motion.button>
               <motion.button
                 key="glue-tool"
+                ref={glueButtonRef}
                 onClick={() => setActiveTool(activeTool === 'glue' ? null : 'glue')}
-                style={{ position: 'absolute', top: -32, right: -24, rotate: '12deg', zIndex: 20 }}
+                style={{ position: 'absolute', top: -32, right: -24, rotate: '12deg', zIndex: 20, opacity: isGlueBottleAway ? 0 : 1, pointerEvents: isGlueBottleAway ? 'none' : 'auto', transition: 'opacity 0.1s' }}
                 className="p-1"
                 title="Glue tool"
                 initial={{ y: -120, opacity: 0 }}
-                animate={{ y: 0, opacity: 1, transition: { type: 'spring', stiffness: 320, damping: 26, delay: 0 } }}
+                animate={{ y: 0, opacity: isGlueBottleAway ? 0 : 1, transition: { type: 'spring', stiffness: 320, damping: 26, delay: 0 } }}
                 exit={{ y: -120, opacity: 0, transition: { duration: 0.3, ease: 'easeIn', delay: 0.08 } }}
               >
                 <img
@@ -457,12 +538,28 @@ export default function App() {
                   onFallComplete={handleFallComplete}
                   selectedScrapId={selectedScrapId}
                   onSelectScrap={handleSelectScrap}
+                  gluingScrapId={gluingScrapId}
+                  onGlueTap={handleGlueTap}
+                  onPeel={handlePeel}
                 />
               </div>
             </div>
           </div>
         </div>
       </div>
+
+      {/* Glue animation overlay — rendered outside Konva, fixed over the scrap */}
+      {gluingScrapId && glueAnimRect && glueToolRect && (
+        <GlueAnimation
+          image={currentPage.scraps.find(s => s.id === gluingScrapId)!.image}
+          rect={glueAnimRect}
+          toolRect={glueToolRect}
+          onRubStart={() => setIsGlueBottleAway(true)}
+          onReturn={() => setIsGlueBottleAway(false)}
+          onPress={handleGluePress}
+          onComplete={handleGlueComplete}
+        />
+      )}
 
       {/* Desk Edge Lip */}
       <div className="desk-edge" />
@@ -537,6 +634,22 @@ export default function App() {
             onAdd={handleAddText}
             onClose={() => setActiveTool(null)}
           />
+        )}
+
+        {scissorTarget && (
+          <motion.div
+            key="scissors"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="fixed inset-0 z-50"
+          >
+            <ScissorsCutView
+              image={scissorTarget.image}
+              onCut={handleScissorCut}
+              onCancel={() => setScissorTarget(null)}
+            />
+          </motion.div>
         )}
       </AnimatePresence>
 
