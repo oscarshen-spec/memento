@@ -10,17 +10,6 @@ interface CuttingRoomProps {
 
 type GestureState = 'idle' | 'drawing' | 'panning' | 'torn' | 'arranging';
 
-interface FingerA {
-  id: number;
-  pos: Point;
-}
-
-interface FingerB {
-  id: number;
-  pos: Point;
-  trail: Point[];
-}
-
 interface TearPair {
   tearLine: Point[];      // 61 points spanning x=0 to x=cw (generated once)
   topPolygon: Point[];    // upper half — shares tearLine
