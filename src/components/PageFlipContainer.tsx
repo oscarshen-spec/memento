@@ -6,8 +6,26 @@ import { Scrapbook } from './Scrapbook';
 import { AddPageView } from './AddPageView';
 import { buildFlipEvent, extractPointerCoords, FlipPhase } from '../utils/flipDelegation';
 
+const getOrdinalSuffix = (day: number): string => {
+  if (day >= 11 && day <= 13) return 'th';
+  switch (day % 10) {
+    case 1: return 'st';
+    case 2: return 'nd';
+    case 3: return 'rd';
+    default: return 'th';
+  }
+};
+
+const formatPageDate = (pageIndex: number): string => {
+  const date = new Date(2025, 3, 1 + pageIndex); // April = month 3 (0-indexed)
+  const month = date.toLocaleString('en-US', { month: 'short' });
+  const day = date.getDate();
+  return `${month} ${day}${getOrdinalSuffix(day)}`;
+};
+
 interface PageFlipContainerProps {
   currentPage: ScrapbookPage;
+  currentPageIndex: number;
   prevPage: ScrapbookPage | null;
   nextPage: ScrapbookPage | 'add-page';
   onFlipComplete: (direction: 'next' | 'prev') => void;
@@ -30,6 +48,7 @@ const SNAPSHOT_DEBOUNCE_MS = 500;
 
 export const PageFlipContainer: React.FC<PageFlipContainerProps> = ({
   currentPage,
+  currentPageIndex,
   prevPage,
   nextPage,
   onFlipComplete,
@@ -129,7 +148,10 @@ export const PageFlipContainer: React.FC<PageFlipContainerProps> = ({
     let raf2: number;
     const raf1 = requestAnimationFrame(() => {
       raf2 = requestAnimationFrame(() => {
-        const el = flipContainerRef.current;
+        // StPageFlip listens for mousedown/touchstart on its internal `.stf__block`
+        // element (distElement), NOT on the parent container. Dispatching on the
+        // parent would only bubble UP, never reaching the child listener.
+        const el = flipContainerRef.current?.querySelector('.stf__block') as HTMLElement | null;
         if (!el) return;
         el.dispatchEvent(buildFlipEvent('down', coords.pointerType, coords, el));
       });
@@ -211,6 +233,20 @@ export const PageFlipContainer: React.FC<PageFlipContainerProps> = ({
         }}
       >
         <Scrapbook ref={currentStageRef} page={currentPage} {...sharedScrapbookProps} />
+        {/* Date indicator — HTML overlay, always reflects currentPageIndex */}
+        <div
+          className="absolute top-2 right-4 pointer-events-none select-none"
+          style={{
+            fontFamily: 'Caveat, cursive',
+            fontSize: '20px',
+            fontWeight: 700,
+            color: '#6b5c4a',
+            transform: 'rotate(-2deg)',
+            opacity: 0.9,
+          }}
+        >
+          {formatPageDate(currentPageIndex)}
+        </div>
       </div>
 
       {/* z-index 4: Static adjacent page revealed under the curl */}

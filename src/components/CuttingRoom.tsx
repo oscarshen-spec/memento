@@ -336,15 +336,27 @@ export const CuttingRoom: React.FC<CuttingRoomProps> = ({ image, onCut, onCancel
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-neutral-900/95 backdrop-blur-xl flex flex-col items-center justify-center p-0 md:p-4">
-      <div className="w-full h-full md:max-w-4xl flex flex-col gap-4 md:gap-6 p-4 md:p-0">
+    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center p-0 md:p-4"
+      style={{
+        background: 'radial-gradient(ellipse at center, #1a120a 0%, #0d0806 70%, #050302 100%)',
+      }}
+    >
+      {/* Subtle cutting mat grid pattern */}
+      <div className="absolute inset-0 opacity-[0.04] pointer-events-none"
+        style={{
+          backgroundImage: 'linear-gradient(rgba(255,255,255,0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.3) 1px, transparent 1px)',
+          backgroundSize: '24px 24px',
+        }}
+      />
+
+      <div className="relative w-full h-full md:max-w-4xl flex flex-col gap-4 md:gap-6 p-4 md:p-0">
 
         {/* Header */}
         <div className="flex justify-between items-center text-white shrink-0">
           <div>
-            <h2 className="text-xl md:text-2xl font-serif italic">The Cutting Room</h2>
+            <h2 className="text-xl md:text-2xl font-serif italic" style={{ color: '#e8d5b8' }}>The Cutting Room</h2>
             {hintText[gestureState] && (
-              <p className="text-[9px] md:text-sm text-white/40 uppercase tracking-widest">
+              <p className="text-[9px] md:text-sm uppercase tracking-[0.2em]" style={{ color: 'rgba(196,112,75,0.7)' }}>
                 {hintText[gestureState]}
               </p>
             )}
@@ -352,13 +364,15 @@ export const CuttingRoom: React.FC<CuttingRoomProps> = ({ image, onCut, onCancel
           <div className="flex gap-2 md:gap-4 items-center">
             <button
               onClick={handleReset}
-              className="p-3 bg-white/10 hover:bg-white/20 rounded-full transition-colors active:scale-95"
+              className="p-3 rounded-full transition-colors active:scale-95"
+              style={{ background: 'rgba(196,112,75,0.15)', color: '#c4704b' }}
             >
               <RotateCcw size={20} />
             </button>
             <button
               onClick={onCancel}
-              className="p-3 bg-white/10 hover:bg-white/20 rounded-full transition-colors active:scale-95"
+              className="p-3 rounded-full transition-colors active:scale-95"
+              style={{ background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.6)' }}
             >
               <X size={20} />
             </button>
@@ -368,7 +382,12 @@ export const CuttingRoom: React.FC<CuttingRoomProps> = ({ image, onCut, onCancel
         {/* Canvas */}
         <div
           ref={containerRef}
-          className="relative flex-1 md:aspect-video bg-black rounded-2xl overflow-hidden cursor-crosshair shadow-2xl border border-white/10"
+          className="relative flex-1 md:aspect-video rounded-2xl overflow-hidden cursor-crosshair"
+          style={{
+            background: '#0a0604',
+            boxShadow: 'inset 0 2px 16px rgba(0,0,0,0.6), 0 8px 32px rgba(0,0,0,0.4)',
+            border: '1px solid rgba(196,112,75,0.12)',
+          }}
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
@@ -394,8 +413,8 @@ export const CuttingRoom: React.FC<CuttingRoomProps> = ({ image, onCut, onCancel
           {(gestureState === 'idle' || gestureState === 'pending') && (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
               <div className="text-center">
-                <p className="text-5xl mb-4 text-white/20 select-none">〜</p>
-                <p className="text-white/40 font-medium text-sm">Hold to anchor, swipe to tear</p>
+                <p className="text-5xl mb-4 select-none" style={{ color: 'rgba(196,112,75,0.2)' }}>✂</p>
+                <p className="font-medium text-sm" style={{ color: 'rgba(232,213,184,0.35)' }}>Hold to anchor, swipe to tear</p>
               </div>
             </div>
           )}
@@ -406,14 +425,15 @@ export const CuttingRoom: React.FC<CuttingRoomProps> = ({ image, onCut, onCancel
           <button
             disabled={!canFinish}
             onClick={handleFinish}
-            className={`
-              flex items-center gap-3 px-10 py-5 rounded-full font-bold transition-all active:scale-95
-              ${canFinish
-                ? 'bg-white text-black shadow-2xl'
-                : 'bg-white/10 text-white/20 cursor-not-allowed'}
-            `}
+            className="flex items-center gap-3 px-10 py-4 rounded-full font-bold tracking-wider text-sm transition-all active:scale-95"
+            style={{
+              background: canFinish ? 'linear-gradient(135deg, #e8d5b8 0%, #d4aa50 100%)' : 'rgba(255,255,255,0.06)',
+              color: canFinish ? '#2c1810' : 'rgba(255,255,255,0.15)',
+              boxShadow: canFinish ? '0 8px 24px rgba(212,170,80,0.3), inset 0 1px 0 rgba(255,255,255,0.3)' : 'none',
+              cursor: canFinish ? 'pointer' : 'not-allowed',
+            }}
           >
-            <Check size={24} />
+            <Check size={20} />
             KEEP PIECE
           </button>
         </div>

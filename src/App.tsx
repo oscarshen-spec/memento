@@ -211,6 +211,19 @@ export default function App() {
 
   const handlePageTurn = (direction: 'prev' | 'next') => {
     setSelectedScrapId(null);
+
+    // Auto-add a blank page when flipping forward from the last page
+    if (direction === 'next' && currentPageIndex === pages.length - 1) {
+      const newPage: ScrapbookPage = {
+        id: `page-${pages.length + 1}`,
+        scraps: [],
+        journalEntries: [],
+        tapeStrips: [],
+        background: '#fdfaf3',
+      };
+      setPages(prev => [...prev, newPage]);
+    }
+
     const { falling } = partitionScraps(currentPage.scraps);
     if (falling.length === 0) {
       setCurrentPageIndex(prev => direction === 'next' ? prev + 1 : prev - 1);
@@ -373,25 +386,26 @@ export default function App() {
         <div className="w-full h-16 flex justify-between items-center px-6 md:px-12 shrink-0 z-10">
           <div />
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <div className="text-right hidden sm:block">
-              <h1 className="text-lg font-serif italic text-white/80 leading-none">My Scrapbook</h1>
-              <p className="text-[8px] font-mono text-white/40 uppercase tracking-widest mt-1">
-                Page {currentPageIndex + 1} / {pages.length}
+              <h1 className="text-lg leading-none" style={{ fontFamily: 'Caveat, cursive', color: 'rgba(232,213,184,0.7)', fontWeight: 700 }}>My Scrapbook</h1>
+              <p className="text-[9px] uppercase mt-1" style={{ color: 'rgba(212,170,80,0.4)', letterSpacing: '0.2em' }}>
+                Page {currentPageIndex + 1} of {pages.length}
               </p>
             </div>
-            <div className="flex gap-1">
+            <div className="flex gap-0.5">
               <button
                 disabled={currentPageIndex === 0}
                 onClick={() => { setActiveTool(null); handlePageTurn('prev'); }}
-                className="p-2 text-white/60 hover:bg-white/10 rounded-lg disabled:opacity-20"
+                className="p-2 rounded-lg disabled:opacity-15 transition-colors"
+                style={{ color: 'rgba(212,170,80,0.6)' }}
               >
                 <ChevronLeft size={18} />
               </button>
               <button
-                disabled={currentPageIndex === pages.length - 1}
                 onClick={() => { setActiveTool(null); handlePageTurn('next'); }}
-                className="p-2 text-white/60 hover:bg-white/10 rounded-lg disabled:opacity-20"
+                className="p-2 rounded-lg transition-colors"
+                style={{ color: 'rgba(212,170,80,0.6)' }}
               >
                 <ChevronRight size={18} />
               </button>
@@ -427,6 +441,7 @@ export default function App() {
               >
                 <PageFlipContainer
                   currentPage={currentPage}
+                  currentPageIndex={currentPageIndex}
                   prevPage={currentPageIndex > 0 ? pages[currentPageIndex - 1] : null}
                   nextPage={currentPageIndex < pages.length - 1 ? pages[currentPageIndex + 1] : 'add-page'}
                   onFlipComplete={(dir) => handlePageTurn(dir)}
@@ -455,6 +470,7 @@ export default function App() {
       {/* Drawer Area (Bottom 20%) */}
       <motion.div
         className="relative w-full h-[20vh] overflow-hidden z-20"
+        style={{ backgroundImage: 'url(/Background.png)', backgroundSize: 'cover', backgroundPosition: 'bottom center' }}
         animate={drawerBounce ? { y: [0, -6, 0] } : {}}
         transition={{ duration: 0.25, ease: 'easeOut' }}
       >

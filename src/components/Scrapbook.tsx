@@ -421,7 +421,7 @@ const TextItem: React.FC<TextItemProps> = ({ entry, isSelected, onSelect, onChan
         y={entry.y}
         rotation={entry.rotation}
         fontSize={entry.fontSize}
-        fontFamily={entry.fontFamily ?? (entry.type === 'title' ? 'Cormorant Garamond' : 'Inter')}
+        fontFamily={entry.fontFamily ?? (entry.type === 'title' ? 'Cormorant Garamond' : 'Nunito')}
         fontStyle={
           entry.fontFamily
             ? entry.fontFamily === 'Cormorant Garamond'
@@ -537,6 +537,7 @@ interface ScrapbookProps {
 
 const DRAG_OVERFLOW = 180;
 
+
 export const Scrapbook = React.forwardRef<Konva.Stage, ScrapbookProps>(({
   page,
   onUpdateScrap,
@@ -578,7 +579,7 @@ export const Scrapbook = React.forwardRef<Konva.Stage, ScrapbookProps>(({
       >
         {/* Layer 0: lined paper background */}
         <Layer listening={false}>
-          <LinedPaper width={dimensions.width} height={dimensions.height} />
+          <LinedPaper width={dimensions.width} height={dimensions.height + DRAG_OVERFLOW} />
         </Layer>
 
         {/* Layer 1: scraps and journal entries */}

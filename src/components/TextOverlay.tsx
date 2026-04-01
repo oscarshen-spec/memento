@@ -8,7 +8,7 @@ export interface TextOverlayProps {
 
 const FONTS = [
   { label: 'Serif', family: 'Cormorant Garamond', fontStyle: 'italic' as const, fontWeight: 700 },
-  { label: 'Sans',  family: 'Inter',               fontStyle: 'normal' as const, fontWeight: 600 },
+  { label: 'Sans',  family: 'Nunito',               fontStyle: 'normal' as const, fontWeight: 600 },
   { label: 'Mono',  family: 'Courier New',          fontStyle: 'normal' as const, fontWeight: 400 },
   { label: 'Hand',  family: 'Caveat',               fontStyle: 'normal' as const, fontWeight: 400 },
 ] as const;
@@ -117,14 +117,15 @@ export const TextOverlay: React.FC<TextOverlayProps> = ({ onAdd, onClose }) => {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed z-50 flex flex-col bg-black/85 backdrop-blur-sm"
-      style={{ top: vpTop, left: 0, right: 0, height: vpHeight }}
+      className="fixed z-50 flex flex-col"
+      style={{ top: vpTop, left: 0, right: 0, height: vpHeight, background: 'rgba(15,8,5,0.92)', backdropFilter: 'blur(12px)' }}
     >
       {/* Top bar */}
       <div className="flex justify-end items-center px-6 pt-4 pt-safe pb-2 shrink-0">
         <button
           onClick={handleDone}
-          className="text-white text-[17px] font-semibold active:opacity-60"
+          className="text-[15px] font-bold tracking-wider uppercase active:opacity-60"
+          style={{ color: '#d4aa50' }}
         >
           Done
         </button>
@@ -145,7 +146,7 @@ export const TextOverlay: React.FC<TextOverlayProps> = ({ onAdd, onClose }) => {
       </div>
 
       {/* Controls area */}
-      <div className="shrink-0 bg-[#181818]/95 border-t border-white/[0.06]">
+      <div className="shrink-0 border-t" style={{ background: 'rgba(26,18,10,0.95)', borderColor: 'rgba(196,112,75,0.1)' }}>
 
         {activePanel === 'font' ? (
           <div className="flex gap-2 px-4 pt-3 pb-2">
@@ -153,14 +154,15 @@ export const TextOverlay: React.FC<TextOverlayProps> = ({ onAdd, onClose }) => {
               <button
                 key={font.label}
                 onClick={() => setFontIndex(i)}
+                className="flex-1 py-2 rounded-xl text-[14px] transition-colors active:scale-95"
                 style={{
                   fontFamily: font.family,
                   fontStyle:  font.fontStyle,
                   fontWeight: font.fontWeight,
+                  background: fontIndex === i ? 'rgba(212,170,80,0.2)' : 'rgba(255,255,255,0.06)',
+                  color: fontIndex === i ? '#d4aa50' : 'rgba(255,255,255,0.6)',
+                  border: fontIndex === i ? '1px solid rgba(212,170,80,0.3)' : '1px solid transparent',
                 }}
-                className={`flex-1 py-2 rounded-xl text-[14px] transition-colors active:scale-95 ${
-                  fontIndex === i ? 'bg-white text-black' : 'bg-white/10 text-white'
-                }`}
               >
                 {font.label}
               </button>
@@ -202,13 +204,15 @@ export const TextOverlay: React.FC<TextOverlayProps> = ({ onAdd, onClose }) => {
           </div>
         )}
 
-        <div className="flex items-center gap-4 px-5 pt-1 border-t border-white/[0.05]"
-          style={{ paddingBottom: 'max(16px, env(safe-area-inset-bottom, 16px))' }}>
+        <div className="flex items-center gap-4 px-5 pt-1 border-t"
+          style={{ paddingBottom: 'max(16px, env(safe-area-inset-bottom, 16px))', borderColor: 'rgba(196,112,75,0.08)' }}>
           <button
             onClick={() => setActivePanel('font')}
-            className={`px-3 py-1.5 rounded-lg text-sm font-bold transition-colors ${
-              activePanel === 'font' ? 'bg-white/15 text-white' : 'text-white/45'
-            }`}
+            className="px-3 py-1.5 rounded-lg text-sm font-bold transition-colors"
+            style={{
+              background: activePanel === 'font' ? 'rgba(212,170,80,0.15)' : 'transparent',
+              color: activePanel === 'font' ? '#d4aa50' : 'rgba(255,255,255,0.35)',
+            }}
           >
             Aa
           </button>

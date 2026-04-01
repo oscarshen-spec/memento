@@ -66,12 +66,15 @@ const MaterialCard: React.FC<MaterialCardProps> = ({ material, index, onSelect, 
           touchAction: 'none',
           opacity: isDragging ? 0 : 1,
         }}
-        className="bg-white border border-black/10 relative shrink-0 w-24 h-24 rounded-sm cursor-grab active:cursor-grabbing"
+        className="relative shrink-0 w-[100px] h-[116px] cursor-grab active:cursor-grabbing"
       >
-        <div className="absolute inset-0 p-2 flex items-center justify-center">
-          <div className="relative w-full h-full bg-white p-1 shadow-sm">
+        {/* Polaroid-style card */}
+        <div className="absolute inset-0 bg-[#faf6ee] rounded-[3px] shadow-[1px_2px_8px_rgba(0,0,0,0.25),_inset_0_0_0_1px_rgba(0,0,0,0.06)]">
+          <div className="mx-2 mt-2 mb-0 overflow-hidden rounded-[1px]" style={{ height: 'calc(100% - 24px)' }}>
             <img src={material.image} className="w-full h-full object-cover pointer-events-none" alt="Material" />
           </div>
+          {/* Bottom strip mimicking polaroid */}
+          <div className="h-[16px]" />
         </div>
       </motion.div>
 
@@ -91,12 +94,13 @@ const MaterialCard: React.FC<MaterialCardProps> = ({ material, index, onSelect, 
             zIndex: 9999,
             pointerEvents: 'none',
           }}
-          className="bg-white border border-black/10 rounded-sm"
+          className="rounded-[3px]"
         >
-          <div className="absolute inset-0 p-2 flex items-center justify-center">
-            <div className="relative w-full h-full bg-white p-1 shadow-sm">
+          <div className="absolute inset-0 bg-[#faf6ee] rounded-[3px]">
+            <div className="mx-2 mt-2 mb-0 overflow-hidden rounded-[1px]" style={{ height: 'calc(100% - 24px)' }}>
               <img src={material.image} className="w-full h-full object-cover pointer-events-none" alt="Material" />
             </div>
+            <div className="h-[16px]" />
           </div>
         </motion.div>,
         document.body
@@ -168,10 +172,11 @@ export const MaterialDrawer: React.FC<MaterialDrawerProps> = ({
         style={isOpen ? { backgroundImage: 'url(/Drawer.png)', backgroundSize: 'cover', backgroundPosition: 'center' } : {}}
       >
 
-        <div className={`flex-1 overflow-x-auto p-4 flex gap-6 shadow-inner scrollbar-hide items-center transition-colors duration-300 ${isOpen ? 'bg-[#2a1a10]/60' : 'bg-black/30'}`}>
+        <div className={`flex-1 overflow-x-auto p-4 px-6 flex gap-5 scrollbar-hide items-center transition-colors duration-300 ${isOpen ? 'bg-[#1e1008]/70 shadow-[inset_0_4px_20px_rgba(0,0,0,0.5)]' : 'bg-black/30 shadow-inner'}`}>
           {materials.length === 0 ? (
-            <div className="flex-1 flex items-center justify-center text-white/30 italic font-serif text-xs">
-              No materials...
+            <div className="flex-1 flex flex-col items-center justify-center gap-1">
+              <span className="text-white/20 font-serif italic text-sm tracking-wide">Empty drawer</span>
+              <span className="text-white/10 text-[10px] uppercase tracking-[0.2em]">tap + to add materials</span>
             </div>
           ) : (
             materials.map((m, i) => (
