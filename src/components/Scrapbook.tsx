@@ -131,6 +131,17 @@ const ScrapItem: React.FC<ScrapItemProps> = ({ scrap, isSelected, onSelect, onCh
     };
   }, []);
 
+  useEffect(() => {
+    if (scrap.isGlued && shapeRef.current) {
+      shapeRef.current.to({
+        shadowBlur: 3,
+        shadowOffsetY: 2,
+        shadowOffsetX: 0,
+        duration: 0.2,
+      });
+    }
+  }, [scrap.isGlued]);
+
   const drawJaggedPath = (ctx: any, points: Point[]) => {
     if (points.length < 2) return;
     ctx.beginPath();
