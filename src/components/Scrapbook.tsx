@@ -309,9 +309,17 @@ const TextItem: React.FC<TextItemProps> = ({ entry, isSelected, onSelect, onChan
         y={entry.y}
         rotation={entry.rotation}
         fontSize={entry.fontSize}
-        fontFamily={entry.type === 'title' ? 'Cormorant Garamond' : 'Inter'}
-        fontStyle={entry.type === 'title' ? 'italic bold' : 'normal'}
-        fill="#1a1a1a"
+        fontFamily={entry.fontFamily ?? (entry.type === 'title' ? 'Cormorant Garamond' : 'Inter')}
+        fontStyle={
+          entry.fontFamily
+            ? entry.fontFamily === 'Cormorant Garamond'
+              ? 'italic bold'
+              : 'normal'
+            : entry.type === 'title'
+              ? 'italic bold'
+              : 'normal'
+        }
+        fill={entry.color ?? '#1a1a1a'}
         draggable
         onClick={onSelect}
         onTap={onSelect}
