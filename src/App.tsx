@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { partitionScraps } from './utils/scrapUtils';
 import confetti from 'canvas-confetti';
 import { Scrap, Point, RawMaterial, ScrapbookPage, JournalEntry, TapeStrip } from './types';
 import { CameraView } from './components/CameraView';
@@ -31,6 +32,8 @@ export default function App() {
   const [view, setView] = useState<'scrapbook' | 'camera' | 'cutting' | 'drawer' | 'journal'>('scrapbook');
   const [currentMaterial, setCurrentMaterial] = useState<RawMaterial | null>(null);
   const [activeTool, setActiveTool] = useState<'tape' | 'text' | 'glue' | null>(null);
+  const [fallingOff, setFallingOff] = useState<{ direction: 'prev' | 'next'; scrapIds: string[] } | null>(null);
+  const [drawerBounce, setDrawerBounce] = useState(false);
 
   const currentPage = pages[currentPageIndex];
 
@@ -195,10 +198,35 @@ export default function App() {
 
   const updateEntry = (id: string, attrs: Partial<JournalEntry>) => {
     const updatedPages = [...pages];
-    updatedPages[currentPageIndex].journalEntries = updatedPages[currentPageIndex].journalEntries.map(e => 
+    updatedPages[currentPageIndex].journalEntries = updatedPages[currentPageIndex].journalEntries.map(e =>
       e.id === id ? { ...e, ...attrs } : e
     );
     setPages(updatedPages);
+  };
+
+  const handlePageTurn = (direction: 'prev' | 'next') => {
+    const { falling } = partitionScraps(currentPage.scraps);
+    if (falling.length === 0) {
+      setCurrentPageIndex(prev => direction === 'next' ? prev + 1 : prev - 1);
+      return;
+    }
+    setFallingOff({ direction, scrapIds: falling.map(s => s.id) });
+  };
+
+  const handleFallComplete = (fallenIds: string[]) => {
+    const fallen = currentPage.scraps.filter(s => fallenIds.includes(s.id));
+    const updatedPages = [...pages];
+    updatedPages[currentPageIndex].scraps = currentPage.scraps.filter(s => !fallenIds.includes(s.id));
+    setPages(updatedPages);
+    setRawMaterials(prev => [
+      ...fallen.map(s => ({ id: Math.random().toString(36).substr(2, 9), image: s.image })),
+      ...prev,
+    ]);
+    const dir = fallingOff!.direction;
+    setFallingOff(null);
+    setCurrentPageIndex(prev => dir === 'next' ? prev + 1 : prev - 1);
+    setDrawerBounce(true);
+    setTimeout(() => setDrawerBounce(false), 300);
   };
 
   const addPage = () => {
@@ -297,14 +325,14 @@ export default function App() {
             <div className="flex gap-1">
               <button
                 disabled={currentPageIndex === 0}
-                onClick={() => { setActiveTool(null); setCurrentPageIndex(prev => prev - 1); }}
+                onClick={() => { setActiveTool(null); handlePageTurn('prev'); }}
                 className="p-2 text-white/60 hover:bg-white/10 rounded-lg disabled:opacity-20"
               >
                 <ChevronLeft size={18} />
               </button>
               <button
                 disabled={currentPageIndex === pages.length - 1}
-                onClick={() => { setActiveTool(null); setCurrentPageIndex(prev => prev + 1); }}
+                onClick={() => { setActiveTool(null); handlePageTurn('next'); }}
                 className="p-2 text-white/60 hover:bg-white/10 rounded-lg disabled:opacity-20"
               >
                 <ChevronRight size={18} />
@@ -338,6 +366,8 @@ export default function App() {
                 onAddTapeStrip={handleAddTapeStrip}
                 isTapeActive={activeTool === 'tape'}
                 isGlueActive={activeTool === 'glue'}
+                fallingScrapIds={fallingOff?.scrapIds ?? null}
+                onFallComplete={handleFallComplete}
                 dimensions={{ width: bookDims.width - 68, height: bookDims.height }}
               />
             </div>
@@ -350,7 +380,11 @@ export default function App() {
       <div className="desk-edge" />
 
       {/* Drawer Area (Bottom 20%) */}
-      <div className="relative w-full h-[20vh] overflow-hidden z-20">
+      <motion.div
+        className="relative w-full h-[20vh] overflow-hidden z-20"
+        animate={drawerBounce ? { y: [0, -6, 0] } : {}}
+        transition={{ duration: 0.25, ease: 'easeOut' }}
+      >
         <MaterialDrawer
           materials={rawMaterials}
           isOpen={view === 'drawer'}
@@ -366,7 +400,7 @@ export default function App() {
           onClose={() => setView('scrapbook')}
           onUpload={handleFileUpload}
         />
-      </div>
+      </motion.div>
 
       {/* Modals */}
       <AnimatePresence mode="wait">
