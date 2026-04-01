@@ -504,6 +504,8 @@ interface ScrapbookProps {
   onAddTapeStrip: (strip: TapeStrip) => void;
   isTapeActive: boolean;
   isGlueActive: boolean;
+  fallingScrapIds: string[] | null;
+  onFallComplete: (ids: string[]) => void;
   dimensions: { width: number; height: number };
 }
 
@@ -517,9 +519,18 @@ export const Scrapbook: React.FC<ScrapbookProps> = ({
   onAddTapeStrip,
   isTapeActive,
   isGlueActive,
+  fallingScrapIds,
+  onFallComplete,
   dimensions,
 }) => {
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const fallsDoneCount = useRef(0);
+
+  useEffect(() => {
+    if (fallingScrapIds !== null) {
+      fallsDoneCount.current = 0;
+    }
+  }, [fallingScrapIds]);
 
   const checkDeselect = (e: any) => {
     if (isTapeActive) return;
@@ -552,8 +563,15 @@ export const Scrapbook: React.FC<ScrapbookProps> = ({
               onReturn={() => onReturnScrap(scrap)}
               stageHeight={dimensions.height}
               isGlueActive={isGlueActive}
-              isFalling={false}
-              onFallDone={() => {}}
+              isFalling={fallingScrapIds?.includes(scrap.id) ?? false}
+              onFallDone={() => {
+                if (!fallingScrapIds) return;
+                fallsDoneCount.current += 1;
+                if (fallsDoneCount.current >= fallingScrapIds.length) {
+                  fallsDoneCount.current = 0;
+                  onFallComplete(fallingScrapIds);
+                }
+              }}
             />
           ))}
           {page.journalEntries.map((entry) => (
