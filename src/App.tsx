@@ -452,7 +452,7 @@ export default function App() {
             <CuttingRoom
               image={currentMaterial.image}
               onCut={handleCut}
-              onCancel={() => { setActiveTool(null); setView('drawer'); }}
+              onCancel={() => { setActiveTool(null); setSelectedScrapId(null); setView('drawer'); }}
             />
           </motion.div>
         )}
