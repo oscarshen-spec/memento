@@ -7,7 +7,7 @@ import confetti from 'canvas-confetti';
 import { Scrap, Point, RawMaterial, ScrapbookPage, JournalEntry, TapeStrip, ResidueMark } from './types';
 import { CameraView } from './components/CameraView';
 import { CuttingRoom } from './components/CuttingRoom';
-import { PageFlipContainer } from './components/PageFlipContainer';
+import { Scrapbook } from './components/Scrapbook';
 import { MaterialDrawer } from './components/MaterialDrawer';
 import { JournalModal } from './components/JournalModal';
 import { PaperScrapInput } from './components/PaperScrapInput';
@@ -353,18 +353,6 @@ export default function App() {
     setSelectedScrapId(id);
   };
 
-  const addPage = () => {
-    const newPage: ScrapbookPage = {
-      id: `page-${pages.length + 1}`,
-      scraps: [],
-      journalEntries: [],
-      tapeStrips: [],
-      residueMarks: [],
-      background: '#fdfaf3',
-    };
-    setPages([...pages, newPage]);
-    setCurrentPageIndex(pages.length);
-  };
 
   return (
     <div className="relative w-full h-screen overflow-hidden select-none flex flex-col bg-[#0f0805]">
@@ -541,13 +529,8 @@ export default function App() {
                 ref={bookPageRef}
                 className="book-page"
               >
-                <PageFlipContainer
-                  currentPage={currentPage}
-                  currentPageIndex={currentPageIndex}
-                  prevPage={currentPageIndex > 0 ? pages[currentPageIndex - 1] : null}
-                  nextPage={currentPageIndex < pages.length - 1 ? pages[currentPageIndex + 1] : 'add-page'}
-                  onFlipComplete={(dir) => handlePageTurn(dir)}
-                  onAddPage={addPage}
+                <Scrapbook
+                  page={currentPage}
                   dimensions={{ width: bookDims.width - 68, height: bookDims.height }}
                   onUpdateScrap={updateScrap}
                   onUpdateEntry={updateEntry}
