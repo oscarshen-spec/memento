@@ -30,15 +30,15 @@ const INITIAL_PAGE: ScrapbookPage = {
 
 export default function App() {
   const [rawMaterials, setRawMaterials] = useState<RawMaterial[]>([
-    { id: 'sample-1', image: '/Japan scraps/compressedImage.jpeg' },
-    { id: 'sample-2', image: '/Japan scraps/compressedImage (1).jpeg' },
-    { id: 'sample-3', image: '/Japan scraps/compressedImage (2).jpeg' },
-    { id: 'sample-4', image: '/Japan scraps/compressedImage (3).jpeg' },
-    { id: 'sample-5', image: '/Japan scraps/compressedImage (4).jpeg' },
-    { id: 'sample-6', image: '/Japan scraps/compressedImage (5).jpeg' },
-    { id: 'sample-7', image: '/Japan scraps/compressedImage (6).jpeg' },
-    { id: 'sample-8', image: '/Japan scraps/compressedImage (7).jpeg' },
-    { id: 'sample-9', image: '/Japan scraps/compressedImage (8).jpeg' },
+    { id: 'sample-1', image: '/Japan scraps/web/scrap_01.webp' },
+    { id: 'sample-2', image: '/Japan scraps/web/scrap_02.webp' },
+    { id: 'sample-3', image: '/Japan scraps/web/scrap_03.webp' },
+    { id: 'sample-4', image: '/Japan scraps/web/scrap_04.webp' },
+    { id: 'sample-5', image: '/Japan scraps/web/scrap_05.webp' },
+    { id: 'sample-6', image: '/Japan scraps/web/scrap_06.webp' },
+    { id: 'sample-7', image: '/Japan scraps/web/scrap_07.webp' },
+    { id: 'sample-8', image: '/Japan scraps/web/scrap_08.webp' },
+    { id: 'sample-9', image: '/Japan scraps/web/scrap_09.webp' },
   ]);
   const [pages, setPages] = useState<ScrapbookPage[]>([INITIAL_PAGE]);
   const [currentPageIndex, setCurrentPageIndex] = useState(0);
