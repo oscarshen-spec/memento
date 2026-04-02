@@ -6,6 +6,70 @@ import type { GlueRect } from './GlueAnimation';
 import { TapeLayer } from './TapeLayer';
 import useImage from 'use-image';
 
+// ─── Seeded PRNG helpers ─────────────────────────────────────────────────────────
+
+function seededRand(seed: number): () => number {
+  let s = seed;
+  return () => {
+    s = (s * 1664525 + 1013904223) & 0xffffffff;
+    return (s >>> 0) / 0x100000000;
+  };
+}
+
+function hashPoints(points: Point[]): number {
+  let h = 2166136261;
+  for (const p of points) {
+    h = Math.imul(h ^ ((p.x * 100) | 0), 16777619);
+    h = Math.imul(h ^ ((p.y * 100) | 0), 16777619);
+  }
+  return h >>> 0;
+}
+
+function drawJaggedPath(ctx: any, points: Point[], rand: () => number, jitterMultiplier = 1) {
+  if (points.length < 2) return;
+  ctx.beginPath();
+  ctx.moveTo(points[0].x, points[0].y);
+  for (let i = 1; i < points.length; i++) {
+    const p1 = points[i - 1];
+    const p2 = points[i];
+    const midX = (p1.x + p2.x) / 2;
+    const midY = (p1.y + p2.y) / 2;
+    const dist = Math.sqrt(Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2));
+    const jitter = dist * 0.05 * jitterMultiplier;
+    ctx.lineTo(
+      midX + (rand() - 0.5) * jitter,
+      midY + (rand() - 0.5) * jitter,
+    );
+    ctx.lineTo(p2.x, p2.y);
+  }
+  ctx.closePath();
+}
+
+function drawTornEdge(ctx: any, points: Point[], rand: () => number, amplitude: number) {
+  if (points.length < 2) return;
+  ctx.beginPath();
+  ctx.moveTo(points[0].x, points[0].y);
+  for (let i = 1; i < points.length; i++) {
+    const p1 = points[i - 1];
+    const p2 = points[i];
+    const dx = p2.x - p1.x;
+    const dy = p2.y - p1.y;
+    const len = Math.hypot(dx, dy);
+    if (len < 0.1) { ctx.lineTo(p2.x, p2.y); continue; }
+    const nx = -dy / len;
+    const ny =  dx / len;
+    const midX = (p1.x + p2.x) / 2;
+    const midY = (p1.y + p2.y) / 2;
+    const disp = (rand() - 0.5) * amplitude;
+    ctx.quadraticCurveTo(
+      midX + nx * disp,
+      midY + ny * disp,
+      p2.x, p2.y,
+    );
+  }
+  // Open path — no closePath, so only the tear line is stroked
+}
+
 // ─── ScrapItem ──────────────────────────────────────────────────────────────────
 
 interface ScrapItemProps {
@@ -300,56 +364,8 @@ const ScrapItem: React.FC<ScrapItemProps> = ({ scrap, isSelected, onSelect, onCh
     };
   }, [isFalling]);
 
-  const drawJaggedPath = (ctx: any, points: Point[], jitterMultiplier = 1) => {
-    if (points.length < 2) return;
-    ctx.beginPath();
-    ctx.moveTo(points[0].x, points[0].y);
-
-    for (let i = 1; i < points.length; i++) {
-      const p1 = points[i - 1];
-      const p2 = points[i];
-      const midX = (p1.x + p2.x) / 2;
-      const midY = (p1.y + p2.y) / 2;
-      const dist = Math.sqrt(Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2));
-      const jitter = dist * 0.05 * jitterMultiplier;
-
-      ctx.lineTo(
-        midX + (Math.random() - 0.5) * jitter,
-        midY + (Math.random() - 0.5) * jitter,
-      );
-      ctx.lineTo(p2.x, p2.y);
-    }
-    ctx.closePath();
-  };
-
-  /**
-   * Like drawJaggedPath but displaces midpoints perpendicular to the edge
-   * with a fixed pixel amplitude — so short segments still get visible fiber.
-   */
-  const drawTornEdge = (ctx: any, points: Point[], amplitude: number) => {
-    if (points.length < 2) return;
-    ctx.beginPath();
-    ctx.moveTo(points[0].x, points[0].y);
-    for (let i = 1; i < points.length; i++) {
-      const p1 = points[i - 1];
-      const p2 = points[i];
-      const dx = p2.x - p1.x;
-      const dy = p2.y - p1.y;
-      const len = Math.hypot(dx, dy);
-      if (len < 0.1) { ctx.lineTo(p2.x, p2.y); continue; }
-      const nx = -dy / len;
-      const ny =  dx / len;
-      const midX = (p1.x + p2.x) / 2;
-      const midY = (p1.y + p2.y) / 2;
-      const disp = (Math.random() - 0.5) * amplitude;
-      ctx.quadraticCurveTo(
-        midX + nx * disp,
-        midY + ny * disp,
-        p2.x, p2.y,
-      );
-    }
-    // Open path — no closePath, so only the tear line is stroked
-  };
+  const pointSeed = React.useMemo(() => hashPoints(scrap.points), [scrap.points]);
+  const tornSeed = React.useMemo(() => scrap.tornEdge ? hashPoints(scrap.tornEdge) : 0, [scrap.tornEdge]);
 
   const isRect = scrap.points.length === 0;
 
@@ -456,7 +472,7 @@ const ScrapItem: React.FC<ScrapItemProps> = ({ scrap, isSelected, onSelect, onCh
           <>
             <Group
               clipFunc={(ctx) => {
-                drawJaggedPath(ctx, scrap.points, 1);
+                drawJaggedPath(ctx, scrap.points, seededRand(pointSeed), 1);
               }}
             >
               {image && (
@@ -473,7 +489,7 @@ const ScrapItem: React.FC<ScrapItemProps> = ({ scrap, isSelected, onSelect, onCh
                 {/* Dark shadow pass — depth/lift */}
                 <Shape
                   sceneFunc={(ctx, shape) => {
-                    drawTornEdge(ctx, scrap.tornEdge!, 10);
+                    drawTornEdge(ctx, scrap.tornEdge!, seededRand(tornSeed), 10);
                     ctx.fillStrokeShape(shape);
                   }}
                   stroke="rgba(0,0,0,0.22)"
@@ -483,7 +499,7 @@ const ScrapItem: React.FC<ScrapItemProps> = ({ scrap, isSelected, onSelect, onCh
                 {/* Mid warm-white pass — paper body */}
                 <Shape
                   sceneFunc={(ctx, shape) => {
-                    drawTornEdge(ctx, scrap.tornEdge!, 8);
+                    drawTornEdge(ctx, scrap.tornEdge!, seededRand(tornSeed), 8);
                     ctx.fillStrokeShape(shape);
                   }}
                   stroke="rgba(245,238,220,0.92)"
@@ -493,7 +509,7 @@ const ScrapItem: React.FC<ScrapItemProps> = ({ scrap, isSelected, onSelect, onCh
                 {/* Fine bright fiber pass — highlight */}
                 <Shape
                   sceneFunc={(ctx, shape) => {
-                    drawTornEdge(ctx, scrap.tornEdge!, 5);
+                    drawTornEdge(ctx, scrap.tornEdge!, seededRand(tornSeed), 5);
                     ctx.fillStrokeShape(shape);
                   }}
                   stroke="rgba(255,255,255,0.75)"
@@ -504,7 +520,7 @@ const ScrapItem: React.FC<ScrapItemProps> = ({ scrap, isSelected, onSelect, onCh
             ) : (
               <Shape
                 sceneFunc={(ctx, shape) => {
-                  drawJaggedPath(ctx, scrap.points, 1);
+                  drawJaggedPath(ctx, scrap.points, seededRand(pointSeed), 1);
                   ctx.fillStrokeShape(shape);
                 }}
                 stroke="white"

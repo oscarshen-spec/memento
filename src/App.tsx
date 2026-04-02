@@ -17,6 +17,8 @@ import { ScissorsCutView } from './components/ScissorsCutView';
 import { TearCutView } from './components/TearCutView';
 import { playSound } from './services/soundService';
 
+const noop = () => {};
+
 const INITIAL_PAGE: ScrapbookPage = {
   id: 'page-1',
   scraps: [],
@@ -28,21 +30,28 @@ const INITIAL_PAGE: ScrapbookPage = {
 
 export default function App() {
   const [rawMaterials, setRawMaterials] = useState<RawMaterial[]>([
-    { id: 'sample-1', image: '/scrap_01.png' },
-    { id: 'sample-2', image: '/scrap_02.png' },
-    { id: 'sample-3', image: '/scrap_03.png' },
-    { id: 'sample-4', image: '/scrap_04.png' },
-    { id: 'sample-5', image: '/scrap_05.png' },
-    { id: 'sample-6', image: '/scrap_06.png' },
-    { id: 'sample-7', image: '/scrap_07.png' },
-    { id: 'sample-8', image: '/scrap_08.png' },
-    { id: 'sample-9', image: '/scrap_09.png' },
+    { id: 'sample-1', image: '/Japan scraps/compressedImage.jpeg' },
+    { id: 'sample-2', image: '/Japan scraps/compressedImage (1).jpeg' },
+    { id: 'sample-3', image: '/Japan scraps/compressedImage (2).jpeg' },
+    { id: 'sample-4', image: '/Japan scraps/compressedImage (3).jpeg' },
+    { id: 'sample-5', image: '/Japan scraps/compressedImage (4).jpeg' },
+    { id: 'sample-6', image: '/Japan scraps/compressedImage (5).jpeg' },
+    { id: 'sample-7', image: '/Japan scraps/compressedImage (6).jpeg' },
+    { id: 'sample-8', image: '/Japan scraps/compressedImage (7).jpeg' },
+    { id: 'sample-9', image: '/Japan scraps/compressedImage (8).jpeg' },
   ]);
   const [pages, setPages] = useState<ScrapbookPage[]>([INITIAL_PAGE]);
   const [currentPageIndex, setCurrentPageIndex] = useState(0);
   
   const [view, setView] = useState<'scrapbook' | 'camera' | 'cutting' | 'drawer' | 'journal'>('scrapbook');
-  const [isCardDragging, setIsCardDragging] = useState(false);
+  const drawerAreaRef = useRef<HTMLDivElement>(null);
+  const handleCardDragging = React.useCallback((dragging: boolean) => {
+    const el = drawerAreaRef.current;
+    if (el) {
+      el.style.overflow = dragging ? 'visible' : 'hidden';
+      el.style.zIndex = dragging ? '9999' : '20';
+    }
+  }, []);
   const [currentMaterial, setCurrentMaterial] = useState<RawMaterial | null>(null);
   const [activeTool, setActiveTool] = useState<'tape' | 'text' | 'glue' | null>(null);
   const [fallingOff, setFallingOff] = useState<{ direction: 'prev' | 'next'; scrapIds: string[] } | null>(null);
@@ -162,7 +171,7 @@ export default function App() {
     });
   };
 
-  const handleDragMaterial = (material: RawMaterial, info: PanInfo) => {
+  const handleDragMaterial = React.useCallback((material: RawMaterial, info: PanInfo) => {
     const rect = bookPageRef.current?.getBoundingClientRect();
     if (!rect) return;
     const dropX = info.point.x - rect.left;
@@ -175,25 +184,26 @@ export default function App() {
       const naturalMax = Math.max(img.naturalWidth, img.naturalHeight);
       const scale = Math.min(1, MAX_DIM / naturalMax);
 
-      const newScrap: Scrap = {
-        id: Math.random().toString(36).substr(2, 9),
-        image: material.image,
-        points: [],
-        x: dropX,
-        y: dropY,
-        rotation: (Math.random() - 0.5) * 10,
-        scale,
-        zIndex: currentPage.scraps.length,
-        isGlued: false,
-      };
-
-      const updatedPages = [...pages];
-      updatedPages[currentPageIndex].scraps.push(newScrap);
-      setPages(updatedPages);
+      setPages(prev => {
+        const newScrap: Scrap = {
+          id: Math.random().toString(36).substr(2, 9),
+          image: material.image,
+          points: [],
+          x: dropX,
+          y: dropY,
+          rotation: (Math.random() - 0.5) * 10,
+          scale,
+          zIndex: prev[currentPageIndex].scraps.length,
+          isGlued: false,
+        };
+        return prev.map((p, i) =>
+          i === currentPageIndex ? { ...p, scraps: [...p.scraps, newScrap] } : p
+        );
+      });
       setRawMaterials(prev => prev.filter(m => m.id !== material.id));
     };
     img.src = material.image;
-  };
+  }, [currentPageIndex]);
 
   const handleAddJournal = (text: string, type: 'title' | 'body' | 'date') => {
     const newEntry: JournalEntry = {
@@ -624,7 +634,8 @@ export default function App() {
 
       {/* Drawer Area (Bottom 20%) */}
       <motion.div
-        className={`relative w-full h-[20vh] ${isCardDragging ? 'overflow-visible z-[9999]' : 'overflow-hidden z-20'}`}
+        ref={drawerAreaRef}
+        className="relative w-full h-[20vh] overflow-hidden z-20"
         style={{ backgroundImage: 'url(/Background.png)', backgroundSize: 'cover', backgroundPosition: 'bottom center' }}
         animate={drawerBounce ? { y: [0, -6, 0] } : {}}
         transition={{ duration: 0.25, ease: 'easeOut' }}
@@ -633,11 +644,11 @@ export default function App() {
           materials={rawMaterials}
           isOpen={view === 'drawer'}
           onToggle={(open) => { setActiveTool(null); if (open) { setSelectedScrapId(null); setView('drawer'); } else { setView('scrapbook'); } }}
-          onSelect={() => {}}
+          onSelect={noop}
           onDragMaterial={handleDragMaterial}
           onClose={() => setView('scrapbook')}
           onUpload={handleFileUpload}
-          onCardDragging={setIsCardDragging}
+          onCardDragging={handleCardDragging}
         />
       </motion.div>
 

@@ -68,9 +68,9 @@ interface MaterialCardProps {
   onDragStateChange?: (dragging: boolean) => void;
 }
 
-const MaterialCard: React.FC<MaterialCardProps> = ({
+const MaterialCard = React.memo(({
   material, position, drawerRef, onSelect, onDragMaterial, onRearrange, onDragStateChange,
-}) => {
+}: MaterialCardProps) => {
   const scaleValue = useMotionValue(1);
   const springScale = useSpring(scaleValue, { stiffness: 350, damping: 12 });
   const rotValue = useMotionValue(position.rotation);
@@ -137,7 +137,7 @@ const MaterialCard: React.FC<MaterialCardProps> = ({
       <img src={material.image} className="w-full h-full object-cover pointer-events-none rounded-[2px]" alt="Material" />
     </motion.div>
   );
-};
+});
 
 // ─── Wooden drawer sound synthesis ───────────────────────────────────────────
 
@@ -251,10 +251,13 @@ export const MaterialDrawer: React.FC<MaterialDrawerProps> = ({
   materials, onSelect, isOpen, onToggle, onDragMaterial, onCardDragging,
 }) => {
   const controls = useAnimation();
-  const [anyCardDragging, setAnyCardDragging] = React.useState(false);
+  const overflowDivRef = React.useRef<HTMLDivElement>(null);
 
   const handleCardDragState = React.useCallback((dragging: boolean) => {
-    setAnyCardDragging(dragging);
+    const el = overflowDivRef.current;
+    if (el) {
+      el.style.overflow = dragging ? 'visible' : '';
+    }
     onCardDragging?.(dragging);
   }, [onCardDragging]);
 
@@ -344,7 +347,8 @@ export const MaterialDrawer: React.FC<MaterialDrawerProps> = ({
       style={{ height: '20vh', touchAction: 'none' }}
     >
       <div
-        className={`flex-1 flex flex-col border-b border-black/40 transition-colors duration-300 ${anyCardDragging ? 'overflow-visible' : 'overflow-hidden'} ${isOpen ? '' : 'bg-[#0f0805]'}`}
+        ref={overflowDivRef}
+        className={`flex-1 flex flex-col border-b border-black/40 transition-colors duration-300 overflow-hidden ${isOpen ? '' : 'bg-[#0f0805]'}`}
         style={isOpen ? { backgroundImage: 'url(/Drawer.png)', backgroundSize: 'cover', backgroundPosition: 'center' } : {}}
       >
 
