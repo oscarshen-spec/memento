@@ -14,6 +14,7 @@ import { PaperScrapInput } from './components/PaperScrapInput';
 import { GlueAnimation } from './components/GlueAnimation';
 import type { GlueRect } from './components/GlueAnimation';
 import { ScissorsCutView } from './components/ScissorsCutView';
+import { TearCutView } from './components/TearCutView';
 import { playSound } from './services/soundService';
 
 const INITIAL_PAGE: ScrapbookPage = {
@@ -46,6 +47,7 @@ export default function App() {
   const [glueAnimRect, setGlueAnimRect] = useState<GlueRect | null>(null);
   const [glueToolRect, setGlueToolRect] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
   const [scissorTarget, setScissorTarget] = useState<Scrap | null>(null);
+  const [tearTarget, setTearTarget] = useState<Scrap | null>(null);
   const glueButtonRef = useRef<HTMLButtonElement>(null);
 
   const currentPage = pages[currentPageIndex];
@@ -305,6 +307,32 @@ export default function App() {
     setSelectedScrapId(null);
   };
 
+  const handleTearCut = (topPolygon: Point[], _isTorn: boolean, bottomPolygon: Point[]) => {
+    if (!tearTarget) return;
+    updateScrap(tearTarget.id, { image: tearTarget.image, points: topPolygon });
+    setPages(prev => prev.map((page, i) =>
+      i === currentPageIndex
+        ? {
+            ...page,
+            scraps: [...page.scraps, {
+              id: Math.random().toString(36).substring(2, 11),
+              image: tearTarget.image,
+              points: bottomPolygon,
+              x: (bookDims.width - 68) / 2,
+              y: bookDims.height / 2,
+              rotation: (Math.random() - 0.5) * 20,
+              scale: 0.5,
+              isGlued: false,
+              isTorn: true,
+              zIndex: page.scraps.length,
+            }],
+          }
+        : page
+    ));
+    setTearTarget(null);
+    setSelectedScrapId(null);
+  };
+
   const handlePageTurn = (direction: 'prev' | 'next') => {
     setSelectedScrapId(null);
 
@@ -386,7 +414,10 @@ export default function App() {
               </motion.button>
               <motion.button
                 key="tear-tool"
-                onClick={() => {}}
+                onClick={() => {
+                  const scrap = currentPage.scraps.find(s => s.id === selectedScrapId);
+                  if (scrap) setTearTarget(scrap);
+                }}
                 style={{ position: 'absolute', top: -36, right: 120, rotate: '15deg', zIndex: 20 }}
                 className="p-1"
                 title="Tear"
@@ -579,12 +610,7 @@ export default function App() {
           materials={rawMaterials}
           isOpen={view === 'drawer'}
           onToggle={(open) => { setActiveTool(null); if (open) { setSelectedScrapId(null); setView('drawer'); } else { setView('scrapbook'); } }}
-          onSelect={(m) => {
-            setActiveTool(null);
-            setCurrentMaterial(m);
-            setSelectedScrapId(null);
-            setView('cutting');
-          }}
+          onSelect={() => {}}
           onDragMaterial={handleDragMaterial}
           onClose={() => setView('scrapbook')}
           onUpload={handleFileUpload}
@@ -653,6 +679,22 @@ export default function App() {
               image={scissorTarget.image}
               onCut={handleScissorCut}
               onCancel={() => setScissorTarget(null)}
+            />
+          </motion.div>
+        )}
+
+        {tearTarget && (
+          <motion.div
+            key="tear"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="fixed inset-0 z-50"
+          >
+            <TearCutView
+              image={tearTarget.image}
+              onCut={handleTearCut}
+              onCancel={() => setTearTarget(null)}
             />
           </motion.div>
         )}

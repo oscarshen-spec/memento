@@ -13,13 +13,24 @@ interface DrawerPosition {
   zIndex: number;
 }
 
+const CARD_W = 100;
 const CARD_H = 116;
 const BASE_SPACING = 120; // 100px card + 20px gap
 
-function makeScatterPosition(index: number, containerHeight: number, baseZ: number): DrawerPosition {
+function clampPosition(x: number, y: number, containerWidth: number, containerHeight: number) {
   return {
-    x: index * BASE_SPACING + (Math.random() - 0.5) * 10,
-    y: (containerHeight - CARD_H) / 2 + (Math.random() - 0.5) * 28,
+    x: Math.max(0, Math.min(x, containerWidth - CARD_W)),
+    y: Math.max(0, Math.min(y, containerHeight - CARD_H)),
+  };
+}
+
+function makeScatterPosition(index: number, containerWidth: number, containerHeight: number, baseZ: number): DrawerPosition {
+  const rawX = index * BASE_SPACING + (Math.random() - 0.5) * 10;
+  const rawY = (containerHeight - CARD_H) / 2 + (Math.random() - 0.5) * 28;
+  const { x, y } = clampPosition(rawX, rawY, containerWidth, containerHeight);
+  return {
+    x,
+    y,
     rotation: (Math.random() - 0.5) * 30,
     zIndex: baseZ + index,
   };
@@ -58,6 +69,7 @@ const MaterialCard: React.FC<MaterialCardProps> = ({
         ref={cardRef}
         drag
         dragSnapToOrigin
+        dragConstraints={drawerRef}
         onPointerDown={(e) => e.stopPropagation()}
         onDragStart={() => {
           const rect = cardRef.current?.getBoundingClientRect() ?? null;
@@ -181,6 +193,7 @@ export const MaterialDrawer: React.FC<MaterialDrawerProps> = ({
 
   React.useEffect(() => {
     setPositionsMap(prev => {
+      const containerW = containerRef.current?.offsetWidth ?? 320;
       const containerH = containerRef.current?.offsetHeight ?? 80;
       const maxZ = Object.values(prev).reduce((acc, p) => Math.max(acc, p.zIndex), 0);
       const next = { ...prev };
@@ -189,6 +202,7 @@ export const MaterialDrawer: React.FC<MaterialDrawerProps> = ({
         if (!next[m.id]) {
           next[m.id] = makeScatterPosition(
             Object.keys(next).length + added,
+            containerW,
             containerH,
             maxZ + 1,
           );
@@ -205,9 +219,12 @@ export const MaterialDrawer: React.FC<MaterialDrawerProps> = ({
   const onRearrange = React.useCallback((material: RawMaterial, newX: number, newY: number) => {
     setPositionsMap(prev => {
       const maxZ = Object.values(prev).reduce((m, p) => Math.max(m, p.zIndex), 0);
+      const containerW = containerRef.current?.offsetWidth ?? 320;
+      const containerH = containerRef.current?.offsetHeight ?? 80;
+      const { x, y } = clampPosition(newX, newY, containerW, containerH);
       return {
         ...prev,
-        [material.id]: { ...prev[material.id], x: newX, y: newY, zIndex: maxZ + 1 },
+        [material.id]: { ...prev[material.id], x, y, zIndex: maxZ + 1 },
       };
     });
   }, []);
