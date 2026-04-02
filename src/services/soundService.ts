@@ -9,7 +9,8 @@ export type SoundName =
   | 'sparkle'
   | 'tapeRip'
   | 'scissorTrace'
-  | 'scissorSnip';
+  | 'scissorSnip'
+  | 'penStroke';
 
 let _ctx: AudioContext | null = null;
 
@@ -240,6 +241,38 @@ function scissorSnip() {
   });
 }
 
+function penStroke() {
+  const ctx = getCtx();
+  const t = ctx.currentTime;
+  // Slight random variation so each stroke sounds organic
+  const freqVariation = 0.8 + Math.random() * 0.4; // 0.8–1.2×
+  const noise = whiteNoise(ctx, 0.025);
+  const filter = ctx.createBiquadFilter();
+  filter.type = 'bandpass';
+  filter.frequency.value = 1800 * freqVariation;
+  filter.Q.value = 1.8;
+  const gain = ctx.createGain();
+  gain.gain.setValueAtTime(0, t);
+  gain.gain.linearRampToValueAtTime(0.10, t + 0.002);
+  gain.gain.exponentialRampToValueAtTime(0.001, t + 0.025);
+  noise.connect(filter);
+  filter.connect(gain);
+  gain.connect(ctx.destination);
+  noise.start(t);
+  noise.stop(t + 0.025);
+  // Thin low-freq ink "wetness" layer
+  const ink = ctx.createOscillator();
+  ink.type = 'sine';
+  ink.frequency.value = 80;
+  const inkGain = ctx.createGain();
+  inkGain.gain.setValueAtTime(0.03, t);
+  inkGain.gain.exponentialRampToValueAtTime(0.001, t + 0.025);
+  ink.connect(inkGain);
+  inkGain.connect(ctx.destination);
+  ink.start(t);
+  ink.stop(t + 0.025);
+}
+
 function wobbleStart() {
   const ctx = getCtx();
   const t = ctx.currentTime;
@@ -269,6 +302,7 @@ const soundFns: Record<SoundName, () => void> = {
   tapeRip,
   scissorTrace,
   scissorSnip,
+  penStroke,
 };
 
 export function playSound(name: SoundName): void {

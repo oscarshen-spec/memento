@@ -33,13 +33,17 @@ export const CameraView: React.FC<CameraViewProps> = ({ onCapture, onClose }) =>
 
   const capture = () => {
     if (!videoRef.current) return;
+    const MAX = 1200;
+    const vw = videoRef.current.videoWidth;
+    const vh = videoRef.current.videoHeight;
+    const scale = Math.min(1, MAX / Math.max(vw, vh));
     const canvas = document.createElement('canvas');
-    canvas.width = videoRef.current.videoWidth;
-    canvas.height = videoRef.current.videoHeight;
+    canvas.width = Math.round(vw * scale);
+    canvas.height = Math.round(vh * scale);
     const ctx = canvas.getContext('2d');
     if (ctx) {
-      ctx.drawImage(videoRef.current, 0, 0);
-      onCapture(canvas.toDataURL('image/jpeg'));
+      ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
+      onCapture(canvas.toDataURL('image/jpeg', 0.85));
     }
   };
 

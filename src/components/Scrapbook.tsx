@@ -322,6 +322,35 @@ const ScrapItem: React.FC<ScrapItemProps> = ({ scrap, isSelected, onSelect, onCh
     ctx.closePath();
   };
 
+  /**
+   * Like drawJaggedPath but displaces midpoints perpendicular to the edge
+   * with a fixed pixel amplitude — so short segments still get visible fiber.
+   */
+  const drawTornEdge = (ctx: any, points: Point[], amplitude: number) => {
+    if (points.length < 2) return;
+    ctx.beginPath();
+    ctx.moveTo(points[0].x, points[0].y);
+    for (let i = 1; i < points.length; i++) {
+      const p1 = points[i - 1];
+      const p2 = points[i];
+      const dx = p2.x - p1.x;
+      const dy = p2.y - p1.y;
+      const len = Math.hypot(dx, dy);
+      if (len < 0.1) { ctx.lineTo(p2.x, p2.y); continue; }
+      const nx = -dy / len;
+      const ny =  dx / len;
+      const midX = (p1.x + p2.x) / 2;
+      const midY = (p1.y + p2.y) / 2;
+      const disp = (Math.random() - 0.5) * amplitude;
+      ctx.quadraticCurveTo(
+        midX + nx * disp,
+        midY + ny * disp,
+        p2.x, p2.y,
+      );
+    }
+    // Open path — no closePath, so only the tear line is stroked
+  };
+
   const isRect = scrap.points.length === 0;
 
 
@@ -439,16 +468,51 @@ const ScrapItem: React.FC<ScrapItemProps> = ({ scrap, isSelected, onSelect, onCh
               )}
             </Group>
 
-            <Shape
-              sceneFunc={(ctx, shape) => {
-                drawJaggedPath(ctx, scrap.points, scrap.isTorn ? 2.5 : 1);
-                ctx.fillStrokeShape(shape);
-              }}
-              stroke="white"
-              strokeWidth={scrap.isTorn ? 4.5 : 1}
-              opacity={scrap.isTorn ? 0.7 : 0.3}
-              listening={false}
-            />
+            {scrap.isTorn && scrap.tornEdge ? (
+              <>
+                {/* Dark shadow pass — depth/lift */}
+                <Shape
+                  sceneFunc={(ctx, shape) => {
+                    drawTornEdge(ctx, scrap.tornEdge!, 10);
+                    ctx.fillStrokeShape(shape);
+                  }}
+                  stroke="rgba(0,0,0,0.22)"
+                  strokeWidth={8}
+                  listening={false}
+                />
+                {/* Mid warm-white pass — paper body */}
+                <Shape
+                  sceneFunc={(ctx, shape) => {
+                    drawTornEdge(ctx, scrap.tornEdge!, 8);
+                    ctx.fillStrokeShape(shape);
+                  }}
+                  stroke="rgba(245,238,220,0.92)"
+                  strokeWidth={5}
+                  listening={false}
+                />
+                {/* Fine bright fiber pass — highlight */}
+                <Shape
+                  sceneFunc={(ctx, shape) => {
+                    drawTornEdge(ctx, scrap.tornEdge!, 5);
+                    ctx.fillStrokeShape(shape);
+                  }}
+                  stroke="rgba(255,255,255,0.75)"
+                  strokeWidth={2}
+                  listening={false}
+                />
+              </>
+            ) : (
+              <Shape
+                sceneFunc={(ctx, shape) => {
+                  drawJaggedPath(ctx, scrap.points, 1);
+                  ctx.fillStrokeShape(shape);
+                }}
+                stroke="white"
+                strokeWidth={1}
+                opacity={0.3}
+                listening={false}
+              />
+            )}
 
           </>
         )}
@@ -545,8 +609,8 @@ const TextItem: React.FC<TextItemProps> = ({ entry, isSelected, onSelect, onChan
   const textWidth = entry.fontSize * longestLine.length * 0.55;
   const lineCount = entry.text.split('\n').length;
   const textHeight = entry.text.length > 0 ? entry.fontSize * 1.5 * lineCount : entry.fontSize;
-  const paperWidth = Math.max(120, textWidth + padding * 2);
-  const paperHeight = textHeight + padding * 2;
+  const paperWidth = entry.paperWidthOverride ?? Math.max(120, textWidth + padding * 2);
+  const paperHeight = entry.paperHeightOverride ?? (textHeight + padding * 2);
 
   if (entry.hasPaperBackground) {
     return (
@@ -565,11 +629,14 @@ const TextItem: React.FC<TextItemProps> = ({ entry, isSelected, onSelect, onChan
           onTransformEnd={() => {
             const node = groupRef.current;
             const scaleX = node.scaleX();
+            const scaleY = node.scaleY();
             onChange({
               x: node.x(),
               y: node.y(),
               rotation: node.rotation(),
               fontSize: entry.fontSize * scaleX,
+              paperWidthOverride: paperWidth * scaleX,
+              paperHeightOverride: paperHeight * scaleY,
             });
             node.scaleX(1);
             node.scaleY(1);
@@ -592,7 +659,8 @@ const TextItem: React.FC<TextItemProps> = ({ entry, isSelected, onSelect, onChan
             y={padding}
             width={paperWidth - padding * 2}
             fontSize={entry.fontSize}
-            fontFamily="Caveat"
+            fontFamily="IM Fell English"
+            fontStyle="italic"
             fill={entry.color ?? '#3a2a1a'}
             align="center"
             lineHeight={1.5}

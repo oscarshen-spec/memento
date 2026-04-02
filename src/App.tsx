@@ -28,15 +28,21 @@ const INITIAL_PAGE: ScrapbookPage = {
 
 export default function App() {
   const [rawMaterials, setRawMaterials] = useState<RawMaterial[]>([
-    { id: 'sample-1', image: 'https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?w=400&q=80' },
-    { id: 'sample-2', image: 'https://images.unsplash.com/photo-1519125323398-675f0ddb6308?w=400&q=80' },
-    { id: 'sample-3', image: 'https://images.unsplash.com/photo-1465146344425-f00d5f5c8f07?w=400&q=80' },
-    { id: 'sample-4', image: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&q=80' },
+    { id: 'sample-1', image: '/scrap_01.png' },
+    { id: 'sample-2', image: '/scrap_02.png' },
+    { id: 'sample-3', image: '/scrap_03.png' },
+    { id: 'sample-4', image: '/scrap_04.png' },
+    { id: 'sample-5', image: '/scrap_05.png' },
+    { id: 'sample-6', image: '/scrap_06.png' },
+    { id: 'sample-7', image: '/scrap_07.png' },
+    { id: 'sample-8', image: '/scrap_08.png' },
+    { id: 'sample-9', image: '/scrap_09.png' },
   ]);
   const [pages, setPages] = useState<ScrapbookPage[]>([INITIAL_PAGE]);
   const [currentPageIndex, setCurrentPageIndex] = useState(0);
   
   const [view, setView] = useState<'scrapbook' | 'camera' | 'cutting' | 'drawer' | 'journal'>('scrapbook');
+  const [isCardDragging, setIsCardDragging] = useState(false);
   const [currentMaterial, setCurrentMaterial] = useState<RawMaterial | null>(null);
   const [activeTool, setActiveTool] = useState<'tape' | 'text' | 'glue' | null>(null);
   const [fallingOff, setFallingOff] = useState<{ direction: 'prev' | 'next'; scrapIds: string[] } | null>(null);
@@ -86,15 +92,23 @@ export default function App() {
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        if (event.target?.result) {
-          handleCapture(event.target.result as string);
-        }
-      };
-      reader.readAsDataURL(file);
-    }
+    if (!file) return;
+    const objectUrl = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      const MAX = 1200;
+      const scale = Math.min(1, MAX / Math.max(img.width, img.height));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(img.width * scale);
+      canvas.height = Math.round(img.height * scale);
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        handleCapture(canvas.toDataURL('image/jpeg', 0.85));
+      }
+      URL.revokeObjectURL(objectUrl);
+    };
+    img.src = objectUrl;
   };
 
   const handleCut = (points: Point[], isTorn?: boolean, secondPoints?: Point[]) => {
@@ -155,22 +169,30 @@ export default function App() {
     const dropY = info.point.y - rect.top;
     if (dropX < 0 || dropY < 0 || dropX > rect.width || dropY > rect.height) return;
 
-    const newScrap: Scrap = {
-      id: Math.random().toString(36).substr(2, 9),
-      image: material.image,
-      points: [],
-      x: dropX,
-      y: dropY,
-      rotation: (Math.random() - 0.5) * 10,
-      scale: 0.5,
-      zIndex: currentPage.scraps.length,
-      isGlued: false,
-    };
+    const img = new window.Image();
+    img.onload = () => {
+      const MAX_DIM = 280;
+      const naturalMax = Math.max(img.naturalWidth, img.naturalHeight);
+      const scale = Math.min(1, MAX_DIM / naturalMax);
 
-    const updatedPages = [...pages];
-    updatedPages[currentPageIndex].scraps.push(newScrap);
-    setPages(updatedPages);
-    setRawMaterials(prev => prev.filter(m => m.id !== material.id));
+      const newScrap: Scrap = {
+        id: Math.random().toString(36).substr(2, 9),
+        image: material.image,
+        points: [],
+        x: dropX,
+        y: dropY,
+        rotation: (Math.random() - 0.5) * 10,
+        scale,
+        zIndex: currentPage.scraps.length,
+        isGlued: false,
+      };
+
+      const updatedPages = [...pages];
+      updatedPages[currentPageIndex].scraps.push(newScrap);
+      setPages(updatedPages);
+      setRawMaterials(prev => prev.filter(m => m.id !== material.id));
+    };
+    img.src = material.image;
   };
 
   const handleAddJournal = (text: string, type: 'title' | 'body' | 'date') => {
@@ -216,7 +238,7 @@ export default function App() {
       y: bookDims.height / 2 - 50,
       rotation: (Math.random() - 0.5) * 5,
       fontSize: 18,
-      fontFamily: 'Caveat',
+      fontFamily: 'IM Fell English',
       color: '#3a2a1a',
       hasPaperBackground: true,
     };
@@ -307,9 +329,9 @@ export default function App() {
     setSelectedScrapId(null);
   };
 
-  const handleTearCut = (topPolygon: Point[], _isTorn: boolean, bottomPolygon: Point[]) => {
+  const handleTearCut = (topPolygon: Point[], _isTorn: boolean, bottomPolygon: Point[], jaggedLine: Point[]) => {
     if (!tearTarget) return;
-    updateScrap(tearTarget.id, { image: tearTarget.image, points: topPolygon });
+    updateScrap(tearTarget.id, { image: tearTarget.image, points: topPolygon, isTorn: true, tornEdge: jaggedLine });
     setPages(prev => prev.map((page, i) =>
       i === currentPageIndex
         ? {
@@ -318,6 +340,7 @@ export default function App() {
               id: Math.random().toString(36).substring(2, 11),
               image: tearTarget.image,
               points: bottomPolygon,
+              tornEdge: jaggedLine,
               x: (bookDims.width - 68) / 2,
               y: bookDims.height / 2,
               rotation: (Math.random() - 0.5) * 20,
@@ -601,7 +624,7 @@ export default function App() {
 
       {/* Drawer Area (Bottom 20%) */}
       <motion.div
-        className="relative w-full h-[20vh] overflow-hidden z-20"
+        className={`relative w-full h-[20vh] ${isCardDragging ? 'overflow-visible z-[9999]' : 'overflow-hidden z-20'}`}
         style={{ backgroundImage: 'url(/Background.png)', backgroundSize: 'cover', backgroundPosition: 'bottom center' }}
         animate={drawerBounce ? { y: [0, -6, 0] } : {}}
         transition={{ duration: 0.25, ease: 'easeOut' }}
@@ -614,6 +637,7 @@ export default function App() {
           onDragMaterial={handleDragMaterial}
           onClose={() => setView('scrapbook')}
           onUpload={handleFileUpload}
+          onCardDragging={setIsCardDragging}
         />
       </motion.div>
 

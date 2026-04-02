@@ -19,6 +19,7 @@ export interface Scrap {
   zIndex: number;
   isGlued: boolean;
   isTorn?: boolean;
+  tornEdge?: Point[]; // just the jagged tear line, for edge-only stroke rendering
 }
 
 export interface JournalEntry {
@@ -32,6 +33,8 @@ export interface JournalEntry {
   fontFamily?: string;
   color?: string;
   hasPaperBackground?: boolean;
+  paperWidthOverride?: number;
+  paperHeightOverride?: number;
 }
 
 export interface TapeStrip {

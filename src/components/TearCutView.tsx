@@ -5,7 +5,7 @@ import { playSound } from '../services/soundService';
 
 interface TearCutViewProps {
   image: string;
-  onCut: (topPolygon: Point[], isTorn: boolean, bottomPolygon: Point[]) => void;
+  onCut: (topPolygon: Point[], isTorn: boolean, bottomPolygon: Point[], jaggedLine: Point[]) => void;
   onCancel: () => void;
 }
 
@@ -32,59 +32,112 @@ function applyFiberJitter(points: Point[], jitter: number): Point[] {
   });
 }
 
+/** Extend from (ox,oy) in direction (dx,dy) until it hits the rectangle boundary. */
+function extendToEdge(ox: number, oy: number, dx: number, dy: number, cw: number, ch: number): Point | null {
+  let minT = Infinity;
+  let result: Point | null = null;
+  const tryT = (t: number) => {
+    if (t < 0.001 || t >= minT) return;
+    const x = ox + t * dx;
+    const y = oy + t * dy;
+    if (x >= -0.5 && x <= cw + 0.5 && y >= -0.5 && y <= ch + 0.5) {
+      minT = t;
+      result = { x: Math.max(0, Math.min(cw, x)), y: Math.max(0, Math.min(ch, y)) };
+    }
+  };
+  if (Math.abs(dx) > 0.001) { tryT((0 - ox) / dx); tryT((cw - ox) / dx); }
+  if (Math.abs(dy) > 0.001) { tryT((0 - oy) / dy); tryT((ch - oy) / dy); }
+  return result;
+}
+
+/** Clockwise perimeter position of a boundary point on rectangle [0,cw]×[0,ch]. */
+function clockwisePos(pt: Point, cw: number, ch: number): number {
+  if (pt.y <= 0.5)        return pt.x;                         // top
+  if (pt.x >= cw - 0.5)   return cw + pt.y;                    // right
+  if (pt.y >= ch - 0.5)   return cw + ch + (cw - pt.x);       // bottom
+  return 2 * cw + ch + (ch - pt.y);                            // left
+}
+
+/** Rectangle corners encountered going clockwise from fromPos to toPos. */
+function clockwiseCornersBetween(fromPos: number, toPos: number, cw: number, ch: number): Point[] {
+  const perim = 2 * (cw + ch);
+  const corners = [
+    { pos: 0,             pt: { x: 0,  y: 0  } },
+    { pos: cw,            pt: { x: cw, y: 0  } },
+    { pos: cw + ch,       pt: { x: cw, y: ch } },
+    { pos: 2 * cw + ch,   pt: { x: 0,  y: ch } },
+  ];
+  let to = toPos <= fromPos ? toPos + perim : toPos;
+  return corners
+    .flatMap(c => [c, { pos: c.pos + perim, pt: c.pt }])
+    .filter(c => c.pos > fromPos + 0.1 && c.pos < to - 0.1)
+    .sort((a, b) => a.pos - b.pos)
+    .map(c => c.pt);
+}
+
 /**
- * Given a freehand drawn path, generate a full-width jagged tear line
- * and the two polygons on either side of it (in canvas coordinate space).
+ * Given a freehand drawn path (in image space), generate a jagged tear line
+ * spanning the image boundary and the two polygons on either side of it.
  */
 function generateTearFromPath(drawnPath: Point[], cw: number, ch: number): TearPair {
   const p0 = drawnPath[0];
   const pN = drawnPath[drawnPath.length - 1];
+  const dx = pN.x - p0.x;
+  const dy = pN.y - p0.y;
+  const lineLen = Math.hypot(dx, dy);
 
-  // Project the drawn line to find where it would intersect x=0 and x=cw
-  let leftY: number, rightY: number;
-  if (Math.abs(pN.x - p0.x) < 1) {
-    leftY = rightY = (p0.y + pN.y) / 2;
-  } else {
-    const slope = (pN.y - p0.y) / (pN.x - p0.x);
-    leftY = p0.y + slope * (0 - p0.x);
-    rightY = p0.y + slope * (cw - p0.x);
-  }
-  leftY = Math.max(5, Math.min(ch - 5, leftY));
-  rightY = Math.max(5, Math.min(ch - 5, rightY));
+  // Extend the drawn line to the image boundary in both directions
+  const startPt = extendToEdge(p0.x, p0.y, -dx, -dy, cw, ch) ?? { ...p0 };
+  const endPt   = extendToEdge(pN.x, pN.y,  dx,  dy, cw, ch) ?? { ...pN };
 
-  // Sample the drawn path to get deviation from the straight baseline
+  const tearDx  = endPt.x - startPt.x;
+  const tearDy  = endPt.y - startPt.y;
+  const tearLen = Math.hypot(tearDx, tearDy);
+
+  // Perpendicular to tear direction — used to apply deviation from drawn path
+  const nx = tearLen > 0 ? -tearDy / tearLen : 0;
+  const ny = tearLen > 0 ?  tearDx / tearLen : 0;
+
   const steps = 60;
   const baselinePoints: Point[] = [];
+
   for (let i = 0; i <= steps; i++) {
     const t = i / steps;
-    const bx = t * cw;
-    const baseY = leftY + (rightY - leftY) * t;
-    const pathIdx = Math.round(t * (drawnPath.length - 1));
-    const pathPt = drawnPath[Math.max(0, Math.min(drawnPath.length - 1, pathIdx))];
-    const pathBaselineY = p0.y + (pN.y - p0.y) * t;
-    const deviation = pathPt.y - pathBaselineY;
-    baselinePoints.push({ x: bx, y: baseY + deviation * 0.4 });
+    const bx = startPt.x + tearDx * t;
+    const by = startPt.y + tearDy * t;
+
+    let perpDeviation = 0;
+    if (lineLen > 1) {
+      // Project this output point onto p0→pN to find the matching drawn sample
+      const pathT = Math.max(0, Math.min(1,
+        ((bx - p0.x) * dx + (by - p0.y) * dy) / (lineLen * lineLen)
+      ));
+      const pathIdx = Math.round(pathT * (drawnPath.length - 1));
+      const pathPt = drawnPath[pathIdx];
+      // Perpendicular deviation of drawn point from straight p0→pN baseline
+      const baseX = p0.x + pathT * dx;
+      const baseY = p0.y + pathT * dy;
+      const uxL = dx / lineLen;
+      const uyL = dy / lineLen;
+      perpDeviation = (pathPt.x - baseX) * (-uyL) + (pathPt.y - baseY) * uxL;
+    }
+
+    baselinePoints.push({ x: bx + nx * perpDeviation, y: by + ny * perpDeviation });
   }
 
-  // Heavy fiber jitter — ~2.5% of canvas size
-  const jitter = Math.max(cw, ch) * 0.025;
+  const jitter = Math.max(cw, ch) * 0.012;
   const jaggedLine = applyFiberJitter(baselinePoints, jitter);
 
-  const topPolygon: Point[] = [
-    { x: 0, y: 0 },
-    { x: cw, y: 0 },
-    { x: cw, y: jaggedLine[jaggedLine.length - 1].y },
-    ...[...jaggedLine].reverse(),
-    { x: 0, y: jaggedLine[0].y },
-  ];
+  // Build polygons by tracing the rectangle boundary on each side of the tear
+  const startPos = clockwisePos(startPt, cw, ch);
+  const endPos   = clockwisePos(endPt,   cw, ch);
+  const cornersForward  = clockwiseCornersBetween(startPos, endPos, cw, ch);
+  const cornersBackward = clockwiseCornersBetween(endPos, startPos, cw, ch);
 
-  const bottomPolygon: Point[] = [
-    { x: 0, y: jaggedLine[0].y },
-    ...jaggedLine,
-    { x: cw, y: jaggedLine[jaggedLine.length - 1].y },
-    { x: cw, y: ch },
-    { x: 0, y: ch },
-  ];
+  // topPolygon: reversed tear + clockwise boundary start→end
+  const topPolygon: Point[] = [...[...jaggedLine].reverse(), ...cornersForward];
+  // bottomPolygon: tear + clockwise boundary end→start
+  const bottomPolygon: Point[] = [...jaggedLine, ...cornersBackward];
 
   return { jaggedLine, topPolygon, bottomPolygon };
 }
@@ -191,6 +244,12 @@ export const TearCutView: React.FC<TearCutViewProps> = ({ image, onCut, onCancel
     const imgX = (cw - img.naturalWidth * imgScale) / 2;
     const imgY = (ch - img.naturalHeight * imgScale) / 2;
 
+    // Polygons are in image space — convert to canvas space for rendering
+    const toCanvas = (p: Point): Point => ({
+      x: p.x * imgScale + imgX,
+      y: p.y * imgScale + imgY,
+    });
+
     const drawPiece = (ref: React.RefObject<HTMLCanvasElement>, polygon: Point[]) => {
       const pc = ref.current;
       if (!pc) return;
@@ -198,17 +257,21 @@ export const TearCutView: React.FC<TearCutViewProps> = ({ image, onCut, onCancel
       pc.height = ch;
       const ctx = pc.getContext('2d')!;
       ctx.clearRect(0, 0, cw, ch);
-      // Clip to polygon and draw image
       ctx.save();
       ctx.beginPath();
-      polygon.forEach((p, i) => (i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y)));
+      polygon.forEach((p, i) => {
+        const cp = toCanvas(p);
+        i === 0 ? ctx.moveTo(cp.x, cp.y) : ctx.lineTo(cp.x, cp.y);
+      });
       ctx.closePath();
       ctx.clip();
       ctx.drawImage(img, imgX, imgY, img.naturalWidth * imgScale, img.naturalHeight * imgScale);
       ctx.restore();
-      // Torn fiber edge stroke (extends slightly beyond the clip)
       ctx.beginPath();
-      polygon.forEach((p, i) => (i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y)));
+      polygon.forEach((p, i) => {
+        const cp = toCanvas(p);
+        i === 0 ? ctx.moveTo(cp.x, cp.y) : ctx.lineTo(cp.x, cp.y);
+      });
       ctx.closePath();
       ctx.strokeStyle = 'rgba(255,255,255,0.85)';
       ctx.lineWidth = 2.5;
@@ -245,10 +308,20 @@ export const TearCutView: React.FC<TearCutViewProps> = ({ image, onCut, onCancel
     const path = drawnPathRef.current;
     if (path.length < 5) { drawnPathRef.current = []; draw(); return; }
 
-    const canvas = canvasRef.current!;
+    const img = imgRef.current!;
+    const displayRect = getImageDisplayRect();
+    const scaleX = img.naturalWidth / displayRect.width;
+    const scaleY = img.naturalHeight / displayRect.height;
+
+    // Convert drawn path from canvas space → image space
+    const imageSpacePath = path.map(p => ({
+      x: (p.x - displayRect.x) * scaleX,
+      y: (p.y - displayRect.y) * scaleY,
+    }));
+
     navigator.vibrate?.(30);
     playSound('paperTear');
-    const pair = generateTearFromPath(path, canvas.width, canvas.height);
+    const pair = generateTearFromPath(imageSpacePath, img.naturalWidth, img.naturalHeight);
     tearPairRef.current = pair;
     setPieceAOffset({ x: 0, y: 0 });
     setPieceBOffset({ x: 0, y: 0 });
@@ -338,7 +411,7 @@ export const TearCutView: React.FC<TearCutViewProps> = ({ image, onCut, onCancel
 
   const handleConfirm = () => {
     const pair = tearPairRef.current;
-    if (pair) onCut(pair.topPolygon, true, pair.bottomPolygon);
+    if (pair) onCut(pair.topPolygon, true, pair.bottomPolygon, pair.jaggedLine);
   };
 
   const hintText = phase === 'drawing' ? 'Drag to tear' : 'Drag pieces apart, then confirm';

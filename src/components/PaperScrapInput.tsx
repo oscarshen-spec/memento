@@ -1,4 +1,5 @@
 import React, { useRef, useEffect, useLayoutEffect, useState } from 'react';
+import { playSound } from '../services/soundService';
 
 interface PaperScrapInputProps {
   onCommit: (text: string) => void;
@@ -74,13 +75,13 @@ export const PaperScrapInput: React.FC<PaperScrapInputProps> = ({ onCommit, onCa
           left: pos.left,
           transform: `translate(-50%, -50%) rotate(${rotation}deg)`,
           zIndex:40,
-          background: '#fffdf2',
-          filter: 'drop-shadow(2px 3px rgba(0,0,0,0.18))',
+          background: '#fffdd2',
+          filter: 'drop-shadow(2px 3px 8px rgba(0,0,0,0.18))',
           clipPath: `polygon(
-            1% 0%, 12% 0%, 25% 1%, 38% 0%, 50% 0%, 62% 1%, 75% 0%, 88% 1%, 99% 0%,
-            100% 15%, 100% 30%, 100% 50%, 100% 70%, 100% 85%,
-            99% 100%, 85% 100%, 72% 99%, 58% 100%, 45% 99%, 32% 100%, 18% 99%, 5% 100%, 0% 100%,
-            0% 82%, 0% 65%, 0% 45%, 0% 28%, 0% 12%
+            2% 0%, 12% 1%, 25% 0%, 38% 2%, 50% 0%, 62% 1%, 75% 0%, 88% 2%, 98% 0%,
+            100% 15%, 99% 30%, 100% 50%, 99% 70%, 100% 85%,
+            97% 100%, 85% 99%, 72% 100%, 58% 98%, 45% 100%, 32% 99%, 18% 100%, 5% 98%, 0% 100%,
+            1% 82%, 0% 65%, 1% 45%, 0% 28%, 1% 12%
           )`,
           padding: '4px 8px',
           minWidth: 120,
@@ -97,10 +98,11 @@ export const PaperScrapInput: React.FC<PaperScrapInputProps> = ({ onCommit, onCa
             color: '#3a2a1a',
             lineHeight: 1.5,
             outline: 'none',
-            minHeight: 16,
+            minHeight: 24,
             textAlign: 'center',
             wordBreak: 'break-word',
           }}
+          onInput={() => playSound('penStroke')}
           data-placeholder="type here…"
         />
       </div>

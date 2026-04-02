@@ -29,19 +29,11 @@ function seededRng(seed: number): () => number {
 
 // ── Drawing ──────────────────────────────────────────────────────────────────
 
-const TAPE_COLOR = 'rgba(240,225,190,0.88)';
-const TAPE_EDGE_COLOR = 'rgba(170,145,100,0.75)';
-const TAPE_GRAIN_COLOR = 'rgba(200,180,140,0.22)';
-const WISP_COLOR = 'rgba(190,165,120,0.55)';
+const TAPE_COLOR = 'rgba(255,255,255,0.90)';
+const TAPE_EDGE_COLOR = 'rgba(200,180,190,0.70)';
+const TAPE_GRAIN_COLOR = 'rgba(210,195,200,0.18)';
+const WISP_COLOR = 'rgba(220,170,180,0.55)';
 const PREVIEW_SEED = 99999;
-
-const PASTEL_DOTS = [
-  [255, 182, 193], // blush pink
-  [167, 210, 167], // sage green
-  [174, 198, 232], // powder blue
-  [203, 179, 220], // soft lavender
-  [255, 218, 168], // peach
-];
 
 /**
  * Draws a masking tape strip from `start` to `end` directly onto a Konva
@@ -121,8 +113,8 @@ function drawTapeShape(
   }
   ctx.restore();
 
-  // ── Pastel polka dots (clipped to tape body) ──
-  const dotRng = seededRng((tearSeed ?? PREVIEW_SEED) + 800);
+  // ── Sakura flowers (clipped to tape body) ──
+  const flowerRng = seededRng((tearSeed ?? PREVIEW_SEED) + 800);
   ctx.save();
   ctx.beginPath();
   ctx.moveTo(tl.x, tl.y);
@@ -131,21 +123,30 @@ function drawTapeShape(
   ctx.lineTo(tr.x, tr.y);
   ctx.closePath();
   ctx.clip();
-  const DOT_SPACING = 16;
-  for (let i = DOT_SPACING / 2; i < len; i += DOT_SPACING) {
-    for (let j = DOT_SPACING / 2; j < width; j += DOT_SPACING) {
-      const jx = (dotRng() - 0.5) * DOT_SPACING * 0.5;
-      const jy = (dotRng() - 0.5) * DOT_SPACING * 0.5;
-      const r = 2.2 + dotRng() * 1.3;
-      const a = 0.55 + dotRng() * 0.25;
-      const [cr, cg, cb] = PASTEL_DOTS[Math.floor(dotRng() * PASTEL_DOTS.length)];
-      const cx = start.x + ax * i + px * (2 * j / width - 1) + jx;
-      const cy = start.y + ay * i + py * (2 * j / width - 1) + jy;
+  const FLOWER_SPACING = 22;
+  for (let i = FLOWER_SPACING / 2; i < len; i += FLOWER_SPACING) {
+    const jitter = (flowerRng() - 0.5) * FLOWER_SPACING * 0.5;
+    const perpOffset = (flowerRng() - 0.5) * (width * 0.5);
+    const rotation = flowerRng() * Math.PI * 2;
+    const size = 5.5 + flowerRng() * 2.5;
+    const flAlpha = 0.62 + flowerRng() * 0.28;
+    const fcx = start.x + ax * (i + jitter) + px * (perpOffset / (width / 2));
+    const fcy = start.y + ay * (i + jitter) + py * (perpOffset / (width / 2));
+    // 5 petals (overlapping circles arranged around center)
+    const petalR = size * 0.42;
+    const petalDist = size * 0.30;
+    for (let p = 0; p < 5; p++) {
+      const pa = rotation + (p / 5) * Math.PI * 2;
       ctx.beginPath();
-      ctx.arc(cx, cy, r, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(${cr},${cg},${cb},${a})`;
+      ctx.arc(fcx + Math.cos(pa) * petalDist, fcy + Math.sin(pa) * petalDist, petalR, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(255,182,193,${flAlpha})`;
       ctx.fill();
     }
+    // Center
+    ctx.beginPath();
+    ctx.arc(fcx, fcy, size * 0.18, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(255,210,120,${flAlpha + 0.1})`;
+    ctx.fill();
   }
   ctx.restore();
 
