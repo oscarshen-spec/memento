@@ -16,10 +16,13 @@ interface MaterialCardProps {
   onDragMaterial: (m: RawMaterial, info: PanInfo) => void;
   onRearrange: (m: RawMaterial, newX: number, newY: number) => void;
   onDragStateChange?: (dragging: boolean) => void;
+  onReclassifyToGallery: (id: string) => void;
+  galleryRectRef: React.RefObject<DOMRect | null>;
 }
 
 const MaterialCard = React.memo(({
   material, position, drawerRef, onSelect, onDragMaterial, onRearrange, onDragStateChange,
+  onReclassifyToGallery, galleryRectRef,
 }: MaterialCardProps) => {
   const scaleValue = useMotionValue(1);
   const springScale = useSpring(scaleValue, { stiffness: 350, damping: 12 });
@@ -67,6 +70,16 @@ const MaterialCard = React.memo(({
           if (insideDrawer) {
             onRearrange(material, rect.left + info.offset.x - db.left, rect.top + info.offset.y - db.top);
             return;
+          }
+          const galleryRect = galleryRectRef.current;
+          if (galleryRect) {
+            const inGallery =
+              dropCenterX > galleryRect.left && dropCenterX < galleryRect.right &&
+              dropCenterY > galleryRect.top && dropCenterY < galleryRect.bottom;
+            if (inGallery) {
+              onReclassifyToGallery(material.id);
+              return;
+            }
           }
         }
         onDragMaterial(material, info);
@@ -197,10 +210,13 @@ interface MaterialDrawerProps {
   onCardDragging?: (dragging: boolean) => void;
   galleryOpen: boolean;
   onOpenGallery: () => void;
+  onReclassifyToGallery: (id: string) => void;
+  galleryRectRef: React.RefObject<DOMRect | null>;
 }
 
 export const MaterialDrawer: React.FC<MaterialDrawerProps> = ({
   materials, onSelect, isOpen, onToggle, onDragMaterial, onCardDragging, galleryOpen, onOpenGallery,
+  onReclassifyToGallery, galleryRectRef,
 }) => {
   const controls = useAnimation();
   const overflowDivRef = React.useRef<HTMLDivElement>(null);
@@ -339,6 +355,8 @@ export const MaterialDrawer: React.FC<MaterialDrawerProps> = ({
                   onDragMaterial={onDragMaterial}
                   onRearrange={onRearrange}
                   onDragStateChange={handleCardDragState}
+                  onReclassifyToGallery={onReclassifyToGallery}
+                  galleryRectRef={galleryRectRef}
                 />
               );
             })

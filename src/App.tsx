@@ -16,7 +16,7 @@ import type { GlueRect } from './components/GlueAnimation';
 import { ScissorsCutView } from './components/ScissorsCutView';
 import { TearCutView } from './components/TearCutView';
 import { playSound } from './services/soundService';
-import { partitionByStatus } from './utils/materialStatus';
+import { partitionByStatus, reclassify } from './utils/materialStatus';
 import { Gallery } from './components/Gallery';
 
 const noop = () => {};
@@ -72,6 +72,11 @@ export default function App() {
   const [tearTarget, setTearTarget] = useState<Scrap | null>(null);
   const [galleryOpen, setGalleryOpen] = useState(false);
   const glueButtonRef = useRef<HTMLButtonElement>(null);
+  const galleryRectRef = React.useRef<DOMRect | null>(null);
+
+  const handleReclassify = React.useCallback((id: string, status: 'drawer' | 'gallery') => {
+    setRawMaterials(prev => reclassify(prev, id, status));
+  }, []);
 
   const currentPage = pages[currentPageIndex];
 
@@ -654,6 +659,8 @@ export default function App() {
             onCardDragging={handleCardDragging}
             galleryOpen={galleryOpen}
             onOpenGallery={() => setGalleryOpen(true)}
+            onReclassifyToGallery={(id) => handleReclassify(id, 'gallery')}
+            galleryRectRef={galleryRectRef}
           />
         </motion.div>
       </motion.div>
@@ -676,7 +683,18 @@ export default function App() {
         isOpen={galleryOpen}
         onClose={() => setGalleryOpen(false)}
         onTapMaterial={noop}
-        onDragEnd={noop}
+        onContainerRectChange={(rect) => { galleryRectRef.current = rect; }}
+        onDragEnd={(m, info, cardRect) => {
+          const drawerEl = drawerAreaRef.current;
+          if (drawerEl && cardRect) {
+            const dr = drawerEl.getBoundingClientRect();
+            const cx = cardRect.left + info.offset.x + cardRect.width / 2;
+            const cy = cardRect.top + info.offset.y + cardRect.height / 2;
+            if (cx > dr.left && cx < dr.right && cy > dr.top && cy < dr.bottom) {
+              handleReclassify(m.id, 'drawer');
+            }
+          }
+        }}
       />
 
       {/* Modals */}
