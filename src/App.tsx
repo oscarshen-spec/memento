@@ -30,15 +30,15 @@ const INITIAL_PAGE: ScrapbookPage = {
 
 export default function App() {
   const [rawMaterials, setRawMaterials] = useState<RawMaterial[]>([
-    { id: 'sample-1', image: '/Japan scraps/web/scrap_01.webp' },
-    { id: 'sample-2', image: '/Japan scraps/web/scrap_02.webp' },
-    { id: 'sample-3', image: '/Japan scraps/web/scrap_03.webp' },
-    { id: 'sample-4', image: '/Japan scraps/web/scrap_04.webp' },
-    { id: 'sample-5', image: '/Japan scraps/web/scrap_05.webp' },
-    { id: 'sample-6', image: '/Japan scraps/web/scrap_06.webp' },
-    { id: 'sample-7', image: '/Japan scraps/web/scrap_07.webp' },
-    { id: 'sample-8', image: '/Japan scraps/web/scrap_08.webp' },
-    { id: 'sample-9', image: '/Japan scraps/web/scrap_09.webp' },
+    { id: 'sample-1', image: '/Japan scraps/web/scrap_01.webp', status: 'drawer' },
+    { id: 'sample-2', image: '/Japan scraps/web/scrap_02.webp', status: 'drawer' },
+    { id: 'sample-3', image: '/Japan scraps/web/scrap_03.webp', status: 'drawer' },
+    { id: 'sample-4', image: '/Japan scraps/web/scrap_04.webp', status: 'drawer' },
+    { id: 'sample-5', image: '/Japan scraps/web/scrap_05.webp', status: 'drawer' },
+    { id: 'sample-6', image: '/Japan scraps/web/scrap_06.webp', status: 'drawer' },
+    { id: 'sample-7', image: '/Japan scraps/web/scrap_07.webp', status: 'drawer' },
+    { id: 'sample-8', image: '/Japan scraps/web/scrap_08.webp', status: 'drawer' },
+    { id: 'sample-9', image: '/Japan scraps/web/scrap_09.webp', status: 'drawer' },
   ]);
   const [pages, setPages] = useState<ScrapbookPage[]>([INITIAL_PAGE]);
   const [currentPageIndex, setCurrentPageIndex] = useState(0);
@@ -93,6 +93,7 @@ export default function App() {
     const newMaterial: RawMaterial = {
       id: Math.random().toString(36).substr(2, 9),
       image,
+      status: 'gallery',
     };
     setRawMaterials(prev => [newMaterial, ...prev]);
     setSelectedScrapId(null);
@@ -225,7 +226,7 @@ export default function App() {
     const updatedPages = [...pages];
     updatedPages[currentPageIndex].scraps = updatedPages[currentPageIndex].scraps.filter(s => s.id !== scrap.id);
     setPages(updatedPages);
-    setRawMaterials(prev => [{ id: Math.random().toString(36).substr(2, 9), image: scrap.image }, ...prev]);
+    setRawMaterials(prev => [{ id: Math.random().toString(36).substr(2, 9), image: scrap.image, status: 'drawer' }, ...prev]);
     setSelectedScrapId(null);
     setView('drawer');
   };
@@ -332,7 +333,7 @@ export default function App() {
     });
     // Create RawMaterial from leftover and add to drawer
     setRawMaterials(prev => [
-      { id: Math.random().toString(36).substr(2, 9), image: outsideImage },
+      { id: Math.random().toString(36).substr(2, 9), image: outsideImage, status: 'drawer' },
       ...prev,
     ]);
     setScissorTarget(null);
@@ -400,7 +401,7 @@ export default function App() {
         : p
     ));
     setRawMaterials(prev => [
-      ...fallen.map(s => ({ id: Math.random().toString(36).substr(2, 9), image: s.image })),
+      ...fallen.map(s => ({ id: Math.random().toString(36).substr(2, 9), image: s.image, status: 'drawer' as const })),
       ...prev,
     ]);
     setFallingOff(null);
