@@ -3,9 +3,12 @@ export interface Point {
   y: number;
 }
 
+export type RawMaterialStatus = 'drawer' | 'gallery';
+
 export interface RawMaterial {
   id: string;
   image: string;
+  status: RawMaterialStatus;
 }
 
 export interface Scrap {

@@ -3,58 +3,8 @@ import { RawMaterial } from '../types';
 import { motion, useAnimation, useMotionValue, useSpring } from 'motion/react';
 import type { PanInfo } from 'motion/react';
 import { playSound } from '../services/soundService';
-
-// ─── Drawer scatter types & helpers ───────────────────────────────────────────
-
-interface DrawerPosition {
-  x: number;
-  y: number;
-  rotation: number;
-  zIndex: number;
-}
-
-const CARD_W = 100;
-const CARD_H = 100;
-
-const BOUNDARY_MARGIN = 64; // extra room for rotated card corners (±15° adds ~12px overhang)
-
-function clampPosition(x: number, y: number, containerWidth: number, containerHeight: number) {
-  return {
-    x: Math.max(BOUNDARY_MARGIN, Math.min(x, containerWidth - CARD_W - BOUNDARY_MARGIN)),
-    y: Math.max(BOUNDARY_MARGIN, Math.min(y, containerHeight - CARD_H - BOUNDARY_MARGIN)),
-  };
-}
-
-function makeScatterPosition(_index: number, containerWidth: number, containerHeight: number, baseZ: number, existingPositions: DrawerPosition[]): DrawerPosition {
-  // Try to find a spot that isn't too close to existing cards
-  const MIN_DIST = 60;
-  let best = { x: 0, y: 0 };
-  let bestDist = -1;
-
-  for (let attempt = 0; attempt < 20; attempt++) {
-    const rawX = Math.random() * containerWidth;
-    const rawY = Math.random() * containerHeight;
-    const { x, y } = clampPosition(rawX, rawY, containerWidth, containerHeight);
-
-    const minDist = existingPositions.reduce((min, p) => {
-      const d = Math.hypot(p.x - x, p.y - y);
-      return Math.min(min, d);
-    }, Infinity);
-
-    if (minDist > bestDist) {
-      bestDist = minDist;
-      best = { x, y };
-      if (minDist >= MIN_DIST) break;
-    }
-  }
-
-  return {
-    x: best.x,
-    y: best.y,
-    rotation: (Math.random() - 0.5) * 30,
-    zIndex: baseZ,
-  };
-}
+import { DrawerPosition, clampPosition, makeScatterPosition } from '../utils/drawerScatter';
+import { TinBox, TIN_W, TIN_H } from './TinBox';
 
 // ─── MaterialCard ──────────────────────────────────────────────────────────────
 
@@ -66,10 +16,13 @@ interface MaterialCardProps {
   onDragMaterial: (m: RawMaterial, info: PanInfo) => void;
   onRearrange: (m: RawMaterial, newX: number, newY: number) => void;
   onDragStateChange?: (dragging: boolean) => void;
+  onReclassifyToGallery: (id: string) => void;
+  galleryRectRef: React.RefObject<DOMRect | null>;
 }
 
 const MaterialCard = React.memo(({
   material, position, drawerRef, onSelect, onDragMaterial, onRearrange, onDragStateChange,
+  onReclassifyToGallery, galleryRectRef,
 }: MaterialCardProps) => {
   const scaleValue = useMotionValue(1);
   const springScale = useSpring(scaleValue, { stiffness: 350, damping: 12 });
@@ -117,6 +70,16 @@ const MaterialCard = React.memo(({
           if (insideDrawer) {
             onRearrange(material, rect.left + info.offset.x - db.left, rect.top + info.offset.y - db.top);
             return;
+          }
+          const galleryRect = galleryRectRef.current;
+          if (galleryRect) {
+            const inGallery =
+              dropCenterX > galleryRect.left && dropCenterX < galleryRect.right &&
+              dropCenterY > galleryRect.top && dropCenterY < galleryRect.bottom;
+            if (inGallery) {
+              onReclassifyToGallery(material.id);
+              return;
+            }
           }
         }
         onDragMaterial(material, info);
@@ -245,10 +208,15 @@ interface MaterialDrawerProps {
   onToggle: (open: boolean) => void;
   onDragMaterial: (material: RawMaterial, info: PanInfo) => void;
   onCardDragging?: (dragging: boolean) => void;
+  galleryOpen: boolean;
+  onOpenGallery: () => void;
+  onReclassifyToGallery: (id: string) => void;
+  galleryRectRef: React.RefObject<DOMRect | null>;
 }
 
 export const MaterialDrawer: React.FC<MaterialDrawerProps> = ({
-  materials, onSelect, isOpen, onToggle, onDragMaterial, onCardDragging,
+  materials, onSelect, isOpen, onToggle, onDragMaterial, onCardDragging, galleryOpen, onOpenGallery,
+  onReclassifyToGallery, galleryRectRef,
 }) => {
   const controls = useAnimation();
   const overflowDivRef = React.useRef<HTMLDivElement>(null);
@@ -275,6 +243,12 @@ export const MaterialDrawer: React.FC<MaterialDrawerProps> = ({
     setPositionsMap(prev => {
       const containerW = containerRef.current?.offsetWidth ?? 320;
       const containerH = containerRef.current?.offsetHeight ?? 80;
+      const blocked = [{
+        x: containerW - TIN_W - 12,
+        y: 12,
+        width: TIN_W,
+        height: TIN_H,
+      }];
       const maxZ = Object.values(prev).reduce((acc, p) => Math.max(acc, p.zIndex), 0);
       const next = { ...prev };
       let added = 0;
@@ -286,11 +260,11 @@ export const MaterialDrawer: React.FC<MaterialDrawerProps> = ({
             containerH,
             maxZ + 1,
             Object.values(next),
+            blocked,
           );
           added++;
         }
       });
-      // Remove positions for materials that no longer exist
       const ids = new Set(materials.map(m => m.id));
       Object.keys(next).forEach(id => { if (!ids.has(id)) delete next[id]; });
       return next;
@@ -302,7 +276,13 @@ export const MaterialDrawer: React.FC<MaterialDrawerProps> = ({
       const maxZ = Object.values(prev).reduce((m, p) => Math.max(m, p.zIndex), 0);
       const containerW = containerRef.current?.offsetWidth ?? 320;
       const containerH = containerRef.current?.offsetHeight ?? 80;
-      const { x, y } = clampPosition(newX, newY, containerW, containerH);
+      const blocked = [{
+        x: containerW - TIN_W - 12,
+        y: 12,
+        width: TIN_W,
+        height: TIN_H,
+      }];
+      const { x, y } = clampPosition(newX, newY, containerW, containerH, blocked);
       return {
         ...prev,
         [material.id]: { ...prev[material.id], x, y, zIndex: maxZ + 1 },
@@ -375,10 +355,13 @@ export const MaterialDrawer: React.FC<MaterialDrawerProps> = ({
                   onDragMaterial={onDragMaterial}
                   onRearrange={onRearrange}
                   onDragStateChange={handleCardDragState}
+                  onReclassifyToGallery={onReclassifyToGallery}
+                  galleryRectRef={galleryRectRef}
                 />
               );
             })
           )}
+          <TinBox isOpen={galleryOpen} onOpen={onOpenGallery} />
         </div>
       </div>
 
