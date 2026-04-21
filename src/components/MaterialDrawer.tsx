@@ -3,7 +3,7 @@ import { RawMaterial } from '../types';
 import { motion, useAnimation, useMotionValue, useSpring } from 'motion/react';
 import type { PanInfo } from 'motion/react';
 import { playSound } from '../services/soundService';
-import { DrawerPosition, clampPosition, makeScatterPosition, CARD_W, CARD_H } from '../utils/drawerScatter';
+import { DrawerPosition, clampPosition, makeScatterPosition } from '../utils/drawerScatter';
 import { TinBox, TIN_W, TIN_H } from './TinBox';
 
 // ─── MaterialCard ──────────────────────────────────────────────────────────────
