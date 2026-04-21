@@ -3,58 +3,7 @@ import { RawMaterial } from '../types';
 import { motion, useAnimation, useMotionValue, useSpring } from 'motion/react';
 import type { PanInfo } from 'motion/react';
 import { playSound } from '../services/soundService';
-
-// ─── Drawer scatter types & helpers ───────────────────────────────────────────
-
-interface DrawerPosition {
-  x: number;
-  y: number;
-  rotation: number;
-  zIndex: number;
-}
-
-const CARD_W = 100;
-const CARD_H = 100;
-
-const BOUNDARY_MARGIN = 64; // extra room for rotated card corners (±15° adds ~12px overhang)
-
-function clampPosition(x: number, y: number, containerWidth: number, containerHeight: number) {
-  return {
-    x: Math.max(BOUNDARY_MARGIN, Math.min(x, containerWidth - CARD_W - BOUNDARY_MARGIN)),
-    y: Math.max(BOUNDARY_MARGIN, Math.min(y, containerHeight - CARD_H - BOUNDARY_MARGIN)),
-  };
-}
-
-function makeScatterPosition(_index: number, containerWidth: number, containerHeight: number, baseZ: number, existingPositions: DrawerPosition[]): DrawerPosition {
-  // Try to find a spot that isn't too close to existing cards
-  const MIN_DIST = 60;
-  let best = { x: 0, y: 0 };
-  let bestDist = -1;
-
-  for (let attempt = 0; attempt < 20; attempt++) {
-    const rawX = Math.random() * containerWidth;
-    const rawY = Math.random() * containerHeight;
-    const { x, y } = clampPosition(rawX, rawY, containerWidth, containerHeight);
-
-    const minDist = existingPositions.reduce((min, p) => {
-      const d = Math.hypot(p.x - x, p.y - y);
-      return Math.min(min, d);
-    }, Infinity);
-
-    if (minDist > bestDist) {
-      bestDist = minDist;
-      best = { x, y };
-      if (minDist >= MIN_DIST) break;
-    }
-  }
-
-  return {
-    x: best.x,
-    y: best.y,
-    rotation: (Math.random() - 0.5) * 30,
-    zIndex: baseZ,
-  };
-}
+import { DrawerPosition, clampPosition, makeScatterPosition, CARD_W, CARD_H } from '../utils/drawerScatter';
 
 // ─── MaterialCard ──────────────────────────────────────────────────────────────
 
