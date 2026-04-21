@@ -18,6 +18,7 @@ import { TearCutView } from './components/TearCutView';
 import { playSound } from './services/soundService';
 import { partitionByStatus, reclassify } from './utils/materialStatus';
 import { Gallery } from './components/Gallery';
+import { rasterizePolygon } from './utils/rasterizePolygon';
 
 const noop = () => {};
 
@@ -71,12 +72,52 @@ export default function App() {
   const [scissorTarget, setScissorTarget] = useState<Scrap | null>(null);
   const [tearTarget, setTearTarget] = useState<Scrap | null>(null);
   const [galleryOpen, setGalleryOpen] = useState(false);
+  const [editingGalleryMaterial, setEditingGalleryMaterial] = useState<RawMaterial | null>(null);
   const glueButtonRef = useRef<HTMLButtonElement>(null);
   const galleryRectRef = React.useRef<DOMRect | null>(null);
 
   const handleReclassify = React.useCallback((id: string, status: 'drawer' | 'gallery') => {
     setRawMaterials(prev => reclassify(prev, id, status));
   }, []);
+
+  const handleGalleryCut = async (
+    points: Point[],
+    _isTorn: boolean | undefined,
+    secondPoints?: Point[],
+  ) => {
+    if (!editingGalleryMaterial) return;
+    // CuttingRoom produces polygons whose extreme x/y equal the cutting-room
+    // canvas width/height by construction (corners pinned to 0/cw and 0/ch).
+    // Derive the canvas dimensions from the polygon bounds so the rasterizer
+    // reproduces the same object-fit: contain draw.
+    const allPoints = secondPoints ? [...points, ...secondPoints] : points;
+    const canvasW = Math.max(...allPoints.map(p => p.x));
+    const canvasH = Math.max(...allPoints.map(p => p.y));
+    try {
+      const firstUrl = await rasterizePolygon(
+        editingGalleryMaterial.image, points, canvasW, canvasH,
+      );
+      const leftovers: RawMaterial[] = [];
+      if (secondPoints) {
+        const secondUrl = await rasterizePolygon(
+          editingGalleryMaterial.image, secondPoints, canvasW, canvasH,
+        );
+        leftovers.push({
+          id: Math.random().toString(36).substr(2, 9),
+          image: secondUrl,
+          status: 'gallery',
+        });
+      }
+      setRawMaterials(prev => {
+        const replaced = prev.map(m =>
+          m.id === editingGalleryMaterial.id ? { ...m, image: firstUrl } : m,
+        );
+        return [...leftovers, ...replaced];
+      });
+    } finally {
+      setEditingGalleryMaterial(null);
+    }
+  };
 
   const currentPage = pages[currentPageIndex];
 
@@ -682,7 +723,7 @@ export default function App() {
         materials={galleryMaterials}
         isOpen={galleryOpen}
         onClose={() => setGalleryOpen(false)}
-        onTapMaterial={noop}
+        onTapMaterial={(m) => setEditingGalleryMaterial(m)}
         onContainerRectChange={(rect) => { galleryRectRef.current = rect; }}
         onDragEnd={(m, info, cardRect) => {
           const drawerEl = drawerAreaRef.current;
@@ -775,6 +816,22 @@ export default function App() {
               image={tearTarget.image}
               onCut={handleTearCut}
               onCancel={() => setTearTarget(null)}
+            />
+          </motion.div>
+        )}
+
+        {editingGalleryMaterial && (
+          <motion.div
+            key="gallery-edit"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="fixed inset-0 z-[60]"
+          >
+            <CuttingRoom
+              image={editingGalleryMaterial.image}
+              onCut={handleGalleryCut}
+              onCancel={() => setEditingGalleryMaterial(null)}
             />
           </motion.div>
         )}
