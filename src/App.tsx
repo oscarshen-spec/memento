@@ -114,6 +114,8 @@ export default function App() {
         );
         return [...leftovers, ...replaced];
       });
+    } catch (err) {
+      console.error('Gallery cut rasterization failed:', err);
     } finally {
       setEditingGalleryMaterial(null);
     }
