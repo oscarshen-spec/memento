@@ -164,7 +164,6 @@ export const Gallery: React.FC<GalleryProps> = ({
                 key={m.id}
                 material={m}
                 position={pos}
-                containerRef={containerRef}
                 onTap={onTapMaterial}
                 onDragEnd={handleCardDragEnd}
                 onDragStateChange={onCardDragging}

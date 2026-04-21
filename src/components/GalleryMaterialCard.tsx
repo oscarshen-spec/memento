@@ -8,14 +8,13 @@ import { DrawerPosition, CARD_W, CARD_H } from '../utils/drawerScatter';
 interface GalleryMaterialCardProps {
   material: RawMaterial;
   position: DrawerPosition;
-  containerRef: React.RefObject<HTMLDivElement>;
   onTap: (m: RawMaterial) => void;
   onDragEnd: (m: RawMaterial, info: PanInfo, cardRect: DOMRect | null) => void;
   onDragStateChange?: (dragging: boolean) => void;
 }
 
 export const GalleryMaterialCard = React.memo(({
-  material, position, containerRef, onTap, onDragEnd, onDragStateChange,
+  material, position, onTap, onDragEnd, onDragStateChange,
 }: GalleryMaterialCardProps) => {
   const scaleValue = useMotionValue(1);
   const springScale = useSpring(scaleValue, { stiffness: 350, damping: 12 });
