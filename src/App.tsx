@@ -153,7 +153,7 @@ export default function App() {
     };
     setRawMaterials(prev => [newMaterial, ...prev]);
     setSelectedScrapId(null);
-    setView('drawer');
+    if (!galleryOpen) setView('drawer');
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -730,6 +730,7 @@ export default function App() {
         onClose={() => setGalleryOpen(false)}
         onTapMaterial={(m) => setEditingGalleryMaterial(m)}
         onContainerRectChange={(rect) => { galleryRectRef.current = rect; }}
+        onCardDragging={handleCardDragging}
         onDragEnd={(m, info, cardRect) => {
           const drawerEl = drawerAreaRef.current;
           if (drawerEl && cardRect) {
