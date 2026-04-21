@@ -701,7 +701,10 @@ export default function App() {
             onUpload={handleFileUpload}
             onCardDragging={handleCardDragging}
             galleryOpen={galleryOpen}
-            onOpenGallery={() => setGalleryOpen(true)}
+            onOpenGallery={() => {
+              if (fallingOff) return;
+              setGalleryOpen(true);
+            }}
             onReclassifyToGallery={(id) => handleReclassify(id, 'gallery')}
             galleryRectRef={galleryRectRef}
           />
