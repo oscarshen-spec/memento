@@ -63,6 +63,7 @@ export default function App() {
   const [glueToolRect, setGlueToolRect] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
   const [scissorTarget, setScissorTarget] = useState<Scrap | null>(null);
   const [tearTarget, setTearTarget] = useState<Scrap | null>(null);
+  const [galleryOpen, setGalleryOpen] = useState(false);
   const glueButtonRef = useRef<HTMLButtonElement>(null);
 
   const currentPage = pages[currentPageIndex];
@@ -650,6 +651,8 @@ export default function App() {
           onClose={() => setView('scrapbook')}
           onUpload={handleFileUpload}
           onCardDragging={handleCardDragging}
+          galleryOpen={galleryOpen}
+          onOpenGallery={() => setGalleryOpen(true)}
         />
       </motion.div>
 

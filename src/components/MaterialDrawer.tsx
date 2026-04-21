@@ -4,6 +4,7 @@ import { motion, useAnimation, useMotionValue, useSpring } from 'motion/react';
 import type { PanInfo } from 'motion/react';
 import { playSound } from '../services/soundService';
 import { DrawerPosition, clampPosition, makeScatterPosition, CARD_W, CARD_H } from '../utils/drawerScatter';
+import { TinBox, TIN_W, TIN_H } from './TinBox';
 
 // ─── MaterialCard ──────────────────────────────────────────────────────────────
 
@@ -194,10 +195,12 @@ interface MaterialDrawerProps {
   onToggle: (open: boolean) => void;
   onDragMaterial: (material: RawMaterial, info: PanInfo) => void;
   onCardDragging?: (dragging: boolean) => void;
+  galleryOpen: boolean;
+  onOpenGallery: () => void;
 }
 
 export const MaterialDrawer: React.FC<MaterialDrawerProps> = ({
-  materials, onSelect, isOpen, onToggle, onDragMaterial, onCardDragging,
+  materials, onSelect, isOpen, onToggle, onDragMaterial, onCardDragging, galleryOpen, onOpenGallery,
 }) => {
   const controls = useAnimation();
   const overflowDivRef = React.useRef<HTMLDivElement>(null);
@@ -224,6 +227,12 @@ export const MaterialDrawer: React.FC<MaterialDrawerProps> = ({
     setPositionsMap(prev => {
       const containerW = containerRef.current?.offsetWidth ?? 320;
       const containerH = containerRef.current?.offsetHeight ?? 80;
+      const blocked = [{
+        x: containerW - TIN_W - 12,
+        y: 12,
+        width: TIN_W,
+        height: TIN_H,
+      }];
       const maxZ = Object.values(prev).reduce((acc, p) => Math.max(acc, p.zIndex), 0);
       const next = { ...prev };
       let added = 0;
@@ -235,11 +244,11 @@ export const MaterialDrawer: React.FC<MaterialDrawerProps> = ({
             containerH,
             maxZ + 1,
             Object.values(next),
+            blocked,
           );
           added++;
         }
       });
-      // Remove positions for materials that no longer exist
       const ids = new Set(materials.map(m => m.id));
       Object.keys(next).forEach(id => { if (!ids.has(id)) delete next[id]; });
       return next;
@@ -251,7 +260,13 @@ export const MaterialDrawer: React.FC<MaterialDrawerProps> = ({
       const maxZ = Object.values(prev).reduce((m, p) => Math.max(m, p.zIndex), 0);
       const containerW = containerRef.current?.offsetWidth ?? 320;
       const containerH = containerRef.current?.offsetHeight ?? 80;
-      const { x, y } = clampPosition(newX, newY, containerW, containerH);
+      const blocked = [{
+        x: containerW - TIN_W - 12,
+        y: 12,
+        width: TIN_W,
+        height: TIN_H,
+      }];
+      const { x, y } = clampPosition(newX, newY, containerW, containerH, blocked);
       return {
         ...prev,
         [material.id]: { ...prev[material.id], x, y, zIndex: maxZ + 1 },
@@ -328,6 +343,7 @@ export const MaterialDrawer: React.FC<MaterialDrawerProps> = ({
               );
             })
           )}
+          <TinBox isOpen={galleryOpen} onOpen={onOpenGallery} />
         </div>
       </div>
 
