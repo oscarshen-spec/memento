@@ -16,6 +16,8 @@ import type { GlueRect } from './components/GlueAnimation';
 import { ScissorsCutView } from './components/ScissorsCutView';
 import { TearCutView } from './components/TearCutView';
 import { playSound } from './services/soundService';
+import { partitionByStatus } from './utils/materialStatus';
+import { Gallery } from './components/Gallery';
 
 const noop = () => {};
 
@@ -40,6 +42,11 @@ export default function App() {
     { id: 'sample-8', image: '/Japan scraps/web/scrap_08.webp', status: 'drawer' },
     { id: 'sample-9', image: '/Japan scraps/web/scrap_09.webp', status: 'drawer' },
   ]);
+  const { drawer: drawerMaterials, gallery: galleryMaterials } = React.useMemo(
+    () => partitionByStatus(rawMaterials),
+    [rawMaterials],
+  );
+
   const [pages, setPages] = useState<ScrapbookPage[]>([INITIAL_PAGE]);
   const [currentPageIndex, setCurrentPageIndex] = useState(0);
   
@@ -419,6 +426,11 @@ export default function App() {
 
   return (
     <div className="relative w-full h-screen overflow-hidden select-none flex flex-col bg-[#0f0805]">
+      <motion.div
+        className="flex flex-col w-full"
+        animate={{ y: galleryOpen ? '-30vh' : 0 }}
+        transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+      >
       {/* Desk Area (Top 80%) */}
       <div className="relative w-full h-[80vh] flex flex-col items-center z-10 shadow-[0_10px_30px_rgba(0,0,0,0.5)] wood-texture">
         {/* Scattered selection icons — scissor & tear, shown when a scrap is selected */}
@@ -595,28 +607,56 @@ export default function App() {
                 ref={bookPageRef}
                 className="book-page"
               >
-                <Scrapbook
-                  page={currentPage}
-                  dimensions={{ width: bookDims.width - 68, height: bookDims.height }}
-                  onUpdateScrap={updateScrap}
-                  onUpdateEntry={updateEntry}
-                  onReturnScrap={handleReturnScrap}
-                  onAddTapeStrip={handleAddTapeStrip}
-                  isTapeActive={activeTool === 'tape'}
-                  isGlueActive={activeTool === 'glue'}
-                  fallingScrapIds={fallingOff?.scrapIds ?? null}
-                  onFallComplete={handleFallComplete}
-                  selectedScrapId={selectedScrapId}
-                  onSelectScrap={handleSelectScrap}
-                  gluingScrapId={gluingScrapId}
-                  onGlueTap={handleGlueTap}
-                  onPeel={handlePeel}
-                />
+                <div style={{ pointerEvents: galleryOpen ? 'none' : 'auto' }}>
+                  <Scrapbook
+                    page={currentPage}
+                    dimensions={{ width: bookDims.width - 68, height: bookDims.height }}
+                    onUpdateScrap={updateScrap}
+                    onUpdateEntry={updateEntry}
+                    onReturnScrap={handleReturnScrap}
+                    onAddTapeStrip={handleAddTapeStrip}
+                    isTapeActive={activeTool === 'tape'}
+                    isGlueActive={activeTool === 'glue'}
+                    fallingScrapIds={fallingOff?.scrapIds ?? null}
+                    onFallComplete={handleFallComplete}
+                    selectedScrapId={selectedScrapId}
+                    onSelectScrap={handleSelectScrap}
+                    gluingScrapId={gluingScrapId}
+                    onGlueTap={handleGlueTap}
+                    onPeel={handlePeel}
+                  />
+                </div>
               </div>
             </div>
           </div>
         </div>
       </div>
+
+      {/* Desk Edge Lip */}
+      <div className="desk-edge" />
+
+      {/* Drawer Area (Bottom 20%) */}
+      <motion.div
+        ref={drawerAreaRef}
+        className="relative w-full h-[20vh] overflow-hidden z-20"
+        style={{ backgroundImage: 'url(/Background.png)', backgroundSize: 'cover', backgroundPosition: 'bottom center' }}
+        animate={drawerBounce ? { y: [0, -6, 0] } : {}}
+        transition={{ duration: 0.25, ease: 'easeOut' }}
+      >
+        <MaterialDrawer
+          materials={drawerMaterials}
+          isOpen={view === 'drawer'}
+          onToggle={(open) => { setActiveTool(null); if (open) { setSelectedScrapId(null); setView('drawer'); } else { setView('scrapbook'); } }}
+          onSelect={noop}
+          onDragMaterial={handleDragMaterial}
+          onClose={() => setView('scrapbook')}
+          onUpload={handleFileUpload}
+          onCardDragging={handleCardDragging}
+          galleryOpen={galleryOpen}
+          onOpenGallery={() => setGalleryOpen(true)}
+        />
+      </motion.div>
+      </motion.div>
 
       {/* Glue animation overlay — rendered outside Konva, fixed over the scrap */}
       {gluingScrapId && glueAnimRect && glueToolRect && (
@@ -631,30 +671,13 @@ export default function App() {
         />
       )}
 
-      {/* Desk Edge Lip */}
-      <div className="desk-edge" />
-
-      {/* Drawer Area (Bottom 20%) */}
-      <motion.div
-        ref={drawerAreaRef}
-        className="relative w-full h-[20vh] overflow-hidden z-20"
-        style={{ backgroundImage: 'url(/Background.png)', backgroundSize: 'cover', backgroundPosition: 'bottom center' }}
-        animate={drawerBounce ? { y: [0, -6, 0] } : {}}
-        transition={{ duration: 0.25, ease: 'easeOut' }}
-      >
-        <MaterialDrawer
-          materials={rawMaterials}
-          isOpen={view === 'drawer'}
-          onToggle={(open) => { setActiveTool(null); if (open) { setSelectedScrapId(null); setView('drawer'); } else { setView('scrapbook'); } }}
-          onSelect={noop}
-          onDragMaterial={handleDragMaterial}
-          onClose={() => setView('scrapbook')}
-          onUpload={handleFileUpload}
-          onCardDragging={handleCardDragging}
-          galleryOpen={galleryOpen}
-          onOpenGallery={() => setGalleryOpen(true)}
-        />
-      </motion.div>
+      <Gallery
+        materials={galleryMaterials}
+        isOpen={galleryOpen}
+        onClose={() => setGalleryOpen(false)}
+        onTapMaterial={noop}
+        onDragEnd={() => {}}
+      />
 
       {/* Modals */}
       <AnimatePresence mode="wait">
