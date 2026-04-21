@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { clampPosition, makeScatterPosition, rectsOverlap, CARD_W, CARD_H } from './drawerScatter';
 
+const BOUNDARY_MARGIN = 64;
+
 describe('clampPosition', () => {
   it('keeps positions inside container with margin', () => {
     const { x, y } = clampPosition(-100, -100, 500, 300, []);
@@ -19,6 +21,21 @@ describe('clampPosition', () => {
     const { x, y } = clampPosition(200, 100, 500, 300, []);
     expect(x).toBe(200);
     expect(y).toBe(100);
+  });
+
+  it('falls back to second axis when first-choice push is clamped back into the blocked rect', () => {
+    // Place a blocked rect flush against the left boundary so the shortest-overlap
+    // push-left would land outside the container and get clamped back in.
+    // Container: 400 wide, 400 tall. BOUNDARY_MARGIN = 64.
+    // blocked rect sits at x=64 (left edge of valid zone), 200px wide.
+    // A card placed at x=100 overlaps on the left; overlapLeft = 100+100-64 = 136.
+    // overlapRight = 64+200-100 = 164  → left is shorter → first push: cx = 64-100-2 = -38 → clamps to 64 → still overlaps.
+    // Second axis (right): cx = 64+200+2 = 266 → valid, no overlap.
+    const blocked = [{ x: 64, y: 100, width: 200, height: 120 }];
+    const { x, y } = clampPosition(100, 140, 400, 400, blocked);
+    expect(rectsOverlap({ x, y, width: CARD_W, height: CARD_H }, blocked[0])).toBe(false);
+    expect(x).toBeGreaterThanOrEqual(BOUNDARY_MARGIN);
+    expect(y).toBeGreaterThanOrEqual(BOUNDARY_MARGIN);
   });
 });
 
@@ -39,7 +56,29 @@ describe('makeScatterPosition', () => {
     const existing = [{ x: 100, y: 100, rotation: 0, zIndex: 0 }];
     const pos = makeScatterPosition(1, 500, 300, 1, existing, []);
     const dist = Math.hypot(pos.x - 100, pos.y - 100);
-    expect(dist).toBeGreaterThan(10);
+    expect(dist).toBeGreaterThan(59);
+  });
+
+  it('returns an in-bounds position even when a huge blocked rect fills most of the container', () => {
+    // Pathological: tiny container, giant blocked rect that nearly fills all valid space.
+    // makeScatterPosition must still return something in-bounds, not {0, 0}.
+    const containerWidth = 300;
+    const containerHeight = 300;
+    // Block almost everything except a tiny sliver — 30 random attempts will all overlap.
+    const blocked = [{ x: 0, y: 0, width: 299, height: 299 }];
+    const pos = makeScatterPosition(0, containerWidth, containerHeight, 0, [], blocked);
+
+    const minX = BOUNDARY_MARGIN;
+    const minY = BOUNDARY_MARGIN;
+    const maxX = containerWidth - CARD_W - BOUNDARY_MARGIN;
+    const maxY = containerHeight - CARD_H - BOUNDARY_MARGIN;
+
+    // Must be in-bounds (not the initial {0,0} sentinel).
+    expect(pos.x).toBeGreaterThanOrEqual(minX);
+    expect(pos.y).toBeGreaterThanOrEqual(minY);
+    expect(pos.x).toBeLessThanOrEqual(maxX);
+    expect(pos.y).toBeLessThanOrEqual(maxY);
+    // We do NOT require non-overlap in the pathological case.
   });
 });
 
