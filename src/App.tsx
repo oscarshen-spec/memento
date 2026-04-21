@@ -431,13 +431,13 @@ export default function App() {
         animate={{ y: galleryOpen ? '-30vh' : 0 }}
         transition={{ type: 'spring', damping: 25, stiffness: 200 }}
       >
-      {/* Desk Area (Top 80%) */}
-      <div className="relative w-full h-[80vh] flex flex-col items-center z-10 shadow-[0_10px_30px_rgba(0,0,0,0.5)] wood-texture">
-        {/* Scattered selection icons — scissor & tear, shown when a scrap is selected */}
-        <AnimatePresence>
-          {selectedScrapId !== null && (
-            <>
-              <motion.button
+        {/* Desk Area (Top 80%) */}
+        <div className="relative w-full h-[80vh] flex flex-col items-center z-10 shadow-[0_10px_30px_rgba(0,0,0,0.5)] wood-texture">
+          {/* Scattered selection icons — scissor & tear, shown when a scrap is selected */}
+          <AnimatePresence>
+            {selectedScrapId !== null && (
+              <>
+                <motion.button
                 key="scissor-tool"
                 onClick={() => {
                   const scrap = currentPage.scraps.find(s => s.id === selectedScrapId);
@@ -481,181 +481,181 @@ export default function App() {
                   style={{ filter: 'drop-shadow(0 3px 6px rgba(0,0,0,0.35))' }}
                 />
               </motion.button>
-            </>
-          )}
-        </AnimatePresence>
+              </>
+            )}
+          </AnimatePresence>
 
-        {/* Scattered tool icons — lying on the desk above the scrapbook */}
-        <AnimatePresence>
-          {selectedScrapId === null && (
-            <>
-              <motion.button
-                key="tape-tool"
-                onClick={() => setActiveTool(activeTool === 'tape' ? null : 'tape')}
-                style={{ position: 'absolute', top: -40, left: -40, rotate: '-14deg', zIndex: 20 }}
-                className="p-1"
-                title="Tape tool"
-                initial={{ y: -120, opacity: 0 }}
-                animate={{ y: 0, opacity: 1, transition: { type: 'spring', stiffness: 320, damping: 26, delay: 0.08 } }}
-                exit={{ y: -120, opacity: 0, transition: { duration: 0.3, ease: 'easeIn' } }}
-              >
-                <img
-                  src="/Tape.png"
-                  width="200"
-                  height="200"
-                  alt="Tape"
-                  className={`transition-all duration-150 ${activeTool === 'tape' ? 'opacity-100 scale-110' : 'opacity-100 hover:scale-105'}`}
-                  style={{ filter: activeTool === 'tape' ? 'drop-shadow(0 6px 12px rgba(0,0,0,0.6))' : 'drop-shadow(0 3px 6px rgba(0,0,0,0.35))' }}
-                />
-              </motion.button>
-              <motion.button
-                key="text-tool"
-                onClick={() => setActiveTool(activeTool === 'text' ? null : 'text')}
-                style={{ position: 'absolute', top: -32, left: '52%', translateX: '-50%', rotate: '-6deg', zIndex: 20 }}
-                className="p-1"
-                title="Text tool"
-                initial={{ y: -120, opacity: 0 }}
-                animate={{ y: 0, opacity: 1, transition: { type: 'spring', stiffness: 320, damping: 26, delay: 0.04 } }}
-                exit={{ y: -120, opacity: 0, transition: { duration: 0.3, ease: 'easeIn', delay: 0.04 } }}
-              >
-                <img
-                  src="/Text.png"
-                  width="180"
-                  height="180"
-                  alt="Text"
-                  className={`transition-all duration-150 ${activeTool === 'text' ? 'opacity-100 scale-110' : 'opacity-100 hover:scale-105'}`}
-                  style={{ filter: activeTool === 'text' ? 'drop-shadow(0 6px 12px rgba(0,0,0,0.6))' : 'drop-shadow(0 3px 6px rgba(0,0,0,0.35))' }}
-                />
-              </motion.button>
-              <motion.button
-                key="glue-tool"
-                ref={glueButtonRef}
-                onClick={() => setActiveTool(activeTool === 'glue' ? null : 'glue')}
-                style={{ position: 'absolute', top: -32, right: -24, rotate: '12deg', zIndex: 20, opacity: isGlueBottleAway ? 0 : 1, pointerEvents: isGlueBottleAway ? 'none' : 'auto', transition: 'opacity 0.1s' }}
-                className="p-1"
-                title="Glue tool"
-                initial={{ y: -120, opacity: 0 }}
-                animate={{ y: 0, opacity: isGlueBottleAway ? 0 : 1, transition: { type: 'spring', stiffness: 320, damping: 26, delay: 0 } }}
-                exit={{ y: -120, opacity: 0, transition: { duration: 0.3, ease: 'easeIn', delay: 0.08 } }}
-              >
-                <img
-                  src="/Glue.png"
-                  width="200"
-                  height="200"
-                  alt="Glue"
-                  className={`transition-all duration-150 ${activeTool === 'glue' ? 'opacity-100 scale-110' : 'opacity-100 hover:scale-105'}`}
-                  style={{ filter: activeTool === 'glue' ? 'drop-shadow(0 6px 12px rgba(0,0,0,0.6))' : 'drop-shadow(0 3px 6px rgba(0,0,0,0.35))' }}
-                />
-              </motion.button>
-            </>
-          )}
-        </AnimatePresence>
-        {/* Top Bar - Subtle icons on the desk */}
-        <div className="w-full h-16 flex justify-between items-center px-6 md:px-12 shrink-0 z-10">
-          <div />
+          {/* Scattered tool icons — lying on the desk above the scrapbook */}
+          <AnimatePresence>
+            {selectedScrapId === null && (
+              <>
+                <motion.button
+                  key="tape-tool"
+                  onClick={() => setActiveTool(activeTool === 'tape' ? null : 'tape')}
+                  style={{ position: 'absolute', top: -40, left: -40, rotate: '-14deg', zIndex: 20 }}
+                  className="p-1"
+                  title="Tape tool"
+                  initial={{ y: -120, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1, transition: { type: 'spring', stiffness: 320, damping: 26, delay: 0.08 } }}
+                  exit={{ y: -120, opacity: 0, transition: { duration: 0.3, ease: 'easeIn' } }}
+                >
+                  <img
+                    src="/Tape.png"
+                    width="200"
+                    height="200"
+                    alt="Tape"
+                    className={`transition-all duration-150 ${activeTool === 'tape' ? 'opacity-100 scale-110' : 'opacity-100 hover:scale-105'}`}
+                    style={{ filter: activeTool === 'tape' ? 'drop-shadow(0 6px 12px rgba(0,0,0,0.6))' : 'drop-shadow(0 3px 6px rgba(0,0,0,0.35))' }}
+                  />
+                </motion.button>
+                <motion.button
+                  key="text-tool"
+                  onClick={() => setActiveTool(activeTool === 'text' ? null : 'text')}
+                  style={{ position: 'absolute', top: -32, left: '52%', translateX: '-50%', rotate: '-6deg', zIndex: 20 }}
+                  className="p-1"
+                  title="Text tool"
+                  initial={{ y: -120, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1, transition: { type: 'spring', stiffness: 320, damping: 26, delay: 0.04 } }}
+                  exit={{ y: -120, opacity: 0, transition: { duration: 0.3, ease: 'easeIn', delay: 0.04 } }}
+                >
+                  <img
+                    src="/Text.png"
+                    width="180"
+                    height="180"
+                    alt="Text"
+                    className={`transition-all duration-150 ${activeTool === 'text' ? 'opacity-100 scale-110' : 'opacity-100 hover:scale-105'}`}
+                    style={{ filter: activeTool === 'text' ? 'drop-shadow(0 6px 12px rgba(0,0,0,0.6))' : 'drop-shadow(0 3px 6px rgba(0,0,0,0.35))' }}
+                  />
+                </motion.button>
+                <motion.button
+                  key="glue-tool"
+                  ref={glueButtonRef}
+                  onClick={() => setActiveTool(activeTool === 'glue' ? null : 'glue')}
+                  style={{ position: 'absolute', top: -32, right: -24, rotate: '12deg', zIndex: 20, opacity: isGlueBottleAway ? 0 : 1, pointerEvents: isGlueBottleAway ? 'none' : 'auto', transition: 'opacity 0.1s' }}
+                  className="p-1"
+                  title="Glue tool"
+                  initial={{ y: -120, opacity: 0 }}
+                  animate={{ y: 0, opacity: isGlueBottleAway ? 0 : 1, transition: { type: 'spring', stiffness: 320, damping: 26, delay: 0 } }}
+                  exit={{ y: -120, opacity: 0, transition: { duration: 0.3, ease: 'easeIn', delay: 0.08 } }}
+                >
+                  <img
+                    src="/Glue.png"
+                    width="200"
+                    height="200"
+                    alt="Glue"
+                    className={`transition-all duration-150 ${activeTool === 'glue' ? 'opacity-100 scale-110' : 'opacity-100 hover:scale-105'}`}
+                    style={{ filter: activeTool === 'glue' ? 'drop-shadow(0 6px 12px rgba(0,0,0,0.6))' : 'drop-shadow(0 3px 6px rgba(0,0,0,0.35))' }}
+                  />
+                </motion.button>
+              </>
+            )}
+          </AnimatePresence>
+          {/* Top Bar - Subtle icons on the desk */}
+          <div className="w-full h-16 flex justify-between items-center px-6 md:px-12 shrink-0 z-10">
+            <div />
 
-          <div className="flex items-center gap-3">
-            <div className="text-right hidden sm:block">
-              <h1 className="text-lg leading-none" style={{ fontFamily: 'Caveat, cursive', color: 'rgba(232,213,184,0.7)', fontWeight: 700 }}>My Scrapbook</h1>
-              <p className="text-[9px] uppercase mt-1" style={{ color: 'rgba(212,170,80,0.4)', letterSpacing: '0.2em' }}>
-                Page {currentPageIndex + 1} of {pages.length}
-              </p>
-            </div>
-            <div className="flex gap-0.5">
-              <button
-                disabled={currentPageIndex === 0}
-                onClick={() => { setActiveTool(null); handlePageTurn('prev'); }}
-                className="p-2 rounded-lg disabled:opacity-15 transition-colors"
-                style={{ color: 'rgba(212,170,80,0.6)' }}
-              >
-                <ChevronLeft size={18} />
-              </button>
-              <button
-                onClick={() => { setActiveTool(null); handlePageTurn('next'); }}
-                className="p-2 rounded-lg transition-colors"
-                style={{ color: 'rgba(212,170,80,0.6)' }}
-              >
-                <ChevronRight size={18} />
-              </button>
+            <div className="flex items-center gap-3">
+              <div className="text-right hidden sm:block">
+                <h1 className="text-lg leading-none" style={{ fontFamily: 'Caveat, cursive', color: 'rgba(232,213,184,0.7)', fontWeight: 700 }}>My Scrapbook</h1>
+                <p className="text-[9px] uppercase mt-1" style={{ color: 'rgba(212,170,80,0.4)', letterSpacing: '0.2em' }}>
+                  Page {currentPageIndex + 1} of {pages.length}
+                </p>
+              </div>
+              <div className="flex gap-0.5">
+                <button
+                  disabled={currentPageIndex === 0}
+                  onClick={() => { setActiveTool(null); handlePageTurn('prev'); }}
+                  className="p-2 rounded-lg disabled:opacity-15 transition-colors"
+                  style={{ color: 'rgba(212,170,80,0.6)' }}
+                >
+                  <ChevronLeft size={18} />
+                </button>
+                <button
+                  onClick={() => { setActiveTool(null); handlePageTurn('next'); }}
+                  className="p-2 rounded-lg transition-colors"
+                  style={{ color: 'rgba(212,170,80,0.6)' }}
+                >
+                  <ChevronRight size={18} />
+                </button>
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Scrapbook on Desk */}
-        <div className="relative flex-1 flex items-center justify-start w-full">
-          {/* Cover + book wrapper — cover bleeds 28px beyond book on all sides.
-              Shifted left by 96px (28 cover bleed + 36 spine + 14 page-stack + 18 gutter)
-              so the Konva canvas left edge aligns to x=0 of the screen. */}
-          <div className="relative" style={{ width: bookDims.width + 56, height: bookDims.height + 56, marginLeft: -96 }}>
-            {/* Leather cover — sits behind everything */}
-            <img
-              src="/scrapbook_cover.png"
-              alt=""
-              aria-hidden="true"
-              className="absolute inset-0 w-full h-full object-cover rounded-lg pointer-events-none"
-              style={{ filter: 'drop-shadow(0 24px 60px rgba(0,0,0,0.65))' }}
-            />
-            {/* Book positioned inset 28px from cover edges */}
-            <div
-              className="absolute book-container"
-              style={{ top: 28, left: 28, width: bookDims.width, height: bookDims.height }}
-            >
-              <div className="spine" />
-              <div className="page-stack" />
-              <div className="gutter" />
+          {/* Scrapbook on Desk */}
+          <div className="relative flex-1 flex items-center justify-start w-full">
+            {/* Cover + book wrapper — cover bleeds 28px beyond book on all sides.
+                Shifted left by 96px (28 cover bleed + 36 spine + 14 page-stack + 18 gutter)
+                so the Konva canvas left edge aligns to x=0 of the screen. */}
+            <div className="relative" style={{ width: bookDims.width + 56, height: bookDims.height + 56, marginLeft: -96 }}>
+              {/* Leather cover — sits behind everything */}
+              <img
+                src="/scrapbook_cover.png"
+                alt=""
+                aria-hidden="true"
+                className="absolute inset-0 w-full h-full object-cover rounded-lg pointer-events-none"
+                style={{ filter: 'drop-shadow(0 24px 60px rgba(0,0,0,0.65))' }}
+              />
+              {/* Book positioned inset 28px from cover edges */}
               <div
-                ref={bookPageRef}
-                className="book-page"
+                className="absolute book-container"
+                style={{ top: 28, left: 28, width: bookDims.width, height: bookDims.height }}
               >
-                <div style={{ pointerEvents: galleryOpen ? 'none' : 'auto' }}>
-                  <Scrapbook
-                    page={currentPage}
-                    dimensions={{ width: bookDims.width - 68, height: bookDims.height }}
-                    onUpdateScrap={updateScrap}
-                    onUpdateEntry={updateEntry}
-                    onReturnScrap={handleReturnScrap}
-                    onAddTapeStrip={handleAddTapeStrip}
-                    isTapeActive={activeTool === 'tape'}
-                    isGlueActive={activeTool === 'glue'}
-                    fallingScrapIds={fallingOff?.scrapIds ?? null}
-                    onFallComplete={handleFallComplete}
-                    selectedScrapId={selectedScrapId}
-                    onSelectScrap={handleSelectScrap}
-                    gluingScrapId={gluingScrapId}
-                    onGlueTap={handleGlueTap}
-                    onPeel={handlePeel}
-                  />
+                <div className="spine" />
+                <div className="page-stack" />
+                <div className="gutter" />
+                <div
+                  ref={bookPageRef}
+                  className="book-page"
+                >
+                  <div style={{ pointerEvents: galleryOpen ? 'none' : 'auto' }}>
+                    <Scrapbook
+                      page={currentPage}
+                      dimensions={{ width: bookDims.width - 68, height: bookDims.height }}
+                      onUpdateScrap={updateScrap}
+                      onUpdateEntry={updateEntry}
+                      onReturnScrap={handleReturnScrap}
+                      onAddTapeStrip={handleAddTapeStrip}
+                      isTapeActive={activeTool === 'tape'}
+                      isGlueActive={activeTool === 'glue'}
+                      fallingScrapIds={fallingOff?.scrapIds ?? null}
+                      onFallComplete={handleFallComplete}
+                      selectedScrapId={selectedScrapId}
+                      onSelectScrap={handleSelectScrap}
+                      gluingScrapId={gluingScrapId}
+                      onGlueTap={handleGlueTap}
+                      onPeel={handlePeel}
+                    />
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Desk Edge Lip */}
-      <div className="desk-edge" />
+        {/* Desk Edge Lip */}
+        <div className="desk-edge" />
 
-      {/* Drawer Area (Bottom 20%) */}
-      <motion.div
-        ref={drawerAreaRef}
-        className="relative w-full h-[20vh] overflow-hidden z-20"
-        style={{ backgroundImage: 'url(/Background.png)', backgroundSize: 'cover', backgroundPosition: 'bottom center' }}
-        animate={drawerBounce ? { y: [0, -6, 0] } : {}}
-        transition={{ duration: 0.25, ease: 'easeOut' }}
-      >
-        <MaterialDrawer
-          materials={drawerMaterials}
-          isOpen={view === 'drawer'}
-          onToggle={(open) => { setActiveTool(null); if (open) { setSelectedScrapId(null); setView('drawer'); } else { setView('scrapbook'); } }}
-          onSelect={noop}
-          onDragMaterial={handleDragMaterial}
-          onClose={() => setView('scrapbook')}
-          onUpload={handleFileUpload}
-          onCardDragging={handleCardDragging}
-          galleryOpen={galleryOpen}
-          onOpenGallery={() => setGalleryOpen(true)}
-        />
-      </motion.div>
+        {/* Drawer Area (Bottom 20%) */}
+        <motion.div
+          ref={drawerAreaRef}
+          className="relative w-full h-[20vh] overflow-hidden z-20"
+          style={{ backgroundImage: 'url(/Background.png)', backgroundSize: 'cover', backgroundPosition: 'bottom center' }}
+          animate={drawerBounce ? { y: [0, -6, 0] } : {}}
+          transition={{ duration: 0.25, ease: 'easeOut' }}
+        >
+          <MaterialDrawer
+            materials={drawerMaterials}
+            isOpen={view === 'drawer'}
+            onToggle={(open) => { setActiveTool(null); if (open) { setSelectedScrapId(null); setView('drawer'); } else { setView('scrapbook'); } }}
+            onSelect={noop}
+            onDragMaterial={handleDragMaterial}
+            onClose={() => setView('scrapbook')}
+            onUpload={handleFileUpload}
+            onCardDragging={handleCardDragging}
+            galleryOpen={galleryOpen}
+            onOpenGallery={() => setGalleryOpen(true)}
+          />
+        </motion.div>
       </motion.div>
 
       {/* Glue animation overlay — rendered outside Konva, fixed over the scrap */}
@@ -676,7 +676,7 @@ export default function App() {
         isOpen={galleryOpen}
         onClose={() => setGalleryOpen(false)}
         onTapMaterial={noop}
-        onDragEnd={() => {}}
+        onDragEnd={noop}
       />
 
       {/* Modals */}
