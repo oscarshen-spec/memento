@@ -24,13 +24,13 @@ describe('clampPosition', () => {
   });
 
   it('falls back to second axis when first-choice push is clamped back into the blocked rect', () => {
-    // Place a blocked rect flush against the left boundary so the shortest-overlap
-    // push-left would land outside the container and get clamped back in.
+    // The blocked rect at {x:64, y:100, w:200, h:120} with a card at (100, 140).
     // Container: 400 wide, 400 tall. BOUNDARY_MARGIN = 64.
-    // blocked rect sits at x=64 (left edge of valid zone), 200px wide.
-    // A card placed at x=100 overlaps on the left; overlapLeft = 100+100-64 = 136.
-    // overlapRight = 64+200-100 = 164  → left is shorter → first push: cx = 64-100-2 = -38 → clamps to 64 → still overlaps.
-    // Second axis (right): cx = 64+200+2 = 266 → valid, no overlap.
+    // Overlaps: overlapLeft = 136, overlapRight = 164, overlapTop = 40, overlapBottom = 80.
+    // overlapBottom = 80 is the shortest → first-choice push is downward: cy = 100+120+2 = 222.
+    // This lands in-bounds (222 + 100 ≈ 322 < 400) and is not overlapping the blocked rect.
+    // This test verifies that when the first-choice axis cleanly escapes the blocked rect,
+    // the iteration terminates without needing to try the remaining axes.
     const blocked = [{ x: 64, y: 100, width: 200, height: 120 }];
     const { x, y } = clampPosition(100, 140, 400, 400, blocked);
     expect(rectsOverlap({ x, y, width: CARD_W, height: CARD_H }, blocked[0])).toBe(false);
