@@ -19,6 +19,7 @@ import { playSound } from './services/soundService';
 import { partitionByStatus, reclassify } from './utils/materialStatus';
 import { Gallery } from './components/Gallery';
 import { rasterizePolygon } from './utils/rasterizePolygon';
+import { compressImage } from './utils/compressImage';
 
 const noop = () => {};
 
@@ -33,16 +34,28 @@ const INITIAL_PAGE: ScrapbookPage = {
 
 export default function App() {
   const [rawMaterials, setRawMaterials] = useState<RawMaterial[]>([
-    { id: 'sample-1', image: '/Japan scraps/web/scrap_01.webp', status: 'drawer' },
-    { id: 'sample-2', image: '/Japan scraps/web/scrap_02.webp', status: 'drawer' },
-    { id: 'sample-3', image: '/Japan scraps/web/scrap_03.webp', status: 'drawer' },
-    { id: 'sample-4', image: '/Japan scraps/web/scrap_04.webp', status: 'drawer' },
-    { id: 'sample-5', image: '/Japan scraps/web/scrap_05.webp', status: 'drawer' },
-    { id: 'sample-6', image: '/Japan scraps/web/scrap_06.webp', status: 'drawer' },
-    { id: 'sample-7', image: '/Japan scraps/web/scrap_07.webp', status: 'drawer' },
-    { id: 'sample-8', image: '/Japan scraps/web/scrap_08.webp', status: 'drawer' },
-    { id: 'sample-9', image: '/Japan scraps/web/scrap_09.webp', status: 'drawer' },
+    { id: 'sample-3', image: '/Europe-scraps/Group 6.png', status: 'drawer' },
+    { id: 'sample-palace', image: '/palace.png', status: 'drawer' },
+    { id: 'europe-2242', image: '/Europe_2242.png', status: 'drawer' },
+    { id: 'europe-2288', image: '/Europe_2288.png', status: 'drawer' },
+    { id: 'europe-2321', image: '/Europe_2321.png', status: 'drawer' },
+    { id: 'vatican-scrap', image: '/Europe-scraps/Vatican-scrap.png', status: 'drawer' },
   ]);
+  // Compress any static-URL images (e.g. large photos) down to a drawable size on mount.
+  // Static paths start with '/' and haven't been through canvas yet.
+  React.useEffect(() => {
+    setRawMaterials(prev => {
+      const toCompress = prev.filter(m => m.image.startsWith('/'));
+      if (toCompress.length === 0) return prev;
+      toCompress.forEach(m => {
+        compressImage(m.image).then(compressed => {
+          setRawMaterials(cur => cur.map(r => r.id === m.id ? { ...r, image: compressed } : r));
+        });
+      });
+      return prev;
+    });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   const { drawer: drawerMaterials, gallery: galleryMaterials } = React.useMemo(
     () => partitionByStatus(rawMaterials),
     [rawMaterials],
@@ -162,7 +175,7 @@ export default function App() {
     const objectUrl = URL.createObjectURL(file);
     const img = new Image();
     img.onload = () => {
-      const MAX = 1200;
+      const MAX = 400;
       const scale = Math.min(1, MAX / Math.max(img.width, img.height));
       const canvas = document.createElement('canvas');
       canvas.width = Math.round(img.width * scale);
@@ -476,7 +489,7 @@ export default function App() {
     <div className="relative w-full h-screen overflow-hidden select-none flex flex-col bg-[#0f0805]">
       <motion.div
         className="flex flex-col w-full"
-        animate={{ y: galleryOpen ? '-30vh' : 0 }}
+        animate={{ y: galleryOpen ? '-80vh' : 0 }}
         transition={{ type: 'spring', damping: 25, stiffness: 200 }}
       >
         {/* Desk Area (Top 80%) */}

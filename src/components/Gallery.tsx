@@ -107,8 +107,8 @@ export const Gallery: React.FC<GalleryProps> = ({
     <motion.div
       className="absolute inset-x-0 bottom-0 flex flex-col shadow-[0_-10px_40px_rgba(0,0,0,0.5)]"
       style={{
-        height: '30vh',
-        backgroundImage: 'url(/Drawer.png)',
+        height: 'calc(80vh - 32px)',
+        backgroundImage: 'url(/gallery_background.png)',
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         touchAction: 'none',

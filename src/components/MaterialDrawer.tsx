@@ -316,7 +316,7 @@ export const MaterialDrawer: React.FC<MaterialDrawerProps> = ({
 
   return (
     <motion.div
-      drag="y"
+      drag={galleryOpen ? false : 'y'}
       dragConstraints={{ top: -200, bottom: 0 }}
       dragElastic={0.05}
       onDragEnd={onDrawerDragEnd}
@@ -366,8 +366,12 @@ export const MaterialDrawer: React.FC<MaterialDrawerProps> = ({
       </div>
 
       <div
-        onClick={() => { playDrawerSound(!isOpen); onToggle(!isOpen); }}
-        className="h-[24px] drawer-front flex flex-col items-center justify-center cursor-grab active:cursor-grabbing shrink-0 border-t border-white/5 relative"
+        onClick={() => {
+          if (galleryOpen) return;
+          playDrawerSound(!isOpen);
+          onToggle(!isOpen);
+        }}
+        className={`h-[24px] drawer-front flex flex-col items-center justify-center shrink-0 border-t border-white/5 relative ${galleryOpen ? 'cursor-default' : 'cursor-grab active:cursor-grabbing'}`}
       >
         <div className="drawer-handle" />
       </div>

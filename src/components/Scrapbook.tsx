@@ -766,20 +766,7 @@ const TextItem: React.FC<TextItemProps> = ({ entry, isSelected, onSelect, onChan
 // ─── LinedPaper ──────────────────────────────────────────────────────────────────
 
 const LinedPaper: React.FC<{ width: number; height: number }> = ({ width, height }) => {
-  const lineSpacing = 28;
-  const lines: React.ReactElement[] = [];
-
-  for (let y = lineSpacing; y < height; y += lineSpacing) {
-    lines.push(
-      <Line
-        key={`h-${y}`}
-        points={[0, y, width, y]}
-        stroke="#ccc5b5"
-        strokeWidth={0.8}
-        listening={false}
-      />
-    );
-  }
+  const [paperImage] = useImage('/Final Process.png');
 
   return (
     <>
@@ -791,21 +778,16 @@ const LinedPaper: React.FC<{ width: number; height: number }> = ({ width, height
         fill="#fefcf5"
         listening={false}
       />
-      {lines}
-      <Line
-        points={[0, 34, width, 34]}
-        stroke="#ccc5b5"
-        strokeWidth={1.5}
-        opacity={0.5}
-        listening={false}
-      />
-      <Line
-        points={[44, 0, 44, height]}
-        stroke="#e8a0a0"
-        strokeWidth={1}
-        opacity={0.55}
-        listening={false}
-      />
+      {paperImage && (
+        <KonvaImage
+          image={paperImage}
+          x={0}
+          y={0}
+          width={width}
+          height={height}
+          listening={false}
+        />
+      )}
     </>
   );
 };
