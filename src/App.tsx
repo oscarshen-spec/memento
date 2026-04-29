@@ -849,7 +849,7 @@ export default function App() {
                   key="printer-tool"
                   ref={printerButtonRef}
                   onClick={handleExport}
-                  style={{ position: 'absolute', top: -20, right: -18, zIndex: 20 }}
+                  style={{ position: 'absolute', top: 0, right: -10, zIndex: 20 }}
                   className="p-1"
                   title="Export"
                   initial={{ y: -120, opacity: 0 }}
