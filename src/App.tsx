@@ -22,6 +22,7 @@ import { partitionByStatus, reclassify } from './utils/materialStatus';
 import { Gallery } from './components/Gallery';
 import { WindowLight } from './components/WindowLight';
 import { DebugPanel } from './components/DebugPanel';
+import { ExportOverlay } from './components/ExportOverlay';
 import { rasterizePolygon } from './utils/rasterizePolygon';
 import { compressImage } from './utils/compressImage';
 import { PaperTearBorderEffect, applyTornEdgeFringe } from './effects/PaperTearBorderEffect';
@@ -973,6 +974,12 @@ export default function App() {
 
       {debugWindowLight && (view === 'scrapbook' || view === 'drawer') && <WindowLight />}
       <DebugPanel windowLight={debugWindowLight} onWindowLightChange={setDebugWindowLight} />
+      {exportedImageUrl && (
+        <ExportOverlay
+          imageUrl={exportedImageUrl}
+          onClose={() => setExportedImageUrl(null)}
+        />
+      )}
 
       {/* Glue animation overlay — rendered outside Konva, fixed over the scrap */}
       {gluingScrapId && glueAnimRect && glueToolRect && (
