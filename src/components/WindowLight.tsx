@@ -88,7 +88,7 @@ export function WindowLight() {
             background: 'rgba(255,230,140,0.06)',
             transform: 'rotate(30deg)',
             transformOrigin: 'top left',
-            filter: 'blur(8px)',
+            filter: 'blur(6px)',
           }}
         />
       </div>
