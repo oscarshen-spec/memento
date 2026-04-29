@@ -1,10 +1,13 @@
 import React, { useLayoutEffect, useState } from 'react';
 import { motion } from 'motion/react';
 
-const PRINTER_W = 196;
-const PRINTER_H = 244;
-const SLOT_Y = 190;
+// Display dimensions (scaled from 786px native width)
+const PRINTER_W = 280;
+const TOP_H = Math.round(196 * PRINTER_W / 786);   // ~70px
+const BOTTOM_H = Math.round(92 * PRINTER_W / 786);  // ~33px
+const PAPER_W = 200;
 const PAPER_H = 260;
+const PAPER_X = Math.round((PRINTER_W - PAPER_W) / 2); // center paper under printer
 const BTN_PAD = 4;
 
 export interface PrinterPaperProps {
@@ -28,7 +31,6 @@ export const PrinterPaper: React.FC<PrinterPaperProps> = ({
 
   if (!rect) return null;
 
-  // The printer img origin is BTN_PAD inside the button's bounding rect
   const imgLeft = rect.left + BTN_PAD;
   const imgTop = rect.top + BTN_PAD;
 
@@ -39,38 +41,37 @@ export const PrinterPaper: React.FC<PrinterPaperProps> = ({
         left: imgLeft,
         top: imgTop,
         width: PRINTER_W,
-        height: PRINTER_H + PAPER_H,
+        height: TOP_H + PAPER_H,
         pointerEvents: 'none',
         zIndex: 200,
       }}
     >
-      {/* ── Top half of printer (above slot) ── */}
+      {/* Top layer — printer body, highest z-index, covers top of emerging paper */}
       <div
         style={{
           position: 'absolute',
           top: 0,
           left: 0,
-          height: SLOT_Y,
-          overflow: 'hidden',
           zIndex: 30,
         }}
       >
         <img
-          src="/Printer.png"
+          src="/img/card_printer_top.png"
           width={PRINTER_W}
-          height={PRINTER_H}
+          height={TOP_H}
           alt=""
           draggable={false}
           style={{ display: 'block' }}
         />
       </div>
 
-      {/* ── Paper clip container (paper slides out here) ── */}
+      {/* Paper clip container — paper slides downward from behind the slot */}
       <div
         style={{
           position: 'absolute',
-          top: SLOT_Y,
-          left: 0,
+          top: TOP_H,
+          left: PAPER_X,
+          width: PAPER_W,
           height: PAPER_H,
           overflow: 'hidden',
           zIndex: 20,
@@ -82,7 +83,7 @@ export const PrinterPaper: React.FC<PrinterPaperProps> = ({
           draggable={false}
           style={{
             display: 'block',
-            width: PRINTER_W,
+            width: PAPER_W,
             height: PAPER_H,
             objectFit: 'contain',
             background: '#fff8f1',
@@ -94,24 +95,22 @@ export const PrinterPaper: React.FC<PrinterPaperProps> = ({
         />
       </div>
 
-      {/* ── Bottom half of printer (slot strip, overlays top of paper) ── */}
+      {/* Bottom layer — output slot, sits on top of paper as it exits (sandwiches paper) */}
       <div
         style={{
           position: 'absolute',
-          top: SLOT_Y,
+          top: TOP_H,
           left: 0,
-          height: PRINTER_H - SLOT_Y,
-          overflow: 'hidden',
           zIndex: 25,
         }}
       >
         <img
-          src="/Printer.png"
+          src="/img/card_printer_bottom.png"
           width={PRINTER_W}
-          height={PRINTER_H}
+          height={BOTTOM_H}
           alt=""
           draggable={false}
-          style={{ display: 'block', marginTop: -SLOT_Y }}
+          style={{ display: 'block' }}
         />
       </div>
     </div>
