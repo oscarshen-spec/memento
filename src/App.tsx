@@ -18,6 +18,7 @@ import { TearCutView } from './components/TearCutView';
 import { playSound } from './services/soundService';
 import { partitionByStatus, reclassify } from './utils/materialStatus';
 import { Gallery } from './components/Gallery';
+import { WindowLight } from './components/WindowLight';
 import { rasterizePolygon } from './utils/rasterizePolygon';
 import { compressImage } from './utils/compressImage';
 import { PaperTearBorderEffect, applyTornEdgeFringe } from './effects/PaperTearBorderEffect';
@@ -928,6 +929,8 @@ export default function App() {
           />
         </motion.div>
       </motion.div>
+
+      {(view === 'scrapbook' || view === 'drawer') && <WindowLight />}
 
       {/* Glue animation overlay — rendered outside Konva, fixed over the scrap */}
       {gluingScrapId && glueAnimRect && glueToolRect && (
