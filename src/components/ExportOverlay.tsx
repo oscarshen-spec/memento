@@ -14,6 +14,7 @@ async function dataUrlToFile(dataUrl: string, filename: string): Promise<File> {
 
 export const ExportOverlay: React.FC<ExportOverlayProps> = ({ imageUrl, onClose }) => {
   const handleShare = async () => {
+    if (!imageUrl) return;
     try {
       const file = await dataUrlToFile(imageUrl, 'memento-page.png');
       if (navigator.canShare?.({ files: [file] })) {
