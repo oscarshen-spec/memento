@@ -48,6 +48,43 @@ export function WindowLight() {
         ['--flood-y' as string]: '-10%',
       }}
     >
+      {/* Clouds: soft blobs drifting behind the light */}
+      <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
+        <div style={{
+          position: 'absolute',
+          top: '4%',
+          left: 0,
+          width: '220px',
+          height: '90px',
+          background: 'radial-gradient(ellipse 60% 50% at 50% 50%, rgba(255,255,255,0.18) 0%, transparent 100%)',
+          filter: 'blur(30px)',
+          animation: 'cloud-drift-a 90s linear infinite',
+          animationDelay: '-20s',
+        }} />
+        <div style={{
+          position: 'absolute',
+          top: '10%',
+          left: 0,
+          width: '300px',
+          height: '110px',
+          background: 'radial-gradient(ellipse 60% 50% at 50% 50%, rgba(255,255,255,0.13) 0%, transparent 100%)',
+          filter: 'blur(36px)',
+          animation: 'cloud-drift-b 70s linear infinite',
+          animationDelay: '-35s',
+        }} />
+        <div style={{
+          position: 'absolute',
+          top: '1%',
+          left: 0,
+          width: '170px',
+          height: '70px',
+          background: 'radial-gradient(ellipse 60% 50% at 50% 50%, rgba(255,255,255,0.10) 0%, transparent 100%)',
+          filter: 'blur(24px)',
+          animation: 'cloud-drift-c 115s linear infinite',
+          animationDelay: '-60s',
+        }} />
+      </div>
+
       {/* Flood: warm radial light from upper-left */}
       <div
         style={{

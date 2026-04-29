@@ -222,6 +222,20 @@ body {
   scrollbar-width: none;
 }
 
+/* ── Window Light Clouds ── */
+@keyframes cloud-drift-a {
+  from { transform: translateX(110vw); }
+  to   { transform: translateX(-60vw); }
+}
+@keyframes cloud-drift-b {
+  from { transform: translateX(90vw); }
+  to   { transform: translateX(-70vw); }
+}
+@keyframes cloud-drift-c {
+  from { transform: translateX(140vw); }
+  to   { transform: translateX(-80vw); }
+}
+
 /* ── Glue Animation ── */
 @keyframes glowFade {
   0%   { opacity: 1; transform: scale(1); }
