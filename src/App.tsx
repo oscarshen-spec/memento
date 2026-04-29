@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import Konva from 'konva';
 import type { PanInfo } from 'motion/react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -98,6 +99,7 @@ export default function App() {
   const [debugWindowLight, setDebugWindowLight] = useState(true);
   const [editingGalleryMaterial, setEditingGalleryMaterial] = useState<RawMaterial | null>(null);
   const glueButtonRef = useRef<HTMLButtonElement>(null);
+  const scrapbookRef = useRef<Konva.Stage>(null);
   const galleryRectRef = React.useRef<DOMRect | null>(null);
 
   const handleReclassify = React.useCallback((id: string, status: 'drawer' | 'gallery') => {
@@ -904,6 +906,7 @@ export default function App() {
                 >
                   <div style={{ pointerEvents: galleryOpen ? 'none' : 'auto' }}>
                     <Scrapbook
+                      ref={scrapbookRef}
                       page={currentPage}
                       dimensions={{ width: bookDims.width - 68, height: bookDims.height }}
                       onUpdateScrap={updateScrap}
