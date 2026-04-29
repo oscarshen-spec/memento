@@ -10,7 +10,8 @@ export type SoundName =
   | 'tapeRip'
   | 'scissorTrace'
   | 'scissorSnip'
-  | 'penStroke';
+  | 'penStroke'
+  | 'paperTearSnap';
 
 let _ctx: AudioContext | null = null;
 
@@ -273,6 +274,77 @@ function penStroke() {
   ink.stop(t + 0.025);
 }
 
+function paperTearSnap() {
+  const ctx = getCtx();
+  const t = ctx.currentTime;
+  const sr = ctx.sampleRate;
+
+  // Modelled on "Paper, Rip, Letter Paper Tear" — thin dry paper, sibilant
+  // friction character, peak energy 3–5 kHz, very light low end.
+
+  // ── Sibilant friction burst — the main "rrip" character ─────────────────
+  const dur = 0.22;
+  const fricBuf = ctx.createBuffer(1, Math.ceil(sr * dur), sr);
+  const fricData = fricBuf.getChannelData(0);
+  for (let i = 0; i < fricData.length; i++) fricData[i] = Math.random() * 2 - 1;
+  const fricSrc = ctx.createBufferSource();
+  fricSrc.buffer = fricBuf;
+
+  const fricHp = ctx.createBiquadFilter(); // cut mud below 800 Hz (thin paper)
+  fricHp.type = 'highpass';
+  fricHp.frequency.value = 800;
+  fricHp.Q.value = 0.7;
+
+  const fricPeak = ctx.createBiquadFilter(); // boost sibilant presence 3–5 kHz
+  fricPeak.type = 'peaking';
+  fricPeak.frequency.value = 3800;
+  fricPeak.Q.value = 0.9;
+  fricPeak.gain.value = 10;
+
+  const fricLp = ctx.createBiquadFilter(); // natural ceiling for paper
+  fricLp.type = 'lowpass';
+  fricLp.frequency.value = 12000;
+
+  const fricGain = ctx.createGain();
+  fricGain.gain.setValueAtTime(0, t);
+  fricGain.gain.linearRampToValueAtTime(0.38, t + 0.010); // 10 ms attack
+  fricGain.gain.setValueAtTime(0.38, t + 0.06);
+  fricGain.gain.exponentialRampToValueAtTime(0.001, t + dur);
+
+  fricSrc.connect(fricHp);
+  fricHp.connect(fricPeak);
+  fricPeak.connect(fricLp);
+  fricLp.connect(fricGain);
+  fricGain.connect(ctx.destination);
+  fricSrc.start(t);
+  fricSrc.stop(t + dur + 0.01);
+
+  // ── Final-edge sweep: bandpass descending 6 kHz → 1.5 kHz ───────────────
+  // Mimics the tear propagating to the paper edge and the tension releasing.
+  const sweepBuf = ctx.createBuffer(1, Math.ceil(sr * 0.18), sr);
+  const sweepData = sweepBuf.getChannelData(0);
+  for (let i = 0; i < sweepData.length; i++) sweepData[i] = Math.random() * 2 - 1;
+  const sweepSrc = ctx.createBufferSource();
+  sweepSrc.buffer = sweepBuf;
+
+  const sweepBp = ctx.createBiquadFilter();
+  sweepBp.type = 'bandpass';
+  sweepBp.frequency.setValueAtTime(6000, t);
+  sweepBp.frequency.exponentialRampToValueAtTime(1500, t + 0.16);
+  sweepBp.Q.value = 1.2;
+
+  const sweepGain = ctx.createGain();
+  sweepGain.gain.setValueAtTime(0, t);
+  sweepGain.gain.linearRampToValueAtTime(0.22, t + 0.010);
+  sweepGain.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+
+  sweepSrc.connect(sweepBp);
+  sweepBp.connect(sweepGain);
+  sweepGain.connect(ctx.destination);
+  sweepSrc.start(t);
+  sweepSrc.stop(t + 0.19);
+}
+
 function wobbleStart() {
   const ctx = getCtx();
   const t = ctx.currentTime;
@@ -303,6 +375,7 @@ const soundFns: Record<SoundName, () => void> = {
   scissorTrace,
   scissorSnip,
   penStroke,
+  paperTearSnap,
 };
 
 export function playSound(name: SoundName): void {
@@ -310,6 +383,158 @@ export function playSound(name: SoundName): void {
     soundFns[name]();
   } catch {
     // Silently fail — sound is enhancement, not critical
+  }
+}
+
+/**
+ * Starts a continuous paper-tear ripping sound. Returns a function to stop it.
+ * Plays during the drag gesture; call stop when the finger/mouse lifts.
+ */
+export function startPaperTear(): () => void {
+  try {
+    const ctx = getCtx();
+    const t = ctx.currentTime;
+    const sr = ctx.sampleRate;
+
+    // Modelled on "Paper, Rip, Letter Paper Tear" — slow deliberate thin-paper
+    // tear: sustained sibilant dry-paper friction (3–5 kHz dominant), sparse
+    // individually-audible fiber snaps (~15/sec), minimal low end.
+
+    // ── Layer A: sustained sibilant friction hiss (65% of mix) ──────────────
+    // HP 800 Hz removes mud (letter paper is thin — almost no sub-1k energy).
+    // Peaking +10 dB at 3.8 kHz shapes the dry "shhh" paper-friction character.
+    // LP 12 kHz is the natural ceiling for uncoated letter paper.
+    const hissBuf = ctx.createBuffer(1, sr, sr);
+    const hissData = hissBuf.getChannelData(0);
+    for (let i = 0; i < sr; i++) hissData[i] = Math.random() * 2 - 1;
+    const hissSrc = ctx.createBufferSource();
+    hissSrc.buffer = hissBuf;
+    hissSrc.loop = true;
+
+    const hissHp = ctx.createBiquadFilter();
+    hissHp.type = 'highpass';
+    hissHp.frequency.value = 800;
+    hissHp.Q.value = 0.7;
+
+    const hissPeak = ctx.createBiquadFilter();
+    hissPeak.type = 'peaking';
+    hissPeak.frequency.value = 3800;
+    hissPeak.Q.value = 0.9;
+    hissPeak.gain.value = 10;
+
+    const hissLp = ctx.createBiquadFilter();
+    hissLp.type = 'lowpass';
+    hissLp.frequency.value = 12000;
+
+    const hissGain = ctx.createGain();
+    hissGain.gain.setValueAtTime(0, t);
+    hissGain.gain.linearRampToValueAtTime(0.20, t + 0.010);
+
+    // Slow LFO (~18 Hz) gives the subtle undulation of a deliberate tear,
+    // not the fast crackling of a quick rip.
+    const lfo = ctx.createOscillator();
+    lfo.type = 'sine';
+    lfo.frequency.value = 18;
+    const lfoDepth = ctx.createGain();
+    lfoDepth.gain.value = 0.035;
+    lfo.connect(lfoDepth);
+    lfoDepth.connect(hissGain.gain);
+    lfo.start(t);
+
+    hissSrc.connect(hissHp);
+    hissHp.connect(hissPeak);
+    hissPeak.connect(hissLp);
+    hissLp.connect(hissGain);
+    hissGain.connect(ctx.destination);
+    hissSrc.start(t);
+
+    // ── Layer B: sparse fiber snaps (30% of mix) ─────────────────────────────
+    // Slow tear = ~15 snaps/sec, each individually audible — not a dense crackle.
+    // Power-law amplitude: E = E_min / U^(1/(α−1)), α=1.4 → exponent=2.5.
+    // Each snap is ~10 ms of noise with sharp exponential decay.
+    const snapRate = 15;
+    const snapPeriod = Math.ceil(sr / snapRate);
+    const numSnaps = 30; // 2 s of unique content before loop
+    const snapBuf = ctx.createBuffer(1, snapPeriod * numSnaps, sr);
+    const snapData = snapBuf.getChannelData(0);
+    const snapDur = Math.ceil(sr * 0.010);
+    const alpha = 1.4;
+    const minAmp = 0.04;
+    for (let p = 0; p < numSnaps; p++) {
+      const u = Math.max(0.001, Math.random());
+      const amp = Math.min(1.0, minAmp / Math.pow(u, 1 / (alpha - 1)));
+      const base = p * snapPeriod;
+      for (let i = 0; i < snapDur; i++) {
+        snapData[base + i] =
+          Math.exp(-i / (sr * 0.002)) * (Math.random() * 2 - 1) * amp;
+      }
+    }
+    const snapSrc = ctx.createBufferSource();
+    snapSrc.buffer = snapBuf;
+    snapSrc.loop = true;
+
+    const snapBp = ctx.createBiquadFilter();
+    snapBp.type = 'bandpass';
+    snapBp.frequency.value = 3200;
+    snapBp.Q.value = 1.0;
+
+    const snapGain = ctx.createGain();
+    snapGain.gain.setValueAtTime(0, t);
+    snapGain.gain.linearRampToValueAtTime(0.30, t + 0.010);
+
+    snapSrc.connect(snapBp);
+    snapBp.connect(snapGain);
+    snapGain.connect(ctx.destination);
+    snapSrc.start(t);
+
+    // ── Layer C: very faint paper-body resonance (5% of mix) ─────────────────
+    const bodyBuf = ctx.createBuffer(1, sr, sr);
+    const bodyData = bodyBuf.getChannelData(0);
+    for (let i = 0; i < sr; i++) bodyData[i] = Math.random() * 2 - 1;
+    const bodySrc = ctx.createBufferSource();
+    bodySrc.buffer = bodyBuf;
+    bodySrc.loop = true;
+
+    const bodyBp = ctx.createBiquadFilter();
+    bodyBp.type = 'bandpass';
+    bodyBp.frequency.value = 280;
+    bodyBp.Q.value = 1.2;
+
+    const bodyGain = ctx.createGain();
+    bodyGain.gain.setValueAtTime(0, t);
+    bodyGain.gain.linearRampToValueAtTime(0.05, t + 0.015);
+
+    bodySrc.connect(bodyBp);
+    bodyBp.connect(bodyGain);
+    bodyGain.connect(ctx.destination);
+    bodySrc.start(t);
+
+    let stopped = false;
+    return () => {
+      if (stopped) return;
+      stopped = true;
+      const now = ctx.currentTime;
+      const fade = 0.035;
+      const stopAt = now + fade + 0.005;
+
+      lfoDepth.gain.cancelScheduledValues(now);
+      lfoDepth.gain.setValueAtTime(lfoDepth.gain.value, now);
+      lfoDepth.gain.linearRampToValueAtTime(0, now + fade);
+      lfo.stop(stopAt);
+
+      for (const [gainNode, src] of [
+        [hissGain, hissSrc],
+        [snapGain, snapSrc],
+        [bodyGain, bodySrc],
+      ] as [GainNode, AudioBufferSourceNode][]) {
+        gainNode.gain.cancelScheduledValues(now);
+        gainNode.gain.setValueAtTime(gainNode.gain.value, now);
+        gainNode.gain.linearRampToValueAtTime(0, now + fade);
+        src.stop(stopAt);
+      }
+    };
+  } catch {
+    return () => {};
   }
 }
 

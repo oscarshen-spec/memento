@@ -212,11 +212,12 @@ interface MaterialDrawerProps {
   onOpenGallery: () => void;
   onReclassifyToGallery: (id: string) => void;
   galleryRectRef: React.RefObject<DOMRect | null>;
+  onAddEnvelope?: () => void;
 }
 
 export const MaterialDrawer: React.FC<MaterialDrawerProps> = ({
   materials, onSelect, isOpen, onToggle, onDragMaterial, onCardDragging, galleryOpen, onOpenGallery,
-  onReclassifyToGallery, galleryRectRef,
+  onReclassifyToGallery, galleryRectRef, onAddEnvelope,
 }) => {
   const controls = useAnimation();
   const overflowDivRef = React.useRef<HTMLDivElement>(null);
@@ -360,6 +361,35 @@ export const MaterialDrawer: React.FC<MaterialDrawerProps> = ({
                 />
               );
             })
+          )}
+          {onAddEnvelope && (
+            <button
+              onPointerDown={(e) => { e.stopPropagation(); e.nativeEvent.stopImmediatePropagation(); }}
+              onPointerUp={(e) => { e.stopPropagation(); e.nativeEvent.stopImmediatePropagation(); }}
+              onClick={(e) => { e.stopPropagation(); onAddEnvelope(); }}
+              title="Add envelope"
+              style={{
+                position: 'absolute',
+                left: 10,
+                bottom: 10,
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                padding: 4,
+                opacity: 0.72,
+                filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.4))',
+              }}
+            >
+              <svg width="40" height="30" viewBox="0 0 40 30" fill="none" xmlns="http://www.w3.org/2000/svg">
+                {/* Envelope body */}
+                <rect x="1" y="1" width="38" height="28" rx="2" fill="#f2ead8" stroke="#c8b890" strokeWidth="1"/>
+                {/* Flap triangle */}
+                <polygon points="1,1 39,1 20,17" fill="#e8dfc4" stroke="#c8b890" strokeWidth="0.8"/>
+                {/* Bottom V fold lines */}
+                <line x1="1" y1="29" x2="20" y2="16" stroke="#c8b890" strokeWidth="0.6" opacity="0.5"/>
+                <line x1="39" y1="29" x2="20" y2="16" stroke="#c8b890" strokeWidth="0.6" opacity="0.5"/>
+              </svg>
+            </button>
           )}
           <TinBox isOpen={galleryOpen} onOpen={onOpenGallery} />
         </div>

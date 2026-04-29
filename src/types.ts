@@ -57,11 +57,24 @@ export interface ResidueMark {
   rotation: number;
 }
 
+export interface Envelope {
+  id: string;
+  x: number;
+  y: number;
+  rotation: number;
+  scale: number;
+  style: 'cream' | 'kraft' | 'pink';
+  isOpen: boolean;
+  contents: Scrap[]; // scraps with x/y relative to envelope interior (origin = top-left of body)
+  zIndex: number;
+}
+
 export interface ScrapbookPage {
   id: string;
   scraps: Scrap[];
   journalEntries: JournalEntry[];
   tapeStrips: TapeStrip[];
   residueMarks: ResidueMark[];
+  envelopes: Envelope[];
   background: string;
 }

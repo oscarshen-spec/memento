@@ -4,7 +4,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { partitionScraps, tapeTouchesScrap } from './utils/scrapUtils';
 import confetti from 'canvas-confetti';
-import { Scrap, Point, RawMaterial, ScrapbookPage, JournalEntry, TapeStrip, ResidueMark } from './types';
+import { Scrap, Point, RawMaterial, ScrapbookPage, JournalEntry, TapeStrip, ResidueMark, Envelope } from './types';
 import { CameraView } from './components/CameraView';
 import { CuttingRoom } from './components/CuttingRoom';
 import { Scrapbook } from './components/Scrapbook';
@@ -20,6 +20,8 @@ import { partitionByStatus, reclassify } from './utils/materialStatus';
 import { Gallery } from './components/Gallery';
 import { rasterizePolygon } from './utils/rasterizePolygon';
 import { compressImage } from './utils/compressImage';
+import { PaperTearBorderEffect, applyTornEdgeFringe } from './effects/PaperTearBorderEffect';
+import { bakePaperTearPiece } from './services/webglTearEffect';
 
 const noop = () => {};
 
@@ -29,6 +31,7 @@ const INITIAL_PAGE: ScrapbookPage = {
   journalEntries: [],
   tapeStrips: [],
   residueMarks: [],
+  envelopes: [],
   background: '#fdfaf3',
 };
 
@@ -136,15 +139,15 @@ export default function App() {
 
   const currentPage = pages[currentPageIndex];
 
-  // Calculate scrapbook dimensions based on screen size (desk is 80vh)
+  // Calculate scrapbook dimensions — constrained to the 430px container cap
   const getScrapbookDimensions = () => {
+    const containerWidth = window.innerWidth;
     const deskHeight = window.innerHeight * 0.8;
-    const padding = 0;
-    const verticalPadding = window.innerWidth < 768 ? 60 : 100;
+    const verticalPadding = 60;
     const topBarHeight = 64;
-    
+
     return {
-      width: window.innerWidth - padding,
+      width: containerWidth,
       height: deskHeight - verticalPadding - topBarHeight,
     };
   };
@@ -239,6 +242,65 @@ export default function App() {
       origin: { y: 0.6 },
       colors: ['#e8d5b8', '#d4aa50', '#c4704b'],
     });
+
+    if (isTorn) {
+      const pageIdx = currentPageIndex;
+      const srcImage = currentMaterial.image;
+
+      const bakeTornPiece = async (scrapId: string, polygon: Point[]) => {
+        try {
+          const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+            const el = new Image();
+            el.onload = () => resolve(el);
+            el.onerror = () => reject(new Error('Image load failed'));
+            el.src = srcImage;
+          });
+
+          const xs = polygon.map(p => p.x);
+          const ys = polygon.map(p => p.y);
+          const minX = Math.min(...xs);
+          const minY = Math.min(...ys);
+          const bboxW = (Math.max(...xs) - minX) || 1;
+          const bboxH = (Math.max(...ys) - minY) || 1;
+
+          const srcCanvas = document.createElement('canvas');
+          srcCanvas.width = bboxW;
+          srcCanvas.height = bboxH;
+          const ctx = srcCanvas.getContext('2d')!;
+          ctx.save();
+          ctx.beginPath();
+          polygon.forEach((p, i) => {
+            if (i === 0) ctx.moveTo(p.x - minX, p.y - minY);
+            else ctx.lineTo(p.x - minX, p.y - minY);
+          });
+          ctx.closePath();
+          ctx.clip();
+          ctx.drawImage(img, -minX, -minY);
+          ctx.restore();
+
+          const normalizedPolygon = polygon.map(p => ({
+            x: (p.x - minX) / bboxW,
+            y: (p.y - minY) / bboxH,
+          }));
+
+          const bakedUrl = await new PaperTearBorderEffect([normalizedPolygon]).processImage(srcCanvas);
+
+          setPages(prev => prev.map((page, i) =>
+            i !== pageIdx ? page : {
+              ...page,
+              scraps: page.scraps.map(s =>
+                s.id === scrapId ? { ...s, image: bakedUrl, points: [] } : s,
+              ),
+            },
+          ));
+        } catch (err) {
+          console.error('Tear effect baking failed:', err);
+        }
+      };
+
+      bakeTornPiece(scraps[0].id, points);
+      if (secondPoints) bakeTornPiece(scraps[1].id, secondPoints);
+    }
   };
 
   const handleDragMaterial = React.useCallback((material: RawMaterial, info: PanInfo) => {
@@ -344,6 +406,84 @@ export default function App() {
     setPages(updatedPages);
   };
 
+  const updateEnvelope = (id: string, attrs: Partial<Envelope>) => {
+    setPages(prev => prev.map((p, i) =>
+      i !== currentPageIndex ? p : {
+        ...p,
+        envelopes: (p.envelopes ?? []).map(e => e.id === id ? { ...e, ...attrs } : e),
+      }
+    ));
+  };
+
+  const handleAddEnvelope = React.useCallback(() => {
+    const styles = ['cream', 'kraft', 'pink'] as const;
+    const style = styles[Math.floor(Math.random() * styles.length)];
+    const newEnvelope: Envelope = {
+      id: Math.random().toString(36).substr(2, 9),
+      x: (bookDims.width - 68) / 2,
+      y: bookDims.height / 2,
+      rotation: (Math.random() - 0.5) * 4,
+      scale: 0.75,
+      style,
+      isOpen: false,
+      contents: [],
+      zIndex: pages[currentPageIndex].envelopes?.length ?? 0,
+    };
+    setPages(prev => prev.map((p, i) =>
+      i !== currentPageIndex ? p : { ...p, envelopes: [...(p.envelopes ?? []), newEnvelope] }
+    ));
+    // Close the drawer and gallery so the user can see the envelope on the canvas
+    setGalleryOpen(false);
+    setView('scrapbook');
+    setSelectedScrapId(null);
+  }, [bookDims, currentPageIndex, pages]);
+
+  const handleTuckScrap = React.useCallback((scrapId: string, envelopeId: string, dropX: number, dropY: number) => {
+    setPages(prev => prev.map((page, i) => {
+      if (i !== currentPageIndex) return page;
+      const scrap = page.scraps.find(s => s.id === scrapId);
+      const envelope = (page.envelopes ?? []).find(e => e.id === envelopeId);
+      if (!scrap || !envelope) return page;
+
+      // Convert canvas drop position to envelope interior local coords
+      const ENV_W = 200, ENV_H = 130, FLAP_H = 55;
+      const localX = (dropX - envelope.x) / envelope.scale + ENV_W / 2;
+      const localY = (dropY - envelope.y) / envelope.scale + ENV_H / 2 - FLAP_H;
+      const tuckedScrap: Scrap = {
+        ...scrap,
+        x: Math.max(0, Math.min(ENV_W, localX)),
+        y: Math.max(0, Math.min(ENV_H - FLAP_H, localY)),
+      };
+
+      return {
+        ...page,
+        scraps: page.scraps.filter(s => s.id !== scrapId),
+        envelopes: (page.envelopes ?? []).map(e =>
+          e.id === envelopeId ? { ...e, contents: [...e.contents, tuckedScrap] } : e
+        ),
+      };
+    }));
+  }, [currentPageIndex]);
+
+  const handleUntuckScrap = React.useCallback((envelopeId: string, scrap: Scrap, stageX: number, stageY: number) => {
+    setPages(prev => prev.map((page, i) => {
+      if (i !== currentPageIndex) return page;
+      const restoredScrap: Scrap = {
+        ...scrap,
+        x: stageX,
+        y: stageY,
+        zIndex: page.scraps.length,
+      };
+      return {
+        ...page,
+        scraps: [...page.scraps, restoredScrap],
+        envelopes: (page.envelopes ?? []).map(e =>
+          e.id === envelopeId ? { ...e, contents: e.contents.filter(s => s.id !== scrap.id) } : e
+        ),
+      };
+    }));
+  }, [currentPageIndex]);
+
   const handleGlueTap = (scrapId: string, rect: GlueRect) => {
     const br = glueButtonRef.current?.getBoundingClientRect();
     playSound('wobbleStart');
@@ -411,14 +551,21 @@ export default function App() {
 
   const handleTearCut = (topPolygon: Point[], _isTorn: boolean, bottomPolygon: Point[], jaggedLine: Point[]) => {
     if (!tearTarget) return;
-    updateScrap(tearTarget.id, { image: tearTarget.image, points: topPolygon, isTorn: true, tornEdge: jaggedLine });
+
+    const srcImage = tearTarget.image;
+    const targetId = tearTarget.id;
+    const pageIdx = currentPageIndex;
+    const newScrapId = Math.random().toString(36).substring(2, 11);
+
+    // Place both pieces immediately with raw polygons so they appear at once
+    updateScrap(targetId, { image: srcImage, points: topPolygon, isTorn: true, tornEdge: jaggedLine });
     setPages(prev => prev.map((page, i) =>
-      i === currentPageIndex
+      i === pageIdx
         ? {
             ...page,
             scraps: [...page.scraps, {
-              id: Math.random().toString(36).substring(2, 11),
-              image: tearTarget.image,
+              id: newScrapId,
+              image: srcImage,
               points: bottomPolygon,
               tornEdge: jaggedLine,
               x: (bookDims.width - 68) / 2,
@@ -434,6 +581,58 @@ export default function App() {
     ));
     setTearTarget(null);
     setSelectedScrapId(null);
+
+    // Bake fringe only on the tear edge (jaggedLine) — clean photo edges stay untouched
+    const bake = async (scrapId: string, polygon: Point[]) => {
+      try {
+        const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+          const el = new Image();
+          el.onload = () => resolve(el);
+          el.onerror = () => reject(new Error('Image load failed'));
+          el.src = srcImage;
+        });
+
+        const xs = polygon.map(p => p.x);
+        const ys = polygon.map(p => p.y);
+        const minX = Math.min(...xs);
+        const minY = Math.min(...ys);
+        const bboxW = (Math.max(...xs) - minX) || 1;
+        const bboxH = (Math.max(...ys) - minY) || 1;
+
+        const srcCanvas = document.createElement('canvas');
+        srcCanvas.width = bboxW;
+        srcCanvas.height = bboxH;
+        const ctx = srcCanvas.getContext('2d')!;
+        ctx.save();
+        ctx.beginPath();
+        polygon.forEach((p, i) => {
+          if (i === 0) ctx.moveTo(p.x - minX, p.y - minY);
+          else ctx.lineTo(p.x - minX, p.y - minY);
+        });
+        ctx.closePath();
+        ctx.clip();
+        ctx.drawImage(img, -minX, -minY);
+        ctx.restore();
+
+        const localTearEdge = jaggedLine.map(p => ({ x: p.x - minX, y: p.y - minY }));
+        const bakedCanvas = applyTornEdgeFringe(srcCanvas, localTearEdge);
+        const bakedUrl = bakedCanvas.toDataURL('image/png');
+
+        setPages(prev => prev.map((page, i) =>
+          i !== pageIdx ? page : {
+            ...page,
+            scraps: page.scraps.map(s =>
+              s.id === scrapId ? { ...s, image: bakedUrl, points: [] } : s,
+            ),
+          },
+        ));
+      } catch (err) {
+        console.error('Tear effect baking failed:', err);
+      }
+    };
+
+    bake(targetId, topPolygon);
+    bake(newScrapId, bottomPolygon);
   };
 
   const handlePageTurn = (direction: 'prev' | 'next') => {
@@ -447,6 +646,7 @@ export default function App() {
         journalEntries: [],
         tapeStrips: [],
         residueMarks: [],
+        envelopes: [],
         background: '#fdfaf3',
       };
       setPages(prev => [...prev, newPage]);
@@ -486,7 +686,8 @@ export default function App() {
 
 
   return (
-    <div className="relative w-full h-screen overflow-hidden select-none flex flex-col bg-[#0f0805]">
+    <div className="w-full h-screen flex items-center justify-center">
+    <div className="relative w-full h-full overflow-hidden select-none flex flex-col bg-[#0f0805]">
       <motion.div
         className="flex flex-col w-full"
         animate={{ y: galleryOpen ? '-80vh' : 0 }}
@@ -653,7 +854,7 @@ export default function App() {
                 src="/scrapbook_cover.png"
                 alt=""
                 aria-hidden="true"
-                className="absolute inset-0 w-full h-full object-cover rounded-lg pointer-events-none"
+                className="absolute inset-0 w-full h-full rounded-lg pointer-events-none"
                 style={{ filter: 'drop-shadow(0 24px 60px rgba(0,0,0,0.65))' }}
               />
               {/* Book positioned inset 28px from cover edges */}
@@ -685,6 +886,9 @@ export default function App() {
                       gluingScrapId={gluingScrapId}
                       onGlueTap={handleGlueTap}
                       onPeel={handlePeel}
+                      onUpdateEnvelope={updateEnvelope}
+                      onTuckScrap={handleTuckScrap}
+                      onUntuckScrap={handleUntuckScrap}
                     />
                   </div>
                 </div>
@@ -720,6 +924,7 @@ export default function App() {
             }}
             onReclassifyToGallery={(id) => handleReclassify(id, 'gallery')}
             galleryRectRef={galleryRectRef}
+            onAddEnvelope={handleAddEnvelope}
           />
         </motion.div>
       </motion.div>
@@ -863,6 +1068,7 @@ export default function App() {
           <feDisplacementMap in="SourceGraphic" in2="noise" scale="5" />
         </filter>
       </svg>
+    </div>
     </div>
   );
 }

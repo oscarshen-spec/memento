@@ -1,7 +1,7 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { motion } from 'motion/react';
 import { Point } from '../types';
-import { playSound } from '../services/soundService';
+import { playSound, startPaperTear } from '../services/soundService';
 
 interface TearCutViewProps {
   image: string;
@@ -154,6 +154,9 @@ export const TearCutView: React.FC<TearCutViewProps> = ({ image, onCut, onCancel
   const isDrawing = useRef(false);
   const arrangePieceARef = useRef<HTMLCanvasElement>(null);
   const arrangePieceBRef = useRef<HTMLCanvasElement>(null);
+  const stopTearSoundRef = useRef<(() => void) | null>(null);
+  const tearSoundIdleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const arrangeDragRef = useRef<{
     piece: 'A' | 'B';
     touchId: number;
@@ -198,6 +201,10 @@ export const TearCutView: React.FC<TearCutViewProps> = ({ image, onCut, onCancel
     if (path.length < 2) return;
 
     ctx.save();
+    // Clip preview stroke to image bounds so it never overdraws the padding area
+    ctx.beginPath();
+    ctx.rect(rect.x, rect.y, rect.width, rect.height);
+    ctx.clip();
     ctx.strokeStyle = 'white';
     ctx.lineWidth = 3;
     ctx.setLineDash([8, 5]);
@@ -237,12 +244,15 @@ export const TearCutView: React.FC<TearCutViewProps> = ({ image, onCut, onCancel
   // Render the two torn pieces into their canvases when entering arrange phase
   useEffect(() => {
     if (phase !== 'arranging' || !tearPairRef.current || !imgRef.current || !canvasRef.current) return;
+
     const cw = canvasRef.current.width;
     const ch = canvasRef.current.height;
     const img = imgRef.current;
-    const imgScale = Math.min(cw / img.naturalWidth, ch / img.naturalHeight);
-    const imgX = (cw - img.naturalWidth * imgScale) / 2;
-    const imgY = (ch - img.naturalHeight * imgScale) / 2;
+
+    // Must match getImageDisplayRect — same scale and origin used when converting
+    // the drawn path to image space in finishDrawing
+    const { x: imgX, y: imgY, width: imgW, height: imgH } = getImageDisplayRect();
+    const imgScale = imgW / img.naturalWidth;
 
     // Polygons are in image space — convert to canvas space for rendering
     const toCanvas = (p: Point): Point => ({
@@ -265,7 +275,7 @@ export const TearCutView: React.FC<TearCutViewProps> = ({ image, onCut, onCancel
       });
       ctx.closePath();
       ctx.clip();
-      ctx.drawImage(img, imgX, imgY, img.naturalWidth * imgScale, img.naturalHeight * imgScale);
+      ctx.drawImage(img, imgX, imgY, imgW, imgH);
       ctx.restore();
       ctx.beginPath();
       polygon.forEach((p, i) => {
@@ -280,7 +290,7 @@ export const TearCutView: React.FC<TearCutViewProps> = ({ image, onCut, onCancel
 
     drawPiece(arrangePieceARef, tearPairRef.current.topPolygon);
     drawPiece(arrangePieceBRef, tearPairRef.current.bottomPolygon);
-  }, [phase]);
+  }, [phase, getImageDisplayRect]);
 
   const canvasPointFrom = (clientX: number, clientY: number): Point => {
     const canvas = canvasRef.current!;
@@ -299,6 +309,19 @@ export const TearCutView: React.FC<TearCutViewProps> = ({ image, onCut, onCancel
     const last = drawnPathRef.current[drawnPathRef.current.length - 1];
     if (Math.hypot(pt.x - last.x, pt.y - last.y) < 3) return;
     drawnPathRef.current.push(pt);
+
+    // Start sound on first movement
+    if (!stopTearSoundRef.current) {
+      stopTearSoundRef.current = startPaperTear();
+    }
+    // Reset idle timer — pause sound after 80 ms of no movement
+    if (tearSoundIdleTimer.current) clearTimeout(tearSoundIdleTimer.current);
+    tearSoundIdleTimer.current = setTimeout(() => {
+      stopTearSoundRef.current?.();
+      stopTearSoundRef.current = null;
+      tearSoundIdleTimer.current = null;
+    }, 80);
+
     requestAnimationFrame(draw);
   };
 
@@ -306,21 +329,31 @@ export const TearCutView: React.FC<TearCutViewProps> = ({ image, onCut, onCancel
     if (!isDrawing.current) return;
     isDrawing.current = false;
     const path = drawnPathRef.current;
-    if (path.length < 5) { drawnPathRef.current = []; draw(); return; }
+    if (tearSoundIdleTimer.current) { clearTimeout(tearSoundIdleTimer.current); tearSoundIdleTimer.current = null; }
+    if (path.length < 5) { stopTearSoundRef.current?.(); stopTearSoundRef.current = null; drawnPathRef.current = []; draw(); return; }
 
     const img = imgRef.current!;
     const displayRect = getImageDisplayRect();
     const scaleX = img.naturalWidth / displayRect.width;
     const scaleY = img.naturalHeight / displayRect.height;
 
-    // Convert drawn path from canvas space → image space
-    const imageSpacePath = path.map(p => ({
+    // Clamp to image display rect first so out-of-bounds strokes don't escape image space
+    const clampedPath = path.map(p => ({
+      x: Math.max(displayRect.x, Math.min(displayRect.x + displayRect.width,  p.x)),
+      y: Math.max(displayRect.y, Math.min(displayRect.y + displayRect.height, p.y)),
+    }));
+
+    // Convert clamped path from canvas space → image space
+    const imageSpacePath = clampedPath.map(p => ({
       x: (p.x - displayRect.x) * scaleX,
       y: (p.y - displayRect.y) * scaleY,
     }));
 
+    if (tearSoundIdleTimer.current) { clearTimeout(tearSoundIdleTimer.current); tearSoundIdleTimer.current = null; }
+    stopTearSoundRef.current?.();
+    stopTearSoundRef.current = null;
     navigator.vibrate?.(30);
-    playSound('paperTear');
+    playSound('paperTearSnap');
     const pair = generateTearFromPath(imageSpacePath, img.naturalWidth, img.naturalHeight);
     tearPairRef.current = pair;
     setPieceAOffset({ x: 0, y: 0 });

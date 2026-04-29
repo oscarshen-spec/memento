@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Stage, Layer, Image as KonvaImage, Transformer, Group, Shape, Text, Rect, Line } from 'react-konva';
 import Konva from 'konva';
-import { TapeStrip, Scrap, Point, JournalEntry, ScrapbookPage, ResidueMark } from '../types';
+import { TapeStrip, Scrap, Point, JournalEntry, ScrapbookPage, ResidueMark, Envelope } from '../types';
 import type { GlueRect } from './GlueAnimation';
 import { TapeLayer } from './TapeLayer';
 import useImage from 'use-image';
@@ -792,6 +792,321 @@ const LinedPaper: React.FC<{ width: number; height: number }> = ({ width, height
   );
 };
 
+// ─── Envelope ────────────────────────────────────────────────────────────────────
+
+const ENV_W = 200;
+const ENV_H = 130;
+const FLAP_H = 55;
+const ENV_PADDING = 8;
+
+const ENVELOPE_STYLES = {
+  cream: { body: '#f2ead8', flap: '#e8dfc4', interior: '#faf6ea', line: '#c8b890' },
+  kraft: { body: '#c4864a', flap: '#a86830', interior: '#d4986a', line: '#7a4810' },
+  pink:  { body: '#f2cdd0', flap: '#e8bec2', interior: '#fce8ea', line: '#c8a0a4' },
+} as const;
+
+// Axis-aligned bounding box check (ignores rotation, good enough for tuck detection)
+export function hitTestEnvelope(x: number, y: number, env: Envelope): boolean {
+  const halfW = (ENV_W * env.scale) / 2;
+  const halfH = (ENV_H * env.scale) / 2;
+  return x >= env.x - halfW && x <= env.x + halfW && y >= env.y - halfH && y <= env.y + halfH;
+}
+
+// ─── TuckedScrapItem ─────────────────────────────────────────────────────────────
+
+interface TuckedScrapItemProps {
+  scrap: Scrap;
+  envelopeId: string;
+  onUntuck: (envelopeId: string, scrap: Scrap, stageX: number, stageY: number) => void;
+  onMove: (newX: number, newY: number) => void;
+}
+
+const TuckedScrapItem: React.FC<TuckedScrapItemProps> = ({ scrap, envelopeId, onUntuck, onMove }) => {
+  const [image] = useImage(scrap.image);
+  const nodeRef = useRef<any>(null);
+  const interiorH = ENV_H - FLAP_H;
+
+  return (
+    <Group
+      ref={nodeRef}
+      x={scrap.x}
+      y={scrap.y}
+      offsetX={image ? image.width / 2 : 0}
+      offsetY={image ? image.height / 2 : 0}
+      scaleX={scrap.scale}
+      scaleY={scrap.scale}
+      rotation={scrap.rotation}
+      draggable
+      onClick={(e) => { e.cancelBubble = true; }}
+      onTap={(e) => { e.cancelBubble = true; }}
+      onDragStart={(e) => { e.cancelBubble = true; }}
+      onDragEnd={(e) => {
+        e.cancelBubble = true;
+        const node = e.target;
+        const lx = node.x();
+        const ly = node.y();
+        const margin = 30;
+        if (lx < -margin || lx > ENV_W + margin || ly < -margin || ly > interiorH + margin) {
+          const abs = node.getAbsolutePosition();
+          onUntuck(envelopeId, scrap, abs.x, abs.y);
+        } else {
+          onMove(lx, ly);
+        }
+      }}
+      shadowColor="rgba(0,0,0,0.25)"
+      shadowBlur={4}
+      shadowOffsetY={2}
+    >
+      {image && <KonvaImage image={image} width={image.width} height={image.height} />}
+    </Group>
+  );
+};
+
+// ─── EnvelopeItem ────────────────────────────────────────────────────────────────
+
+interface EnvelopeItemProps {
+  envelope: Envelope;
+  isSelected: boolean;
+  onSelect: () => void;
+  onChange: (attrs: Partial<Envelope>) => void;
+  onUntuckScrap: (envelopeId: string, scrap: Scrap, stageX: number, stageY: number) => void;
+  onUpdateEnvelope: (id: string, attrs: Partial<Envelope>) => void;
+}
+
+const EnvelopeItem: React.FC<EnvelopeItemProps> = ({
+  envelope, isSelected, onSelect, onChange, onUntuckScrap, onUpdateEnvelope,
+}) => {
+  const groupRef = useRef<any>(null);
+  const trRef = useRef<any>(null);
+  const flapGroupRef = useRef<any>(null);
+  const flapShadowRef = useRef<any>(null);
+  const wasDragging = useRef(false);
+
+  const colors = ENVELOPE_STYLES[envelope.style];
+
+  // Edge jitter for imperfect paper look, seeded from envelope id
+  const jitter = React.useMemo(() => {
+    const seed = envelope.id.split('').reduce((a, c) => (a * 31 + c.charCodeAt(0)) | 0, 17);
+    const r = seededRand(seed >>> 0);
+    return Array.from({ length: 16 }, () => (r() - 0.5) * 1.6);
+  }, [envelope.id]);
+
+  // Initialize flap to correct visual state on mount (no animation)
+  useEffect(() => {
+    if (!flapGroupRef.current) return;
+    flapGroupRef.current.scaleY(envelope.isOpen ? 0.001 : 1);
+    flapGroupRef.current.shadowBlur(envelope.isOpen ? 0 : 5);
+    flapGroupRef.current.shadowOffsetY(envelope.isOpen ? 0 : 4);
+    flapGroupRef.current.shadowOpacity(envelope.isOpen ? 0 : 0.25);
+    if (flapShadowRef.current) flapShadowRef.current.opacity(envelope.isOpen ? 0 : 1);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Animate flap when isOpen changes
+  useEffect(() => {
+    if (!flapGroupRef.current) return;
+    flapGroupRef.current.to({
+      duration: 0.28,
+      easing: Konva.Easings.EaseInOut,
+      scaleY: envelope.isOpen ? 0.001 : 1,
+      shadowBlur: envelope.isOpen ? 0 : 5,
+      shadowOffsetY: envelope.isOpen ? 0 : 4,
+      shadowOpacity: envelope.isOpen ? 0 : 0.25,
+    });
+    if (flapShadowRef.current) {
+      flapShadowRef.current.to({
+        duration: 0.28,
+        easing: Konva.Easings.EaseInOut,
+        opacity: envelope.isOpen ? 0 : 1,
+      });
+    }
+  }, [envelope.isOpen]);
+
+  // Sync transformer
+  useEffect(() => {
+    if (isSelected && trRef.current && groupRef.current) {
+      trRef.current.nodes([groupRef.current]);
+      trRef.current.getLayer().batchDraw();
+    }
+  }, [isSelected]);
+
+  const handleTap = () => {
+    if (wasDragging.current) { wasDragging.current = false; return; }
+    onSelect();
+    onUpdateEnvelope(envelope.id, { isOpen: !envelope.isOpen });
+  };
+
+  const hasContents = envelope.contents.length > 0;
+
+  return (
+    <>
+      <Group
+        ref={groupRef}
+        x={envelope.x}
+        y={envelope.y}
+        offsetX={ENV_W / 2}
+        offsetY={ENV_H / 2}
+        rotation={envelope.rotation}
+        scaleX={envelope.scale}
+        scaleY={envelope.scale}
+        draggable
+        onClick={handleTap}
+        onTap={handleTap}
+        onDragStart={() => { wasDragging.current = false; }}
+        onDragMove={() => { wasDragging.current = true; }}
+        onDragEnd={(e) => {
+          const node = e.target;
+          onChange({ x: node.x(), y: node.y() });
+        }}
+        onTransformEnd={() => {
+          const node = groupRef.current;
+          onChange({ x: node.x(), y: node.y(), rotation: node.rotation(), scale: node.scaleX() });
+          node.scaleX(node.scaleX()); // keep uniform
+          node.scaleY(node.scaleX());
+        }}
+        // Slightly deeper shadow when closed with hidden contents (privacy cue)
+        shadowColor="rgba(0,0,0,0.35)"
+        shadowBlur={!envelope.isOpen && hasContents ? 14 : 8}
+        shadowOffsetY={!envelope.isOpen && hasContents ? 7 : 4}
+        shadowOpacity={0.35}
+      >
+        {/* Envelope body */}
+        <Shape
+          sceneFunc={(ctx, shape) => {
+            ctx.beginPath();
+            ctx.moveTo(jitter[0], jitter[1]);
+            ctx.lineTo(ENV_W + jitter[2], jitter[3]);
+            ctx.lineTo(ENV_W + jitter[4], ENV_H + jitter[5]);
+            ctx.lineTo(jitter[6], ENV_H + jitter[7]);
+            ctx.closePath();
+            ctx.fillStrokeShape(shape);
+          }}
+          fill={colors.body}
+          stroke={colors.line}
+          strokeWidth={0.6}
+        />
+
+        {/* Interior background, visible when open */}
+        <Rect
+          x={2} y={FLAP_H}
+          width={ENV_W - 4} height={ENV_H - FLAP_H - 2}
+          fill={colors.interior}
+          visible={envelope.isOpen}
+        />
+
+        {/* Side fold crease lines */}
+        <Line
+          points={[0, FLAP_H, ENV_W / 2, ENV_H / 2]}
+          stroke={colors.line} strokeWidth={0.5} opacity={0.35} listening={false}
+        />
+        <Line
+          points={[ENV_W, FLAP_H, ENV_W / 2, ENV_H / 2]}
+          stroke={colors.line} strokeWidth={0.5} opacity={0.35} listening={false}
+        />
+
+        {/* Bottom flap triangle (static) */}
+        <Shape
+          sceneFunc={(ctx, shape) => {
+            ctx.beginPath();
+            ctx.moveTo(0, ENV_H);
+            ctx.lineTo(ENV_W / 2, ENV_H / 2);
+            ctx.lineTo(ENV_W, ENV_H);
+            ctx.closePath();
+            ctx.fillStrokeShape(shape);
+          }}
+          fill={colors.flap}
+          stroke={colors.line}
+          strokeWidth={0.5}
+          opacity={0.85}
+          listening={false}
+        />
+
+        {/* Tucked contents — clipped to interior, visible when open */}
+        {envelope.isOpen && (
+          <Group
+            x={0} y={FLAP_H}
+            clipFunc={(ctx) => { ctx.rect(ENV_PADDING, ENV_PADDING, ENV_W - ENV_PADDING * 2, ENV_H - FLAP_H - ENV_PADDING * 2); }}
+          >
+            {envelope.contents.map((scrap) => (
+              <TuckedScrapItem
+                key={scrap.id}
+                scrap={scrap}
+                envelopeId={envelope.id}
+                onUntuck={onUntuckScrap}
+                onMove={(nx, ny) => {
+                  onUpdateEnvelope(envelope.id, {
+                    contents: envelope.contents.map(s => s.id === scrap.id ? { ...s, x: nx, y: ny } : s),
+                  });
+                }}
+              />
+            ))}
+          </Group>
+        )}
+
+        {/* Flap body shadow that fades as flap opens — simulates flap casting shadow on interior */}
+        <Rect
+          ref={flapShadowRef}
+          x={0} y={0}
+          width={ENV_W} height={FLAP_H + 12}
+          fillLinearGradientStartPoint={{ x: 0, y: FLAP_H + 12 }}
+          fillLinearGradientEndPoint={{ x: 0, y: 0 }}
+          fillLinearGradientColorStops={[0, 'rgba(0,0,0,0.13)', 1, 'rgba(0,0,0,0)']}
+          listening={false}
+        />
+
+        {/* Top flap group — scaleY animated by Tween (no React prop, imperatively controlled) */}
+        <Group
+          ref={flapGroupRef}
+          shadowColor="rgba(0,0,0,0.3)"
+        >
+          <Shape
+            sceneFunc={(ctx, shape) => {
+              ctx.beginPath();
+              ctx.moveTo(jitter[8], jitter[9]);
+              ctx.lineTo(ENV_W + jitter[10], jitter[11]);
+              ctx.lineTo(ENV_W / 2 + jitter[12], FLAP_H + jitter[13]);
+              ctx.closePath();
+              ctx.fillStrokeShape(shape);
+            }}
+            fill={colors.flap}
+            stroke={colors.line}
+            strokeWidth={0.6}
+          />
+        </Group>
+
+        {/* Privacy cue: subtle pencil-mark corner line when closed with contents */}
+        {!envelope.isOpen && hasContents && (
+          <Line
+            points={[ENV_W - 16, 5, ENV_W - 5, 16]}
+            stroke={colors.line}
+            strokeWidth={1.2}
+            opacity={0.45}
+            lineCap="round"
+            listening={false}
+          />
+        )}
+      </Group>
+
+      {isSelected && (
+        <Transformer
+          ref={trRef}
+          anchorSize={24}
+          anchorCornerRadius={12}
+          anchorStroke="#1a1a1a"
+          anchorFill="white"
+          borderStroke="#1a1a1a"
+          borderDash={[4, 4]}
+          rotateAnchorOffset={40}
+          keepRatio
+          boundBoxFunc={(oldBox, newBox) => {
+            if (newBox.width < 40 || newBox.height < 40) return oldBox;
+            return newBox;
+          }}
+        />
+      )}
+    </>
+  );
+};
+
 // ─── Scrapbook ───────────────────────────────────────────────────────────────────
 
 interface ScrapbookProps {
@@ -810,6 +1125,9 @@ interface ScrapbookProps {
   gluingScrapId: string | null;
   onGlueTap: (id: string, rect: GlueRect) => void;
   onPeel: (id: string, rect: { x: number; y: number; width: number; height: number }) => void;
+  onUpdateEnvelope: (id: string, attrs: Partial<Envelope>) => void;
+  onTuckScrap: (scrapId: string, envelopeId: string, dropX: number, dropY: number) => void;
+  onUntuckScrap: (envelopeId: string, scrap: Scrap, stageX: number, stageY: number) => void;
 }
 
 const DRAG_OVERFLOW = 180;
@@ -831,10 +1149,26 @@ export const Scrapbook = React.forwardRef<Konva.Stage, ScrapbookProps>(({
   gluingScrapId,
   onGlueTap,
   onPeel,
+  onUpdateEnvelope,
+  onTuckScrap,
+  onUntuckScrap,
 }, ref) => {
   const selectedId = selectedScrapId;
   const setSelectedId = onSelectScrap;
   const fallsDoneCount = useRef(0);
+
+  // Wrap scrap onChange to intercept drops onto open envelopes
+  const makeScrapChangeHandler = React.useCallback((scrap: Scrap) => (newAttrs: Partial<Scrap>) => {
+    if ('x' in newAttrs && 'y' in newAttrs && newAttrs.x !== undefined && newAttrs.y !== undefined) {
+      const envelopes = page.envelopes ?? [];
+      const openEnv = envelopes.find(env => env.isOpen && hitTestEnvelope(newAttrs.x!, newAttrs.y!, env));
+      if (openEnv) {
+        onTuckScrap(scrap.id, openEnv.id, newAttrs.x!, newAttrs.y!);
+        return;
+      }
+    }
+    onUpdateScrap(scrap.id, newAttrs);
+  }, [page.envelopes, onTuckScrap, onUpdateScrap]);
 
   useEffect(() => {
     if (fallingScrapIds !== null) {
@@ -878,15 +1212,26 @@ export const Scrapbook = React.forwardRef<Konva.Stage, ScrapbookProps>(({
           ))}
         </Layer>
 
-        {/* Layer 1: scraps and journal entries */}
+        {/* Layer 1: envelopes, scraps and journal entries */}
         <Layer listening={!isTapeActive}>
+          {(page.envelopes ?? []).sort((a, b) => a.zIndex - b.zIndex).map((env) => (
+            <EnvelopeItem
+              key={env.id}
+              envelope={env}
+              isSelected={env.id === selectedId}
+              onSelect={() => setSelectedId(env.id)}
+              onChange={(attrs) => onUpdateEnvelope(env.id, attrs)}
+              onUntuckScrap={onUntuckScrap}
+              onUpdateEnvelope={onUpdateEnvelope}
+            />
+          ))}
           {[...page.scraps].sort((a, b) => a.zIndex - b.zIndex).map((scrap) => (
             <ScrapItem
               key={scrap.id}
               scrap={scrap}
               isSelected={scrap.id === selectedId}
               onSelect={() => { if (!isGlueActive) setSelectedId(scrap.id); }}
-              onChange={(newAttrs) => onUpdateScrap(scrap.id, newAttrs)}
+              onChange={makeScrapChangeHandler(scrap)}
               onReturn={() => onReturnScrap(scrap)}
               stageHeight={dimensions.height}
               isGlueActive={isGlueActive}
