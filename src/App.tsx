@@ -787,28 +787,9 @@ export default function App() {
             {selectedScrapId === null && (
               <>
                 <motion.button
-                  key="tape-tool"
-                  onClick={() => setActiveTool(activeTool === 'tape' ? null : 'tape')}
-                  style={{ position: 'absolute', top: -40, left: -40, rotate: '-14deg', zIndex: 20 }}
-                  className="p-1"
-                  title="Tape tool"
-                  initial={{ y: -120, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1, transition: { type: 'spring', stiffness: 320, damping: 26, delay: 0.08 } }}
-                  exit={{ y: -120, opacity: 0, transition: { duration: 0.3, ease: 'easeIn' } }}
-                >
-                  <img
-                    src="/Tape.png"
-                    width="200"
-                    height="200"
-                    alt="Tape"
-                    className={`transition-all duration-150 ${activeTool === 'tape' ? 'opacity-100 scale-110' : 'opacity-100 hover:scale-105'}`}
-                    style={{ filter: activeTool === 'tape' ? 'drop-shadow(0 6px 12px rgba(0,0,0,0.6))' : 'drop-shadow(0 3px 6px rgba(0,0,0,0.35))' }}
-                  />
-                </motion.button>
-                <motion.button
                   key="text-tool"
                   onClick={() => setActiveTool(activeTool === 'text' ? null : 'text')}
-                  style={{ position: 'absolute', top: -32, left: '52%', translateX: '-50%', rotate: '-6deg', zIndex: 20 }}
+                  style={{ position: 'absolute', top: -15, left: -38, rotate: '-6deg', zIndex: 20 }}
                   className="p-1"
                   title="Text tool"
                   initial={{ y: -120, opacity: 0 }}
@@ -828,7 +809,7 @@ export default function App() {
                   key="glue-tool"
                   ref={glueButtonRef}
                   onClick={() => setActiveTool(activeTool === 'glue' ? null : 'glue')}
-                  style={{ position: 'absolute', top: -32, right: -24, rotate: '12deg', zIndex: 20, opacity: isGlueBottleAway ? 0 : 1, pointerEvents: isGlueBottleAway ? 'none' : 'auto', transition: 'opacity 0.1s' }}
+                  style={{ position: 'absolute', top: -53, left: 119, rotate: '105deg', zIndex: 20, opacity: isGlueBottleAway ? 0 : 1, pointerEvents: isGlueBottleAway ? 'none' : 'auto', transition: 'opacity 0.1s' }}
                   className="p-1"
                   title="Glue tool"
                   initial={{ y: -120, opacity: 0 }}
@@ -842,6 +823,25 @@ export default function App() {
                     alt="Glue"
                     className={`transition-all duration-150 ${activeTool === 'glue' ? 'opacity-100 scale-110' : 'opacity-100 hover:scale-105'}`}
                     style={{ filter: activeTool === 'glue' ? 'drop-shadow(0 6px 12px rgba(0,0,0,0.6))' : 'drop-shadow(0 3px 6px rgba(0,0,0,0.35))' }}
+                  />
+                </motion.button>
+                <motion.button
+                  key="printer-tool"
+                  onClick={handleExport}
+                  style={{ position: 'absolute', top: -119, left: 227, zIndex: 20 }}
+                  className="p-1"
+                  title="Export"
+                  initial={{ y: -120, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1, transition: { type: 'spring', stiffness: 320, damping: 26, delay: 0.04 } }}
+                  exit={{ y: -120, opacity: 0, transition: { duration: 0.3, ease: 'easeIn', delay: 0.04 } }}
+                >
+                  <img
+                    src="/Printer.png"
+                    width="174"
+                    height="217"
+                    alt="Export"
+                    className="transition-all duration-150 opacity-100 hover:scale-105"
+                    style={{ filter: 'drop-shadow(0 3px 6px rgba(0,0,0,0.35))' }}
                   />
                 </motion.button>
               </>
