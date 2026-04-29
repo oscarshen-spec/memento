@@ -15,19 +15,22 @@ export function WindowLight() {
 
     const tick = () => {
       const t = Date.now();
-      const o1 = Math.sin(t * 0.00008);
-      const o2 = Math.sin(t * 0.000051);
-      const o3 = Math.sin(t * 0.000073);
+      const o1 = Math.sin(t * 0.00012);
+      const o2 = Math.sin(t * 0.000079);
+      const o3 = Math.sin(t * 0.000097);
+      const o4 = Math.sin(t * 0.000041);
 
-      const floodX = 10 + o1 * 4;
-      const floodY = -10 + o1 * 3;
+      const floodX = 10 + o1 * 10;
+      const floodY = -10 + o4 * 8;
+      const floodSize = 120 + o4 * 18;
       overlay.style.setProperty('--flood-x', `${floodX}%`);
       overlay.style.setProperty('--flood-y', `${floodY}%`);
+      overlay.style.setProperty('--flood-size', `${floodSize}%`);
 
-      shaftA.style.opacity = String(0.07 + o2 * 0.03);
-      shaftA.style.transform = `rotate(${30 + o2 * 1.5}deg)`;
+      shaftA.style.opacity = String(0.06 + o2 * 0.05);
+      shaftA.style.transform = `rotate(${30 + o2 * 5}deg)`;
 
-      shaftB.style.opacity = String(0.055 + o3 * 0.025);
+      shaftB.style.opacity = String(0.05 + o3 * 0.04);
 
       raf = requestAnimationFrame(tick);
     };
@@ -46,6 +49,7 @@ export function WindowLight() {
         zIndex: 25,
         ['--flood-x' as string]: '10%',
         ['--flood-y' as string]: '-10%',
+        ['--flood-size' as string]: '120%',
       }}
     >
       {/* Clouds: soft blobs drifting behind the light */}
@@ -90,7 +94,7 @@ export function WindowLight() {
         style={{
           position: 'absolute',
           inset: 0,
-          background: 'radial-gradient(ellipse 120% 100% at var(--flood-x) var(--flood-y), rgba(255,195,80,0.55) 0%, rgba(255,175,60,0.2) 35%, transparent 65%)',
+          background: 'radial-gradient(ellipse var(--flood-size) 100% at var(--flood-x) var(--flood-y), rgba(255,195,80,0.55) 0%, rgba(255,175,60,0.2) 35%, transparent 65%)',
         }}
       />
 
