@@ -849,7 +849,7 @@ export default function App() {
                   key="printer-tool"
                   ref={printerButtonRef}
                   onClick={handleExport}
-                  style={{ position: 'absolute', top: -20, left: 350, zIndex: 20 }}
+                  style={{ position: 'absolute', top: -15, right: -8, zIndex: 20 }}
                   className="p-1"
                   title="Export"
                   initial={{ y: -120, opacity: 0 }}
@@ -858,8 +858,8 @@ export default function App() {
                 >
                   <img
                     src="/img/card_printer_top.png"
-                    width="260"
-                    height="65"
+                    width="200"
+                    height="50"
                     alt="Export"
                     className="transition-all duration-150 opacity-100 hover:scale-105"
                     style={{ filter: 'drop-shadow(0 3px 6px rgba(0,0,0,0.35))' }}
@@ -995,7 +995,6 @@ export default function App() {
       {printerPrinting && exportedImageUrl && (
         <PrinterPaper
           imageUrl={exportedImageUrl}
-          printerButtonEl={printerButtonRef.current}
           onComplete={handlePrintComplete}
         />
       )}
