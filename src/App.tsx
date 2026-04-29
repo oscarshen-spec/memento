@@ -505,7 +505,9 @@ export default function App() {
     if (!stage) return;
     const url = stage.toDataURL({ pixelRatio: 2 });
     setExportedImageUrl(url);
-    setPrinterPrinting(true);
+    if (printerButtonRef.current) {
+      setPrinterPrinting(true);
+    }
   };
 
   const handlePrintComplete = () => {
