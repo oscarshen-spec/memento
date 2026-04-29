@@ -31,10 +31,10 @@ export function DebugPanel({ windowLight, onWindowLightChange }: DebugPanelProps
               transition={{ duration: 0.15 }}
               style={{
                 position: 'absolute',
-                bottom: 40,
+                bottom: 56,
                 left: 0,
                 width: 160,
-                background: 'rgba(0,0,0,0.65)',
+                background: 'rgba(0,0,0,0.6)',
                 backdropFilter: 'blur(8px)',
                 WebkitBackdropFilter: 'blur(8px)',
                 borderRadius: 10,
