@@ -78,3 +78,8 @@ export interface ScrapbookPage {
   envelopes: Envelope[];
   background: string;
 }
+
+export interface ScrapbookMeta {
+  id: string;
+  name: string;
+}

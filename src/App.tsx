@@ -4,7 +4,8 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { partitionScraps, tapeTouchesScrap } from './utils/scrapUtils';
 import confetti from 'canvas-confetti';
-import { Scrap, Point, RawMaterial, ScrapbookPage, JournalEntry, TapeStrip, ResidueMark, Envelope } from './types';
+import { Scrap, Point, RawMaterial, ScrapbookPage, JournalEntry, TapeStrip, ResidueMark, Envelope, ScrapbookMeta } from './types';
+import { HomeView } from './components/HomeView';
 import { CameraView } from './components/CameraView';
 import { CuttingRoom } from './components/CuttingRoom';
 import { Scrapbook } from './components/Scrapbook';
@@ -68,6 +69,10 @@ export default function App() {
   const [pages, setPages] = useState<ScrapbookPage[]>([INITIAL_PAGE]);
   const [currentPageIndex, setCurrentPageIndex] = useState(0);
   
+  const [appScreen, setAppScreen] = useState<'home' | 'editor'>('home');
+  const [scrapbooks, setScrapbooks] = useState<ScrapbookMeta[]>([
+    { id: 'book-1', name: 'My Scrapbook' },
+  ]);
   const [view, setView] = useState<'scrapbook' | 'camera' | 'cutting' | 'drawer' | 'journal'>('scrapbook');
   const drawerAreaRef = useRef<HTMLDivElement>(null);
   const handleCardDragging = React.useCallback((dragging: boolean) => {
@@ -685,6 +690,31 @@ export default function App() {
     setSelectedScrapId(id);
   };
 
+
+  const handleSelectScrapbook = (_id: string) => {
+    setAppScreen('editor');
+  };
+
+  const handleCreateNew = () => {
+    const newBook: ScrapbookMeta = {
+      id: `book-${Date.now()}`,
+      name: 'New Scrapbook',
+    };
+    setScrapbooks(prev => [...prev, newBook]);
+    setAppScreen('editor');
+  };
+
+  if (appScreen === 'home') {
+    return (
+      <div className="w-full h-screen">
+        <HomeView
+          scrapbooks={scrapbooks}
+          onSelect={handleSelectScrapbook}
+          onCreateNew={handleCreateNew}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="w-full h-screen flex items-center justify-center">
