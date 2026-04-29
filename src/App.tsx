@@ -23,6 +23,7 @@ import { Gallery } from './components/Gallery';
 import { WindowLight } from './components/WindowLight';
 import { DebugPanel } from './components/DebugPanel';
 import { ExportOverlay } from './components/ExportOverlay';
+import { PrinterPaper } from './components/PrinterPaper';
 import { rasterizePolygon } from './utils/rasterizePolygon';
 import { compressImage } from './utils/compressImage';
 import { PaperTearBorderEffect, applyTornEdgeFringe } from './effects/PaperTearBorderEffect';
@@ -99,6 +100,8 @@ export default function App() {
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [debugWindowLight, setDebugWindowLight] = useState(true);
   const [exportedImageUrl, setExportedImageUrl] = useState<string | null>(null);
+  const [printerPrinting, setPrinterPrinting] = useState(false);
+  const printerButtonRef = useRef<HTMLButtonElement>(null);
   const [editingGalleryMaterial, setEditingGalleryMaterial] = useState<RawMaterial | null>(null);
   const glueButtonRef = useRef<HTMLButtonElement>(null);
   const scrapbookRef = useRef<Konva.Stage>(null);
@@ -497,11 +500,16 @@ export default function App() {
   }, [currentPageIndex]);
 
   const handleExport = () => {
-    if (fallingOff) return;
+    if (fallingOff || printerPrinting) return;
     const stage = scrapbookRef.current;
     if (!stage) return;
     const url = stage.toDataURL({ pixelRatio: 2 });
     setExportedImageUrl(url);
+    setPrinterPrinting(true);
+  };
+
+  const handlePrintComplete = () => {
+    setPrinterPrinting(false);
   };
 
   const handleGlueTap = (scrapId: string, rect: GlueRect) => {
@@ -799,7 +807,7 @@ export default function App() {
                 <motion.button
                   key="text-tool"
                   onClick={() => setActiveTool(activeTool === 'text' ? null : 'text')}
-                  style={{ position: 'absolute', top: -15, left: -38, rotate: '-6deg', zIndex: 20 }}
+                  style={{ position: 'absolute', top: -15, left: -5, rotate: '-6deg', zIndex: 20 }}
                   className="p-1"
                   title="Text tool"
                   initial={{ y: -120, opacity: 0 }}
@@ -819,7 +827,7 @@ export default function App() {
                   key="glue-tool"
                   ref={glueButtonRef}
                   onClick={() => setActiveTool(activeTool === 'glue' ? null : 'glue')}
-                  style={{ position: 'absolute', top: -53, left: 119, rotate: '105deg', zIndex: 20, opacity: isGlueBottleAway ? 0 : 1, pointerEvents: isGlueBottleAway ? 'none' : 'auto', transition: 'opacity 0.1s' }}
+                  style={{ position: 'absolute', top: -53, left: 140, rotate: '-20deg', zIndex: 20, opacity: isGlueBottleAway ? 0 : 1, pointerEvents: isGlueBottleAway ? 'none' : 'auto', transition: 'opacity 0.1s' }}
                   className="p-1"
                   title="Glue tool"
                   initial={{ y: -120, opacity: 0 }}
@@ -837,8 +845,9 @@ export default function App() {
                 </motion.button>
                 <motion.button
                   key="printer-tool"
+                  ref={printerButtonRef}
                   onClick={handleExport}
-                  style={{ position: 'absolute', top: -119, left: 227, zIndex: 20 }}
+                  style={{ position: 'absolute', top: -119, left: 350, zIndex: 20 }}
                   className="p-1"
                   title="Export"
                   initial={{ y: -120, opacity: 0 }}
@@ -847,8 +856,8 @@ export default function App() {
                 >
                   <img
                     src="/Printer.png"
-                    width="174"
-                    height="217"
+                    width="196"
+                    height="244"
                     alt="Export"
                     className="transition-all duration-150 opacity-100 hover:scale-105"
                     style={{ filter: 'drop-shadow(0 3px 6px rgba(0,0,0,0.35))' }}
@@ -974,10 +983,18 @@ export default function App() {
 
       {debugWindowLight && (view === 'scrapbook' || view === 'drawer') && <WindowLight />}
       <DebugPanel windowLight={debugWindowLight} onWindowLightChange={setDebugWindowLight} />
-      {exportedImageUrl && (
+      {exportedImageUrl && !printerPrinting && (
         <ExportOverlay
           imageUrl={exportedImageUrl}
           onClose={() => setExportedImageUrl(null)}
+        />
+      )}
+
+      {printerPrinting && exportedImageUrl && (
+        <PrinterPaper
+          imageUrl={exportedImageUrl}
+          printerButtonEl={printerButtonRef.current}
+          onComplete={handlePrintComplete}
         />
       )}
 
