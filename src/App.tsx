@@ -10,7 +10,6 @@ import { HomeView } from './components/HomeView';
 import { CameraView } from './components/CameraView';
 import { CuttingRoom } from './components/CuttingRoom';
 import { Scrapbook } from './components/Scrapbook';
-import { MaterialDrawer } from './components/MaterialDrawer';
 import { DrawerTray } from './components/DrawerTray';
 import { JournalModal } from './components/JournalModal';
 import { PaperScrapInput } from './components/PaperScrapInput';
@@ -497,6 +496,7 @@ export default function App() {
   }, [currentPageIndex]);
 
   const handleExport = () => {
+    if (fallingOff) return;
     const stage = scrapbookRef.current;
     if (!stage) return;
     const url = stage.toDataURL({ pixelRatio: 2 });
