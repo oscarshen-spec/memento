@@ -2,12 +2,12 @@ import React, { useLayoutEffect, useState } from 'react';
 import { motion } from 'motion/react';
 
 // Display size — images are 786px native, shown at 200px (scale ≈ 0.254x)
-const PRINTER_DISPLAY_W = 200;
-const TOP_H = Math.round(196 * PRINTER_DISPLAY_W / 786);  // 50px — printer body
-const BOTTOM_H = Math.round(92 * PRINTER_DISPLAY_W / 786); // 23px — paper slot
-const PAPER_W = 160;  // photo card width (centered under slot)
-const PAPER_H = 210;  // photo card height
-const PAPER_X = Math.round((PRINTER_DISPLAY_W - PAPER_W) / 2); // 20px offset to center
+const PRINTER_DISPLAY_W = 175;
+const TOP_H = Math.round(196 * PRINTER_DISPLAY_W / 786);  // 44px — printer body
+const BOTTOM_H = Math.round(92 * PRINTER_DISPLAY_W / 786); // 21px — paper slot
+const PAPER_W = 140;  // photo card width (centered under slot)
+const PAPER_H = 185;  // photo card height
+const PAPER_X = Math.round((PRINTER_DISPLAY_W - PAPER_W) / 2); // 18px offset to center
 const BTN_PAD = 4;    // button has p-1
 
 export interface PrinterPaperProps {

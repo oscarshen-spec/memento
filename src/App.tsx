@@ -849,7 +849,7 @@ export default function App() {
                   key="printer-tool"
                   ref={printerButtonRef}
                   onClick={handleExport}
-                  style={{ position: 'absolute', top: -30, right: -8, zIndex: 20 }}
+                  style={{ position: 'absolute', top: -20, right: -18, zIndex: 20 }}
                   className="p-1"
                   title="Export"
                   initial={{ y: -120, opacity: 0 }}
@@ -857,8 +857,8 @@ export default function App() {
                   exit={{ y: -120, opacity: 0, transition: { duration: 0.3, ease: 'easeIn', delay: 0.04 } }}
                 >
                   <div className="transition-all duration-150 opacity-100 hover:scale-105" style={{ filter: 'drop-shadow(0 3px 6px rgba(0,0,0,0.35))' }}>
-                    <img src="/img/card_printer_top.png" width="200" height="50" alt="" draggable={false} style={{ display: 'block' }} />
-                    <img src="/img/card_printer_bottom.png" width="200" height="23" alt="Export" draggable={false} style={{ display: 'block' }} />
+                    <img src="/img/card_printer_top.png" width="175" height="44" alt="" draggable={false} style={{ display: 'block' }} />
+                    <img src="/img/card_printer_bottom.png" width="175" height="21" alt="Export" draggable={false} style={{ display: 'block' }} />
                   </div>
                 </motion.button>
               </>
