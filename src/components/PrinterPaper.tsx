@@ -1,36 +1,56 @@
-import React from 'react';
+import React, { useLayoutEffect, useState } from 'react';
 import { motion } from 'motion/react';
 
-// Printer images are 786px native, displayed at 393px (0.5x) — matches Figma spec exactly
-const TOP_H = 98;    // height of top clip (printer body)
-const BOTTOM_H = 46; // height of bottom clip (paper slot)
-const PAPER_W = 280; // photo card width
-const PAPER_H = 360; // photo card height
+// Display size — images are 786px native, shown at 200px (scale ≈ 0.254x)
+const PRINTER_DISPLAY_W = 200;
+const TOP_H = Math.round(196 * PRINTER_DISPLAY_W / 786);  // 50px — printer body
+const BOTTOM_H = Math.round(92 * PRINTER_DISPLAY_W / 786); // 23px — paper slot
+const PAPER_W = 160;  // photo card width (centered under slot)
+const PAPER_H = 210;  // photo card height
+const PAPER_X = Math.round((PRINTER_DISPLAY_W - PAPER_W) / 2); // 20px offset to center
+const BTN_PAD = 4;    // button has p-1
 
 export interface PrinterPaperProps {
   imageUrl: string;
+  printerButtonEl: HTMLButtonElement | null;
   onComplete: () => void;
 }
 
-export const PrinterPaper: React.FC<PrinterPaperProps> = ({ imageUrl, onComplete }) => {
-  const paperOffsetX = `calc(50% - ${PAPER_W / 2}px)`;
+export const PrinterPaper: React.FC<PrinterPaperProps> = ({
+  imageUrl,
+  printerButtonEl,
+  onComplete,
+}) => {
+  const [rect, setRect] = useState<DOMRect | null>(null);
+
+  useLayoutEffect(() => {
+    if (printerButtonEl) setRect(printerButtonEl.getBoundingClientRect());
+  }, [printerButtonEl]);
+
+  if (!rect) return null;
+
+  const left = rect.left + BTN_PAD;
+  const top = rect.top + BTN_PAD;
 
   return (
     <div
       style={{
         position: 'fixed',
-        inset: 0,
-        zIndex: 200,
+        left,
+        top,
+        width: PRINTER_DISPLAY_W,
+        height: TOP_H + PAPER_H,
         pointerEvents: 'none',
+        zIndex: 200,
       }}
     >
-      {/* Top clip — printer body (rows 0–98px of the full printer image) */}
+      {/* Printer body — top clip, sits above the emerging paper */}
       <div
         style={{
           position: 'absolute',
           top: 0,
           left: 0,
-          right: 0,
+          width: PRINTER_DISPLAY_W,
           height: TOP_H,
           overflow: 'hidden',
           zIndex: 30,
@@ -40,16 +60,16 @@ export const PrinterPaper: React.FC<PrinterPaperProps> = ({ imageUrl, onComplete
           src="/img/card_printer_top.png"
           alt=""
           draggable={false}
-          style={{ display: 'block', width: '100%', height: TOP_H, objectFit: 'cover' }}
+          style={{ display: 'block', width: PRINTER_DISPLAY_W, height: TOP_H }}
         />
       </div>
 
-      {/* Paper clip container — photo slides out of the slot */}
+      {/* Paper — slides from behind the printer body, above the slot */}
       <div
         style={{
           position: 'absolute',
           top: TOP_H,
-          left: paperOffsetX,
+          left: PAPER_X,
           width: PAPER_W,
           height: PAPER_H,
           overflow: 'hidden',
@@ -74,13 +94,13 @@ export const PrinterPaper: React.FC<PrinterPaperProps> = ({ imageUrl, onComplete
         />
       </div>
 
-      {/* Bottom clip — slot strip (rows 98–144px), paper slides above it */}
+      {/* Slot strip — bottom clip, paper slides above it */}
       <div
         style={{
           position: 'absolute',
           top: TOP_H,
           left: 0,
-          right: 0,
+          width: PRINTER_DISPLAY_W,
           height: BOTTOM_H,
           overflow: 'hidden',
           zIndex: 20,
@@ -90,7 +110,7 @@ export const PrinterPaper: React.FC<PrinterPaperProps> = ({ imageUrl, onComplete
           src="/img/card_printer_bottom.png"
           alt=""
           draggable={false}
-          style={{ display: 'block', width: '100%', height: BOTTOM_H, objectFit: 'cover' }}
+          style={{ display: 'block', width: PRINTER_DISPLAY_W, height: BOTTOM_H }}
         />
       </div>
     </div>

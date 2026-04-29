@@ -98,7 +98,7 @@ export default function App() {
   const [scissorTarget, setScissorTarget] = useState<Scrap | null>(null);
   const [tearTarget, setTearTarget] = useState<Scrap | null>(null);
   const [galleryOpen, setGalleryOpen] = useState(false);
-  const [debugWindowLight, setDebugWindowLight] = useState(true);
+  const [debugWindowLight, setDebugWindowLight] = useState(false);
   const [exportedImageUrl, setExportedImageUrl] = useState<string | null>(null);
   const [printerPrinting, setPrinterPrinting] = useState(false);
   const printerButtonRef = useRef<HTMLButtonElement>(null);
@@ -849,21 +849,17 @@ export default function App() {
                   key="printer-tool"
                   ref={printerButtonRef}
                   onClick={handleExport}
-                  style={{ position: 'absolute', top: -15, right: -8, zIndex: 20 }}
+                  style={{ position: 'absolute', top: -30, right: -8, zIndex: 20 }}
                   className="p-1"
                   title="Export"
                   initial={{ y: -120, opacity: 0 }}
                   animate={{ y: 0, opacity: 1, transition: { type: 'spring', stiffness: 320, damping: 26, delay: 0.04 } }}
                   exit={{ y: -120, opacity: 0, transition: { duration: 0.3, ease: 'easeIn', delay: 0.04 } }}
                 >
-                  <img
-                    src="/img/card_printer_top.png"
-                    width="200"
-                    height="50"
-                    alt="Export"
-                    className="transition-all duration-150 opacity-100 hover:scale-105"
-                    style={{ filter: 'drop-shadow(0 3px 6px rgba(0,0,0,0.35))' }}
-                  />
+                  <div className="transition-all duration-150 opacity-100 hover:scale-105" style={{ filter: 'drop-shadow(0 3px 6px rgba(0,0,0,0.35))' }}>
+                    <img src="/img/card_printer_top.png" width="200" height="50" alt="" draggable={false} style={{ display: 'block' }} />
+                    <img src="/img/card_printer_bottom.png" width="200" height="23" alt="Export" draggable={false} style={{ display: 'block' }} />
+                  </div>
                 </motion.button>
               </>
             )}
@@ -995,6 +991,7 @@ export default function App() {
       {printerPrinting && exportedImageUrl && (
         <PrinterPaper
           imageUrl={exportedImageUrl}
+          printerButtonEl={printerButtonRef.current}
           onComplete={handlePrintComplete}
         />
       )}
