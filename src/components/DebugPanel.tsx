@@ -36,6 +36,7 @@ export function DebugPanel({ windowLight, onWindowLightChange }: DebugPanelProps
                   position: 'absolute',
                   bottom: 56,
                   left: 0,
+                  zIndex: 100,
                   width: 160,
                   background: 'rgba(0,0,0,0.6)',
                   backdropFilter: 'blur(8px)',
