@@ -20,6 +20,7 @@ import { playSound } from './services/soundService';
 import { partitionByStatus, reclassify } from './utils/materialStatus';
 import { Gallery } from './components/Gallery';
 import { WindowLight } from './components/WindowLight';
+import { DebugPanel } from './components/DebugPanel';
 import { rasterizePolygon } from './utils/rasterizePolygon';
 import { compressImage } from './utils/compressImage';
 import { PaperTearBorderEffect, applyTornEdgeFringe } from './effects/PaperTearBorderEffect';
@@ -94,6 +95,7 @@ export default function App() {
   const [scissorTarget, setScissorTarget] = useState<Scrap | null>(null);
   const [tearTarget, setTearTarget] = useState<Scrap | null>(null);
   const [galleryOpen, setGalleryOpen] = useState(false);
+  const [debugWindowLight, setDebugWindowLight] = useState(true);
   const [editingGalleryMaterial, setEditingGalleryMaterial] = useState<RawMaterial | null>(null);
   const glueButtonRef = useRef<HTMLButtonElement>(null);
   const galleryRectRef = React.useRef<DOMRect | null>(null);
@@ -960,7 +962,8 @@ export default function App() {
         </motion.div>
       </motion.div>
 
-      {(view === 'scrapbook' || view === 'drawer') && <WindowLight />}
+      {debugWindowLight && (view === 'scrapbook' || view === 'drawer') && <WindowLight />}
+      <DebugPanel windowLight={debugWindowLight} onWindowLightChange={setDebugWindowLight} />
 
       {/* Glue animation overlay — rendered outside Konva, fixed over the scrap */}
       {gluingScrapId && glueAnimRect && glueToolRect && (
