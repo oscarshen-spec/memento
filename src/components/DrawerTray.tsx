@@ -26,7 +26,6 @@ const PAPER_STACK = [
 export interface DrawerTrayProps {
   materials: RawMaterial[];
   onSelect: (material: RawMaterial) => void;
-  onClose: () => void;
   onUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onDragMaterial: (material: RawMaterial, info: PanInfo) => void;
   onCardDragging?: (dragging: boolean) => void;
@@ -40,7 +39,6 @@ export interface DrawerTrayProps {
 export const DrawerTray: React.FC<DrawerTrayProps> = ({
   materials,
   onSelect,
-  onClose,
   onUpload,
   onDragMaterial,
   onCardDragging,
