@@ -11,6 +11,7 @@ import { CameraView } from './components/CameraView';
 import { CuttingRoom } from './components/CuttingRoom';
 import { Scrapbook } from './components/Scrapbook';
 import { MaterialDrawer } from './components/MaterialDrawer';
+import { DrawerTray } from './components/DrawerTray';
 import { JournalModal } from './components/JournalModal';
 import { PaperScrapInput } from './components/PaperScrapInput';
 import { GlueAnimation } from './components/GlueAnimation';
@@ -97,6 +98,7 @@ export default function App() {
   const [tearTarget, setTearTarget] = useState<Scrap | null>(null);
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [debugWindowLight, setDebugWindowLight] = useState(true);
+  const [exportedImageUrl, setExportedImageUrl] = useState<string | null>(null);
   const [editingGalleryMaterial, setEditingGalleryMaterial] = useState<RawMaterial | null>(null);
   const glueButtonRef = useRef<HTMLButtonElement>(null);
   const scrapbookRef = useRef<Konva.Stage>(null);
@@ -493,6 +495,13 @@ export default function App() {
       };
     }));
   }, [currentPageIndex]);
+
+  const handleExport = () => {
+    const stage = scrapbookRef.current;
+    if (!stage) return;
+    const url = stage.toDataURL({ pixelRatio: 2 });
+    setExportedImageUrl(url);
+  };
 
   const handleGlueTap = (scrapId: string, rect: GlueRect) => {
     const br = glueButtonRef.current?.getBoundingClientRect();
@@ -944,13 +953,10 @@ export default function App() {
           animate={drawerBounce ? { y: [0, -6, 0] } : {}}
           transition={{ duration: 0.25, ease: 'easeOut' }}
         >
-          <MaterialDrawer
+          <DrawerTray
             materials={drawerMaterials}
-            isOpen={view === 'drawer'}
-            onToggle={(open) => { setActiveTool(null); if (open) { setSelectedScrapId(null); setView('drawer'); } else { setView('scrapbook'); } }}
             onSelect={noop}
             onDragMaterial={handleDragMaterial}
-            onClose={() => setView('scrapbook')}
             onUpload={handleFileUpload}
             onCardDragging={handleCardDragging}
             galleryOpen={galleryOpen}
