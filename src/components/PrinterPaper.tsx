@@ -53,7 +53,7 @@ export const PrinterPaper: React.FC<PrinterPaperProps> = ({ imageUrl, onComplete
           width: PAPER_W,
           height: PAPER_H,
           overflow: 'hidden',
-          zIndex: 20,
+          zIndex: 25,
         }}
       >
         <motion.img
@@ -74,7 +74,7 @@ export const PrinterPaper: React.FC<PrinterPaperProps> = ({ imageUrl, onComplete
         />
       </div>
 
-      {/* Bottom clip — slot strip (rows 98–144px), sits above paper as it exits */}
+      {/* Bottom clip — slot strip (rows 98–144px), paper slides above it */}
       <div
         style={{
           position: 'absolute',
@@ -83,7 +83,7 @@ export const PrinterPaper: React.FC<PrinterPaperProps> = ({ imageUrl, onComplete
           right: 0,
           height: BOTTOM_H,
           overflow: 'hidden',
-          zIndex: 25,
+          zIndex: 20,
         }}
       >
         <img
