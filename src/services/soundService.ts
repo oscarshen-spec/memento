@@ -539,6 +539,108 @@ export function startPaperTear(): () => void {
 }
 
 /**
+ * Starts a card-printer sound: motor hum + paper friction + roller clicks.
+ * Returns a stop function — call it when the paper animation completes.
+ */
+export function startPrinterFeed(): () => void {
+  try {
+    const ctx = getCtx();
+    const t = ctx.currentTime;
+
+    // ── Motor hum (~70 Hz sine with slight warble) ───────────────────────────
+    const motorOsc = ctx.createOscillator();
+    motorOsc.type = 'sine';
+    motorOsc.frequency.value = 72;
+
+    const warbleLfo = ctx.createOscillator();
+    warbleLfo.type = 'sine';
+    warbleLfo.frequency.value = 6;
+    const warbleDepth = ctx.createGain();
+    warbleDepth.gain.value = 1.8;
+    warbleLfo.connect(warbleDepth);
+    warbleDepth.connect(motorOsc.frequency);
+    warbleLfo.start(t);
+
+    const motorGain = ctx.createGain();
+    motorGain.gain.setValueAtTime(0, t);
+    motorGain.gain.linearRampToValueAtTime(0.12, t + 0.08);
+    motorOsc.connect(motorGain);
+    motorGain.connect(ctx.destination);
+    motorOsc.start(t);
+
+    // ── Paper-feed friction (bandpass noise, 1 kHz–2.5 kHz) ─────────────────
+    const sr = ctx.sampleRate;
+    const frictionBuf = ctx.createBuffer(1, sr, sr);
+    const frictionData = frictionBuf.getChannelData(0);
+    for (let i = 0; i < sr; i++) frictionData[i] = Math.random() * 2 - 1;
+    const frictionSrc = ctx.createBufferSource();
+    frictionSrc.buffer = frictionBuf;
+    frictionSrc.loop = true;
+
+    const frictionBp = ctx.createBiquadFilter();
+    frictionBp.type = 'bandpass';
+    frictionBp.frequency.value = 1600;
+    frictionBp.Q.value = 1.2;
+
+    const frictionGain = ctx.createGain();
+    frictionGain.gain.setValueAtTime(0, t);
+    frictionGain.gain.linearRampToValueAtTime(0.06, t + 0.08);
+    frictionSrc.connect(frictionBp);
+    frictionBp.connect(frictionGain);
+    frictionGain.connect(ctx.destination);
+    frictionSrc.start(t);
+
+    // ── Roller clicks (~7/sec, like a gear advancing paper) ─────────────────
+    const clickRate = 7;
+    const clickPeriod = Math.ceil(sr / clickRate);
+    const clickBuf = ctx.createBuffer(1, clickPeriod, sr);
+    const clickData = clickBuf.getChannelData(0);
+    const clickDur = Math.ceil(sr * 0.012);
+    for (let i = 0; i < clickDur; i++) {
+      clickData[i] = Math.exp(-i / (sr * 0.003)) * (Math.random() * 2 - 1);
+    }
+    const clickSrc = ctx.createBufferSource();
+    clickSrc.buffer = clickBuf;
+    clickSrc.loop = true;
+
+    const clickHp = ctx.createBiquadFilter();
+    clickHp.type = 'highpass';
+    clickHp.frequency.value = 1200;
+
+    const clickGain = ctx.createGain();
+    clickGain.gain.setValueAtTime(0, t);
+    clickGain.gain.linearRampToValueAtTime(0.22, t + 0.08);
+    clickSrc.connect(clickHp);
+    clickHp.connect(clickGain);
+    clickGain.connect(ctx.destination);
+    clickSrc.start(t);
+
+    let stopped = false;
+    return () => {
+      if (stopped) return;
+      stopped = true;
+      const now = ctx.currentTime;
+      const fade = 0.12;
+      const stopAt = now + fade + 0.01;
+
+      for (const [gainNode, src] of [
+        [motorGain, motorOsc],
+        [frictionGain, frictionSrc],
+        [clickGain, clickSrc],
+      ] as [GainNode, AudioScheduledSourceNode][]) {
+        gainNode.gain.cancelScheduledValues(now);
+        gainNode.gain.setValueAtTime(gainNode.gain.value, now);
+        gainNode.gain.linearRampToValueAtTime(0, now + fade);
+        src.stop(stopAt);
+      }
+      warbleLfo.stop(stopAt);
+    };
+  } catch {
+    return () => {};
+  }
+}
+
+/**
  * Starts a continuous tape-pull rasp sound. Returns a function to stop it.
  * The stop function fades out over 40ms to prevent audio clicks.
  */

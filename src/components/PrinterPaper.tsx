@@ -1,5 +1,6 @@
-import React, { useLayoutEffect, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { motion } from 'motion/react';
+import { startPrinterFeed } from '../services/soundService';
 
 // Display size — images are 786px native, shown at 200px (scale ≈ 0.254x)
 const PRINTER_DISPLAY_W = 175;
@@ -22,10 +23,16 @@ export const PrinterPaper: React.FC<PrinterPaperProps> = ({
   onComplete,
 }) => {
   const [rect, setRect] = useState<DOMRect | null>(null);
+  const stopSound = useRef<(() => void) | null>(null);
 
   useLayoutEffect(() => {
     if (printerButtonEl) setRect(printerButtonEl.getBoundingClientRect());
   }, [printerButtonEl]);
+
+  useEffect(() => {
+    stopSound.current = startPrinterFeed();
+    return () => stopSound.current?.();
+  }, []);
 
   if (!rect) return null;
 
@@ -90,7 +97,7 @@ export const PrinterPaper: React.FC<PrinterPaperProps> = ({
           initial={{ y: -PAPER_H }}
           animate={{ y: 0 }}
           transition={{ duration: 2.5, ease: 'linear' }}
-          onAnimationComplete={onComplete}
+          onAnimationComplete={() => { stopSound.current?.(); onComplete(); }}
         />
       </div>
 
