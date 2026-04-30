@@ -63,7 +63,7 @@ export function HomeView({ scrapbooks, onSelect, onCreateNew }: HomeViewProps) {
             className="font-hand font-bold"
             style={{ fontSize: 30, color: 'rgba(232,213,184,0.88)', letterSpacing: '0.01em' }}
           >
-            My Scrapbooks
+            Memento
           </h1>
           <p style={{ fontSize: 11, color: 'rgba(212,170,80,0.5)', letterSpacing: '0.18em' }} className="uppercase">
             Tap to open

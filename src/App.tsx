@@ -27,7 +27,6 @@ import { PrinterPaper } from './components/PrinterPaper';
 import { rasterizePolygon } from './utils/rasterizePolygon';
 import { compressImage } from './utils/compressImage';
 import { PaperTearBorderEffect, applyTornEdgeFringe } from './effects/PaperTearBorderEffect';
-import { bakePaperTearPiece } from './services/webglTearEffect';
 
 const noop = () => {};
 
@@ -75,7 +74,7 @@ export default function App() {
   
   const [appScreen, setAppScreen] = useState<'home' | 'editor'>('home');
   const [scrapbooks, setScrapbooks] = useState<ScrapbookMeta[]>([
-    { id: 'book-1', name: 'My Scrapbook' },
+    { id: 'book-1', name: 'Travel Journal' },
   ]);
   const [view, setView] = useState<'scrapbook' | 'camera' | 'cutting' | 'drawer' | 'journal'>('scrapbook');
   const drawerAreaRef = useRef<HTMLDivElement>(null);
@@ -262,6 +261,11 @@ export default function App() {
       const pageIdx = currentPageIndex;
       const srcImage = currentMaterial.image;
 
+      // Derive the cutting-room canvas dimensions from both polygons combined
+      const allPts = [...points, ...(secondPoints ?? [])];
+      const canvasW = Math.max(...allPts.map(p => p.x));
+      const canvasH = Math.max(...allPts.map(p => p.y));
+
       const bakeTornPiece = async (scrapId: string, polygon: Point[]) => {
         try {
           const img = await new Promise<HTMLImageElement>((resolve, reject) => {
@@ -271,31 +275,31 @@ export default function App() {
             el.src = srcImage;
           });
 
-          const xs = polygon.map(p => p.x);
-          const ys = polygon.map(p => p.y);
-          const minX = Math.min(...xs);
-          const minY = Math.min(...ys);
-          const bboxW = (Math.max(...xs) - minX) || 1;
-          const bboxH = (Math.max(...ys) - minY) || 1;
+          // Match CuttingRoom's object-fit:contain image placement
+          const imgScale = Math.min(canvasW / img.naturalWidth, canvasH / img.naturalHeight);
+          const imgX = (canvasW - img.naturalWidth * imgScale) / 2;
+          const imgY = (canvasH - img.naturalHeight * imgScale) / 2;
 
+          // Each piece uses the full canvas size so both pieces are the same
+          // dimensions as the original (torn paper doesn't shrink)
           const srcCanvas = document.createElement('canvas');
-          srcCanvas.width = bboxW;
-          srcCanvas.height = bboxH;
+          srcCanvas.width = canvasW;
+          srcCanvas.height = canvasH;
           const ctx = srcCanvas.getContext('2d')!;
           ctx.save();
           ctx.beginPath();
           polygon.forEach((p, i) => {
-            if (i === 0) ctx.moveTo(p.x - minX, p.y - minY);
-            else ctx.lineTo(p.x - minX, p.y - minY);
+            if (i === 0) ctx.moveTo(p.x, p.y);
+            else ctx.lineTo(p.x, p.y);
           });
           ctx.closePath();
           ctx.clip();
-          ctx.drawImage(img, -minX, -minY);
+          ctx.drawImage(img, imgX, imgY, img.naturalWidth * imgScale, img.naturalHeight * imgScale);
           ctx.restore();
 
           const normalizedPolygon = polygon.map(p => ({
-            x: (p.x - minX) / bboxW,
-            y: (p.y - minY) / bboxH,
+            x: p.x / canvasW,
+            y: p.y / canvasH,
           }));
 
           const bakedUrl = await new PaperTearBorderEffect([normalizedPolygon]).processImage(srcCanvas);
@@ -503,7 +507,7 @@ export default function App() {
     if (fallingOff || printerPrinting) return;
     const stage = scrapbookRef.current;
     if (!stage) return;
-    const url = stage.toDataURL({ pixelRatio: 2 });
+    const url = stage.toDataURL({ pixelRatio: 2, x: 0, y: 0, width: stage.width(), height: bookDims.height });
     setExportedImageUrl(url);
     if (printerButtonRef.current) {
       setPrinterPrinting(true);
@@ -870,7 +874,7 @@ export default function App() {
 
             <div className="flex items-center gap-3">
               <div className="text-right hidden sm:block">
-                <h1 className="text-lg leading-none" style={{ fontFamily: 'Caveat, cursive', color: 'rgba(232,213,184,0.7)', fontWeight: 700 }}>My Scrapbook</h1>
+                <h1 className="text-lg leading-none" style={{ fontFamily: 'Caveat, cursive', color: 'rgba(232,213,184,0.7)', fontWeight: 700 }}>Travel Journal</h1>
                 <p className="text-[9px] uppercase mt-1" style={{ color: 'rgba(212,170,80,0.4)', letterSpacing: '0.2em' }}>
                   Page {currentPageIndex + 1} of {pages.length}
                 </p>

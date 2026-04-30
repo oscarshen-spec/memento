@@ -31,90 +31,70 @@ export const ExportOverlay: React.FC<ExportOverlayProps> = ({ imageUrl, onClose 
 
   return (
     <div
-      className="fixed inset-0 z-50 flex flex-col items-center justify-center"
+      className="fixed inset-0 z-50 flex justify-center"
       style={{ backgroundColor: 'rgba(0,0,0,0.8)' }}
       onClick={onClose}
     >
-      {/* Printed canvas — spring up from below, centred with slight upward offset */}
       <motion.div
-        style={{
-          width: 354,
-          height: 528,
-          background: '#fff8f1',
-          boxShadow: '0 24px 60px rgba(0,0,0,0.6)',
-          position: 'relative',
-        }}
+        style={{ position: 'absolute', top: 96, width: 345, display: 'flex', flexDirection: 'column', gap: 27 }}
         initial={{ y: 60, opacity: 0 }}
-        animate={{ y: -66, opacity: 1 }}
+        animate={{ y: 0, opacity: 1 }}
         transition={{ type: 'spring', stiffness: 220, damping: 28 }}
         onClick={(e) => e.stopPropagation()}
       >
-        <img
-          src={imageUrl}
-          alt="Exported page"
-          className="w-full h-full object-contain"
-        />
-      </motion.div>
+        {/* Exported page canvas */}
+        <div style={{ width: 345, height: 528, background: '#fff8f1', flexShrink: 0 }}>
+          <img
+            src={imageUrl}
+            alt="Exported page"
+            style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
+          />
+        </div>
 
-      {/* Action row — fixed near bottom */}
-      <div
-        className="fixed bottom-6 left-0 right-0 flex items-center gap-4"
-        style={{ paddingLeft: 19, paddingRight: 19 }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Save to Photos */}
-        <a
-          href={imageUrl}
-          download="memento-page.png"
-          className="flex flex-1 items-center justify-center rounded-[8px]"
-          style={{
-            border: '2px solid white',
-            paddingTop: 16,
-            paddingBottom: 16,
-            textDecoration: 'none',
-          }}
-        >
-          <span
+        {/* Action row */}
+        <div style={{ display: 'flex', gap: 16, alignItems: 'center', width: '100%' }}>
+          <a
+            href={imageUrl}
+            download="memento-page.png"
             style={{
-              fontFamily: 'Caveat, cursive',
-              fontWeight: 700,
-              fontSize: 24,
-              color: 'white',
-              whiteSpace: 'nowrap',
+              flex: 1,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              border: '2px solid white',
+              borderRadius: 8,
+              padding: '16px 24px',
+              textDecoration: 'none',
             }}
           >
-            Save to Photos
-          </span>
-        </a>
+            <span style={{ fontFamily: 'Caveat, cursive', fontWeight: 700, fontSize: 24, color: 'white', whiteSpace: 'nowrap' }}>
+              Save to Photos
+            </span>
+          </a>
 
-        {/* Share — circular icon button */}
-        <button
-          onClick={handleShare}
-          className="flex items-center justify-center shrink-0 rounded-full"
-          style={{
-            width: 56,
-            height: 56,
-            border: '2px solid white',
-            background: 'transparent',
-          }}
-        >
-          {/* iOS-style share arrow */}
-          <svg
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="white"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
+          <button
+            onClick={handleShare}
+            style={{
+              width: 56,
+              height: 56,
+              borderRadius: '50%',
+              border: '2px solid white',
+              background: 'transparent',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+              cursor: 'pointer',
+            }}
           >
-            <path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8" />
-            <polyline points="16 6 12 2 8 6" />
-            <line x1="12" y1="2" x2="12" y2="15" />
-          </svg>
-        </button>
-      </div>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8" />
+              <polyline points="16 6 12 2 8 6" />
+              <line x1="12" y1="2" x2="12" y2="15" />
+            </svg>
+          </button>
+        </div>
+      </motion.div>
     </div>
   );
 };

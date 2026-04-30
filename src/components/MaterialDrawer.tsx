@@ -8,7 +8,7 @@ import { TinBox, TIN_W, TIN_H } from './TinBox';
 
 // ─── MaterialCard ──────────────────────────────────────────────────────────────
 
-interface MaterialCardProps {
+export interface MaterialCardProps {
   material: RawMaterial;
   position: DrawerPosition;
   drawerRef: React.RefObject<HTMLDivElement>;
@@ -20,7 +20,7 @@ interface MaterialCardProps {
   galleryRectRef: React.RefObject<DOMRect | null>;
 }
 
-const MaterialCard = React.memo(({
+export const MaterialCard = React.memo(({
   material, position, drawerRef, onSelect, onDragMaterial, onRearrange, onDragStateChange,
   onReclassifyToGallery, galleryRectRef,
 }: MaterialCardProps) => {

@@ -11,7 +11,8 @@ export type SoundName =
   | 'scissorTrace'
   | 'scissorSnip'
   | 'penStroke'
-  | 'paperTearSnap';
+  | 'paperTearSnap'
+  | 'drawerSlide';
 
 let _ctx: AudioContext | null = null;
 
@@ -345,6 +346,64 @@ function paperTearSnap() {
   sweepSrc.stop(t + 0.19);
 }
 
+function drawerSlide() {
+  const ctx = getCtx();
+  const t = ctx.currentTime;
+  const sr = ctx.sampleRate;
+  const dur = 0.28;
+
+  // Low woody thud as drawer starts moving — short sine bump
+  const thudOsc = ctx.createOscillator();
+  thudOsc.type = 'sine';
+  thudOsc.frequency.setValueAtTime(120, t);
+  thudOsc.frequency.exponentialRampToValueAtTime(55, t + 0.09);
+  const thudGain = ctx.createGain();
+  thudGain.gain.setValueAtTime(0.45, t);
+  thudGain.gain.exponentialRampToValueAtTime(0.001, t + 0.09);
+  thudOsc.connect(thudGain);
+  thudGain.connect(ctx.destination);
+  thudOsc.start(t);
+  thudOsc.stop(t + 0.09);
+
+  // Sliding friction — bandpass noise sweeping down as drawer glides
+  const slideBuf = ctx.createBuffer(1, Math.ceil(sr * dur), sr);
+  const slideData = slideBuf.getChannelData(0);
+  for (let i = 0; i < slideData.length; i++) slideData[i] = Math.random() * 2 - 1;
+  const slideSrc = ctx.createBufferSource();
+  slideSrc.buffer = slideBuf;
+
+  const slideBp = ctx.createBiquadFilter();
+  slideBp.type = 'bandpass';
+  slideBp.frequency.setValueAtTime(900, t + 0.02);
+  slideBp.frequency.exponentialRampToValueAtTime(320, t + dur);
+  slideBp.Q.value = 1.4;
+
+  const slideGain = ctx.createGain();
+  slideGain.gain.setValueAtTime(0, t);
+  slideGain.gain.linearRampToValueAtTime(0.18, t + 0.04);
+  slideGain.gain.exponentialRampToValueAtTime(0.001, t + dur);
+
+  slideSrc.connect(slideBp);
+  slideBp.connect(slideGain);
+  slideGain.connect(ctx.destination);
+  slideSrc.start(t + 0.02);
+  slideSrc.stop(t + dur + 0.01);
+
+  // Soft settle bump at the end
+  const settleOsc = ctx.createOscillator();
+  settleOsc.type = 'sine';
+  settleOsc.frequency.setValueAtTime(80, t + dur - 0.02);
+  settleOsc.frequency.exponentialRampToValueAtTime(40, t + dur + 0.06);
+  const settleGain = ctx.createGain();
+  settleGain.gain.setValueAtTime(0, t + dur - 0.02);
+  settleGain.gain.linearRampToValueAtTime(0.25, t + dur);
+  settleGain.gain.exponentialRampToValueAtTime(0.001, t + dur + 0.06);
+  settleOsc.connect(settleGain);
+  settleGain.connect(ctx.destination);
+  settleOsc.start(t + dur - 0.02);
+  settleOsc.stop(t + dur + 0.07);
+}
+
 function wobbleStart() {
   const ctx = getCtx();
   const t = ctx.currentTime;
@@ -376,6 +435,7 @@ const soundFns: Record<SoundName, () => void> = {
   scissorSnip,
   penStroke,
   paperTearSnap,
+  drawerSlide,
 };
 
 export function playSound(name: SoundName): void {
@@ -428,7 +488,7 @@ export function startPaperTear(): () => void {
 
     const hissGain = ctx.createGain();
     hissGain.gain.setValueAtTime(0, t);
-    hissGain.gain.linearRampToValueAtTime(0.20, t + 0.010);
+    hissGain.gain.linearRampToValueAtTime(0.05, t + 0.010);
 
     // Slow LFO (~18 Hz) gives the subtle undulation of a deliberate tear,
     // not the fast crackling of a quick rip.
@@ -480,7 +540,7 @@ export function startPaperTear(): () => void {
 
     const snapGain = ctx.createGain();
     snapGain.gain.setValueAtTime(0, t);
-    snapGain.gain.linearRampToValueAtTime(0.30, t + 0.010);
+    snapGain.gain.linearRampToValueAtTime(0.07, t + 0.010);
 
     snapSrc.connect(snapBp);
     snapBp.connect(snapGain);
@@ -502,7 +562,7 @@ export function startPaperTear(): () => void {
 
     const bodyGain = ctx.createGain();
     bodyGain.gain.setValueAtTime(0, t);
-    bodyGain.gain.linearRampToValueAtTime(0.05, t + 0.015);
+    bodyGain.gain.linearRampToValueAtTime(0.012, t + 0.015);
 
     bodySrc.connect(bodyBp);
     bodyBp.connect(bodyGain);
