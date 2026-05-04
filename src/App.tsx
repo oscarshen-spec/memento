@@ -27,6 +27,7 @@ import { PrinterPaper } from './components/PrinterPaper';
 import { rasterizePolygon } from './utils/rasterizePolygon';
 import { compressImage } from './utils/compressImage';
 import { PaperTearBorderEffect, applyTornEdgeFringe } from './effects/PaperTearBorderEffect';
+import { TapePatternPicker } from './components/TapePatternPicker';
 
 const noop = () => {};
 
@@ -87,6 +88,7 @@ export default function App() {
   }, []);
   const [currentMaterial, setCurrentMaterial] = useState<RawMaterial | null>(null);
   const [activeTool, setActiveTool] = useState<'tape' | 'text' | 'glue' | null>(null);
+  const [activeTapePattern, setActiveTapePattern] = useState('cream');
   const [fallingOff, setFallingOff] = useState<{ direction: 'prev' | 'next'; scrapIds: string[] } | null>(null);
   const [drawerBounce, setDrawerBounce] = useState(false);
   const [selectedScrapId, setSelectedScrapId] = useState<string | null>(null);
@@ -936,6 +938,8 @@ export default function App() {
                       onAddTapeStrip={handleAddTapeStrip}
                       isTapeActive={activeTool === 'tape'}
                       isGlueActive={activeTool === 'glue'}
+                      selectedPatternId={activeTapePattern}
+                      selectedTapeWidth={28}
                       fallingScrapIds={fallingOff?.scrapIds ?? null}
                       onFallComplete={handleFallComplete}
                       selectedScrapId={selectedScrapId}
@@ -979,6 +983,8 @@ export default function App() {
             onReclassifyToGallery={(id) => handleReclassify(id, 'gallery')}
             galleryRectRef={galleryRectRef}
             onAddEnvelope={handleAddEnvelope}
+            onActivateTape={() => setActiveTool(activeTool === 'tape' ? null : 'tape')}
+            tapeActive={activeTool === 'tape'}
           />
         </motion.div>
       </motion.div>
@@ -1072,6 +1078,31 @@ export default function App() {
             onAdd={handleAddJournal}
             onClose={() => { setActiveTool(null); setView('scrapbook'); }}
           />
+        )}
+
+        {activeTool === 'tape' && (
+          <motion.div
+            key="tape-picker"
+            initial={{ y: 40, opacity: 0 }}
+            animate={{ y: 0, opacity: 1, transition: { type: 'spring', stiffness: 340, damping: 28 } }}
+            exit={{ y: 40, opacity: 0, transition: { duration: 0.2 } }}
+            style={{
+              position: 'fixed',
+              bottom: '20vh',
+              left: 0,
+              right: 0,
+              zIndex: 40,
+              background: 'rgba(245,235,218,0.97)',
+              backdropFilter: 'blur(8px)',
+              borderTop: '1px solid rgba(200,175,130,0.35)',
+              boxShadow: '0 -4px 20px rgba(0,0,0,0.18)',
+            }}
+          >
+            <TapePatternPicker
+              selectedPatternId={activeTapePattern}
+              onSelect={setActiveTapePattern}
+            />
+          </motion.div>
         )}
 
         {activeTool === 'text' && (

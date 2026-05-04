@@ -46,6 +46,7 @@ export interface TapeStrip {
   endPoint: Point;
   width: number;
   tearSeed: number;
+  patternId?: string;
 }
 
 export interface ResidueMark {

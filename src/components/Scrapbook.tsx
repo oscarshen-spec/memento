@@ -1117,6 +1117,8 @@ interface ScrapbookProps {
   onAddTapeStrip: (strip: TapeStrip) => void;
   isTapeActive: boolean;
   isGlueActive: boolean;
+  selectedPatternId?: string;
+  selectedTapeWidth?: number;
   fallingScrapIds: string[] | null;
   onFallComplete: (ids: string[]) => void;
   dimensions: { width: number; height: number };
@@ -1141,6 +1143,8 @@ export const Scrapbook = React.forwardRef<Konva.Stage, ScrapbookProps>(({
   onAddTapeStrip,
   isTapeActive,
   isGlueActive,
+  selectedPatternId,
+  selectedTapeWidth,
   fallingScrapIds,
   onFallComplete,
   dimensions,
@@ -1267,6 +1271,8 @@ export const Scrapbook = React.forwardRef<Konva.Stage, ScrapbookProps>(({
           onStripAdded={onAddTapeStrip}
           stageWidth={dimensions.width}
           stageHeight={dimensions.height + DRAG_OVERFLOW}
+          selectedPatternId={selectedPatternId}
+          selectedWidth={selectedTapeWidth}
         />
       </Stage>
     </div>

@@ -36,6 +36,8 @@ export interface DrawerTrayProps {
   onReclassifyToGallery: (id: string) => void;
   galleryRectRef: React.RefObject<DOMRect | null>;
   onAddEnvelope?: () => void;
+  onActivateTape?: () => void;
+  tapeActive?: boolean;
 }
 
 export const DrawerTray: React.FC<DrawerTrayProps> = ({
@@ -46,6 +48,8 @@ export const DrawerTray: React.FC<DrawerTrayProps> = ({
   onCardDragging,
   onReclassifyToGallery,
   galleryRectRef,
+  onActivateTape,
+  tapeActive = false,
 }) => {
   const [activeZone, setActiveZone] = useState<Zone>(null);
   const [isOpen, setIsOpen] = useState(false);
@@ -209,15 +213,18 @@ export const DrawerTray: React.FC<DrawerTrayProps> = ({
       {/* Tape zone */}
       <button
         className="relative h-full flex items-center justify-center"
-        onClick={() => { /* tape zone not yet implemented */ }}
+        onClick={onActivateTape}
+        title="Washi tape"
       >
         <img
           src="/Tape.png"
           alt="Tape"
-          className="w-[120px] h-[120px] object-contain pointer-events-none"
+          className="w-[120px] h-[120px] object-contain pointer-events-none transition-all duration-150"
           style={{
-            transform: 'rotate(12.5deg)',
-            filter: 'drop-shadow(5px 5px 6px rgba(0,0,0,0.3))',
+            transform: tapeActive ? 'rotate(12.5deg) scale(1.08)' : 'rotate(12.5deg)',
+            filter: tapeActive
+              ? 'drop-shadow(0 6px 14px rgba(0,0,0,0.55))'
+              : 'drop-shadow(5px 5px 6px rgba(0,0,0,0.3))',
           }}
         />
       </button>

@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Layer, Shape, Rect } from 'react-konva';
 import { TapeStrip, Point } from '../types';
 import { startTapePull, playSound } from '../services/soundService';
+import { getPattern } from '../washiPatterns';
 
 // ── Math helpers ────────────────────────────────────────────────────────────
 
@@ -29,16 +30,20 @@ function seededRng(seed: number): () => number {
 
 // ── Drawing ──────────────────────────────────────────────────────────────────
 
-const TAPE_COLOR = 'rgba(255,255,255,0.90)';
-const TAPE_EDGE_COLOR = 'rgba(200,180,190,0.70)';
-const TAPE_GRAIN_COLOR = 'rgba(210,195,200,0.18)';
-const WISP_COLOR = 'rgba(220,170,180,0.55)';
-const PREVIEW_SEED = 99999;
+const TAPE_EDGE_COLOR = 'rgba(180,155,165,0.60)';
+const WISP_COLOR      = 'rgba(210,160,170,0.55)';
+const PREVIEW_SEED    = 99999;
 
 /**
- * Draws a masking tape strip from `start` to `end` directly onto a Konva
- * sceneFunc context. Pass `tearSeed` for a finalized strip (draws jagged torn
- * right end + fiber wisps). Pass `null` for the in-progress preview (clean end).
+ * Draws a washi tape strip from `start` to `end` in world space.
+ *
+ * Internally transforms the canvas into tape-local coordinates before
+ * painting, so the pattern draw fn only sees a simple rect:
+ *   x: 0 → length  (along tape)
+ *   y: -hw → hw    (across tape)
+ *
+ * `tearSeed !== null` → finalized strip (draws both torn ends + wisps).
+ * `tearSeed === null` → live preview (draws only the left torn end).
  */
 function drawTapeShape(
   ctx: any,
@@ -47,158 +52,97 @@ function drawTapeShape(
   width: number,
   tearSeed: number | null,
   alpha = 1,
+  patternId = 'cream',
 ) {
   const dx = end.x - start.x;
   const dy = end.y - start.y;
   const len = Math.sqrt(dx * dx + dy * dy);
   if (len < 2) return;
 
-  // Unit vectors along and perpendicular to the tape axis
-  const ax = dx / len;
-  const ay = dy / len;
-  const px = (-dy / len) * (width / 2);
-  const py = (dx / len) * (width / 2);
+  const angle = Math.atan2(dy, dx);
+  const hw = width / 2;
 
-  // Four corners: top-left (tl), bottom-left (bl), bottom-right (br), top-right (tr)
-  const tl = { x: start.x + px, y: start.y + py };
-  const bl = { x: start.x - px, y: start.y - py };
-  const br = { x: end.x - px, y: end.y - py };
-  const tr = { x: end.x + px, y: end.y + py };
+  const pattern = getPattern(patternId);
+  const seed = tearSeed ?? PREVIEW_SEED;
 
   ctx.save();
   ctx.globalAlpha = alpha;
 
-  // ── Shadow ──
+  // ── Transform to tape-local space ──────────────────────────────────────────
+  ctx.translate(start.x, start.y);
+  ctx.rotate(angle);
+
+  // ── Shadow (flat colour pass) ──────────────────────────────────────────────
   ctx.save();
-  ctx.shadowColor = 'rgba(0,0,0,0.13)';
-  ctx.shadowBlur = 4;
-  ctx.shadowOffsetX = ax * 1 + px * 0.05;
-  ctx.shadowOffsetY = ay * 1 + py * 0.05;
+  ctx.shadowColor = 'rgba(0,0,0,0.14)';
+  ctx.shadowBlur  = 4;
+  ctx.shadowOffsetX = 1;
+  ctx.shadowOffsetY = 1.5;
   ctx.beginPath();
-  ctx.moveTo(tl.x, tl.y);
-  ctx.lineTo(bl.x, bl.y);
-  ctx.lineTo(br.x, br.y);
-  ctx.lineTo(tr.x, tr.y);
-  ctx.closePath();
-  ctx.fillStyle = TAPE_COLOR;
+  ctx.rect(0, -hw, len, width);
+  ctx.fillStyle = pattern.baseColor;
   ctx.fill();
   ctx.restore();
 
-  // ── Tape body (no shadow) ──
+  // ── Tape body (base colour) ────────────────────────────────────────────────
   ctx.beginPath();
-  ctx.moveTo(tl.x, tl.y);
-  ctx.lineTo(bl.x, bl.y);
-  ctx.lineTo(br.x, br.y);
-  ctx.lineTo(tr.x, tr.y);
-  ctx.closePath();
-  ctx.fillStyle = TAPE_COLOR;
+  ctx.rect(0, -hw, len, width);
+  ctx.fillStyle = pattern.baseColor;
   ctx.fill();
 
-  // ── Paper grain lines (clipped to tape body) ──
-  ctx.save();
-  ctx.beginPath();
-  ctx.moveTo(tl.x, tl.y);
-  ctx.lineTo(bl.x, bl.y);
-  ctx.lineTo(br.x, br.y);
-  ctx.lineTo(tr.x, tr.y);
-  ctx.closePath();
-  ctx.clip();
-  ctx.strokeStyle = TAPE_GRAIN_COLOR;
-  ctx.lineWidth = 0.5;
-  for (let i = 6; i < len; i += 8) {
-    ctx.beginPath();
-    ctx.moveTo(start.x + ax * i + px * 0.85, start.y + ay * i + py * 0.85);
-    ctx.lineTo(start.x + ax * i - px * 0.85, start.y + ay * i - py * 0.85);
-    ctx.stroke();
-  }
-  ctx.restore();
+  // ── Pattern decoration ─────────────────────────────────────────────────────
+  pattern.draw(ctx as unknown as CanvasRenderingContext2D, len, hw, seed);
 
-  // ── Sakura flowers (clipped to tape body) ──
-  const flowerRng = seededRng((tearSeed ?? PREVIEW_SEED) + 800);
-  ctx.save();
+  // ── Semi-transparent sheen overlay (gives a slight translucency) ───────────
   ctx.beginPath();
-  ctx.moveTo(tl.x, tl.y);
-  ctx.lineTo(bl.x, bl.y);
-  ctx.lineTo(br.x, br.y);
-  ctx.lineTo(tr.x, tr.y);
-  ctx.closePath();
-  ctx.clip();
-  const FLOWER_SPACING = 22;
-  for (let i = FLOWER_SPACING / 2; i < len; i += FLOWER_SPACING) {
-    const jitter = (flowerRng() - 0.5) * FLOWER_SPACING * 0.5;
-    const perpOffset = (flowerRng() - 0.5) * (width * 0.5);
-    const rotation = flowerRng() * Math.PI * 2;
-    const size = 5.5 + flowerRng() * 2.5;
-    const flAlpha = 0.62 + flowerRng() * 0.28;
-    const fcx = start.x + ax * (i + jitter) + px * (perpOffset / (width / 2));
-    const fcy = start.y + ay * (i + jitter) + py * (perpOffset / (width / 2));
-    // 5 petals (overlapping circles arranged around center)
-    const petalR = size * 0.42;
-    const petalDist = size * 0.30;
-    for (let p = 0; p < 5; p++) {
-      const pa = rotation + (p / 5) * Math.PI * 2;
-      ctx.beginPath();
-      ctx.arc(fcx + Math.cos(pa) * petalDist, fcy + Math.sin(pa) * petalDist, petalR, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(255,182,193,${flAlpha})`;
-      ctx.fill();
-    }
-    // Center
-    ctx.beginPath();
-    ctx.arc(fcx, fcy, size * 0.18, 0, Math.PI * 2);
-    ctx.fillStyle = `rgba(255,210,120,${flAlpha + 0.1})`;
-    ctx.fill();
-  }
-  ctx.restore();
+  ctx.rect(0, -hw, len, width);
+  ctx.fillStyle = 'rgba(255,255,255,0.18)';
+  ctx.fill();
 
-  // ── Left torn end (start side) — always shown ──
-  const leftRng = seededRng((tearSeed ?? PREVIEW_SEED) + 1);
-  const steps = 7;
+  // ── Left torn end ──────────────────────────────────────────────────────────
+  const leftRng = seededRng(seed + 1);
+  const steps = 8;
   ctx.beginPath();
-  ctx.moveTo(tl.x, tl.y);
+  ctx.moveTo(0, -hw);
   for (let i = 1; i <= steps; i++) {
     const t = i / steps;
-    const mx = tl.x + (bl.x - tl.x) * t;
-    const my = tl.y + (bl.y - tl.y) * t;
+    const y = -hw + t * width;
     const jag = (leftRng() - 0.5) * 7;
-    ctx.lineTo(mx - ax * Math.abs(jag), my - ay * Math.abs(jag));
+    ctx.lineTo(-Math.abs(jag), y);
   }
   ctx.strokeStyle = TAPE_EDGE_COLOR;
-  ctx.lineWidth = 1;
-  ctx.lineJoin = 'round';
+  ctx.lineWidth   = 1;
+  ctx.lineJoin    = 'round';
   ctx.stroke();
 
-  // ── Right torn end — only on finalized strips ──
+  // ── Right torn end + wisps — only on finalized strips ─────────────────────
   if (tearSeed !== null) {
     const rightRng = seededRng(tearSeed);
     ctx.beginPath();
-    ctx.moveTo(tr.x, tr.y);
+    ctx.moveTo(len, -hw);
     for (let i = 1; i <= steps; i++) {
       const t = i / steps;
-      const mx = tr.x + (br.x - tr.x) * t;
-      const my = tr.y + (br.y - tr.y) * t;
+      const y = -hw + t * width;
       const jag = (rightRng() - 0.5) * 10;
-      ctx.lineTo(mx + ax * jag, my + ay * jag);
+      ctx.lineTo(len + Math.abs(jag), y);
     }
     ctx.strokeStyle = TAPE_EDGE_COLOR;
-    ctx.lineWidth = 1.2;
-    ctx.lineJoin = 'round';
+    ctx.lineWidth   = 1.2;
+    ctx.lineJoin    = 'round';
     ctx.stroke();
 
-    // ── Fiber wisps at tear end ──
+    // Fiber wisps at tear end
     const wispRng = seededRng(tearSeed + 77);
     ctx.strokeStyle = WISP_COLOR;
-    ctx.lineWidth = 0.7;
+    ctx.lineWidth   = 0.7;
     for (let i = 0; i < 4; i++) {
       const t = (i + 0.3 + wispRng() * 0.4) / 4;
-      const wx = tr.x + (br.x - tr.x) * t;
-      const wy = tr.y + (br.y - tr.y) * t;
+      const wy = -hw + t * width;
       const wlen = 5 + wispRng() * 5;
-      const angle = (wispRng() - 0.5) * 0.9;
-      const wdx = ax * Math.cos(angle) - ay * Math.sin(angle);
-      const wdy = ax * Math.sin(angle) + ay * Math.cos(angle);
+      const wa = (wispRng() - 0.5) * 0.9;
       ctx.beginPath();
-      ctx.moveTo(wx, wy);
-      ctx.lineTo(wx + wdx * wlen, wy + wdy * wlen);
+      ctx.moveTo(len, wy);
+      ctx.lineTo(len + Math.cos(wa) * wlen, wy + Math.sin(wa) * wlen);
       ctx.stroke();
     }
   }
@@ -208,9 +152,9 @@ function drawTapeShape(
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
-const TAPE_WIDTH = 28;
-const DIRECTION_LOCK_DIST = 5;
-const TEAR_THRESHOLD = 0.34; // cos(~70°)
+const DEFAULT_TAPE_WIDTH   = 28;
+const DIRECTION_LOCK_DIST  = 5;
+const TEAR_THRESHOLD       = 0.34; // cos(~70°)
 
 // ── Component ────────────────────────────────────────────────────────────────
 
@@ -220,6 +164,8 @@ export interface TapeLayerProps {
   onStripAdded: (strip: TapeStrip) => void;
   stageWidth: number;
   stageHeight: number;
+  selectedPatternId?: string;
+  selectedWidth?: number;
 }
 
 interface InProgress {
@@ -235,6 +181,8 @@ export const TapeLayer: React.FC<TapeLayerProps> = ({
   onStripAdded,
   stageWidth,
   stageHeight,
+  selectedPatternId = 'cream',
+  selectedWidth = DEFAULT_TAPE_WIDTH,
 }) => {
   const [inProgress, setInProgress] = useState<InProgress | null>(null);
   const ipRef = useRef<InProgress | null>(null);
@@ -259,8 +207,9 @@ export const TapeLayer: React.FC<TapeLayerProps> = ({
       id: Math.random().toString(36).substr(2, 9),
       startPoint: start,
       endPoint: end,
-      width: TAPE_WIDTH,
+      width: selectedWidth,
       tearSeed: Math.random() * 100000,
+      patternId: selectedPatternId,
     });
     playSound('tapeRip');
   };
@@ -287,15 +236,13 @@ export const TapeLayer: React.FC<TapeLayerProps> = ({
     const ip = ipRef.current;
 
     const totalMovement = { x: pos.x - ip.startPoint.x, y: pos.y - ip.startPoint.y };
-    const stepMovement  = { x: pos.x - ip.prevPoint.x,  y: pos.y - ip.prevPoint.y };
+    const stepMovement  = { x: pos.x - ip.prevPoint.x,  y: pos.y - ip.prevPoint.y  };
 
-    // Lock tape direction once the user has moved far enough
     let tapeDirection = ip.tapeDirection;
     if (!tapeDirection && vecLen(totalMovement) > DIRECTION_LOCK_DIST) {
       tapeDirection = vecNorm(totalMovement);
     }
 
-    // Check tear: current step deviates > 70° from locked direction
     if (tapeDirection && vecLen(stepMovement) > 1.5) {
       const d = vecDot(vecNorm(stepMovement), tapeDirection);
       if (d < TEAR_THRESHOLD) {
@@ -318,7 +265,6 @@ export const TapeLayer: React.FC<TapeLayerProps> = ({
     if (!ipRef.current) return;
     const pos = getPos(e);
     if (!pos) {
-      // pointer left stage — finalize at last known position
       finalize(ipRef.current.startPoint, ipRef.current.prevPoint);
       return;
     }
@@ -347,7 +293,15 @@ export const TapeLayer: React.FC<TapeLayerProps> = ({
         <Shape
           key={strip.id}
           sceneFunc={(ctx) => {
-            drawTapeShape(ctx, strip.startPoint, strip.endPoint, strip.width, strip.tearSeed);
+            drawTapeShape(
+              ctx,
+              strip.startPoint,
+              strip.endPoint,
+              strip.width,
+              strip.tearSeed,
+              1,
+              strip.patternId ?? 'cream',
+            );
           }}
           listening={false}
         />
@@ -361,9 +315,10 @@ export const TapeLayer: React.FC<TapeLayerProps> = ({
               ctx,
               inProgress.startPoint,
               inProgress.currentPoint,
-              TAPE_WIDTH,
+              selectedWidth,
               null,
-              0.5,
+              0.6,
+              selectedPatternId,
             );
           }}
           listening={false}
